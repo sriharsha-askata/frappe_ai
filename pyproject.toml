@@ -9,6 +9,35 @@ readme = "README.md"
 dynamic = ["version"]
 dependencies = [
     # "frappe~=15.0.0" # Installed and managed by bench.
+    # Provider-name validation and model-id suggestions only — same pin as
+    # apps/flow/pyproject.toml. Chat calls still go through Agno's native
+    # per-provider classes; see docs/decisions/0013-litellm-for-provider-ux-agno-still-executes.md.
+    "litellm>=1.83.0,<1.83.8",
+    "agno>=2.8,<3",
+    "RestrictedPython>=8.4,<9",
+    "pydantic>=2.11,<3",
+    "fastapi>=0.115,<1",
+    # Plain uvicorn, not the [standard] extra — its optional deps (uvloop,
+    # httptools, websockets, watchfiles) aren't needed for this SSE-over-plain-HTTP
+    # service, and pulling `websockets` collides with `commit`'s pinned
+    # `pyppeteer` (websockets<11) elsewhere in this bench's shared venv.
+    "uvicorn>=0.34,<1",
+    # Already present transitively in this bench; declared explicitly since
+    # frappe_ai/service/frappe_client.py depends on it directly.
+    "httpx>=0.27,<1",
+    # Knowledge/RAG pipeline (Phase 4) — same pins as apps/flow/pyproject.toml.
+    # No litellm for embeddings either — see docs/decisions/0012-embeddings-direct-provider-sdk.md.
+    "lancedb<1,>=0.33",
+    "python-docx<2,>=1.1",
+    "pdfplumber<1,>=0.10",
+    "rapidocr<4,>=3",
+    "onnxruntime<2,>=1.27",
+    "openpyxl>=3.1,<4",
+    "beautifulsoup4>=4.12,<5",
+    "lxml>=5,<7",
+    "chardet>=5,<6",
+    "croniter>=2,<7",
+    "mcp>=1,<2",
 ]
 
 [build-system]
@@ -18,6 +47,10 @@ build-backend = "flit_core.buildapi"
 # These dependencies are only installed when developer mode is enabled
 [tool.bench.dev-dependencies]
 # package_name = "~=1.1.0"
+
+# These apt dependencies will be installed from Ubuntu repositories when you host your app on Frappe Cloud
+[deploy.dependencies.apt]
+packages = ["libgl1", "libglib2.0-0"]
 
 [tool.ruff]
 line-length = 110

@@ -5,6 +5,17 @@ app_description = "frappe ai"
 app_email = "askata@asakta.com"
 app_license = "mit"
 
+import os as _os
+
+
+def _frappe_ai_panel_asset(filename: str) -> str:
+	path = _os.path.join(_os.path.dirname(__file__), "public", "frappe_ai_panel", filename)
+	try:
+		version = int(_os.path.getmtime(path))
+	except OSError:
+		version = 0
+	return f"/assets/frappe_ai/frappe_ai_panel/{filename}?v={version}"
+
 # Apps
 # ------------------
 
@@ -24,9 +35,10 @@ app_license = "mit"
 # Includes in <head>
 # ------------------
 
-# include js, css files in header of desk.html
-# app_include_css = "/assets/frappe_ai/css/frappe_ai.css"
-# app_include_js = "/assets/frappe_ai/js/frappe_ai.js"
+# Esbuild-built desk panel bundle, served directly from public/ with mtime-based
+# cache busting so rebuilds invalidate the browser without changing filenames.
+app_include_js = [_frappe_ai_panel_asset("frappe_ai_panel.js")]
+app_include_css = [_frappe_ai_panel_asset("frappe_ai_panel.css")]
 
 # include js, css files in header of web template
 # web_include_css = "/assets/frappe_ai/css/frappe_ai.css"
@@ -132,39 +144,45 @@ app_license = "mit"
 # ---------------
 # Hook on document methods and events
 
-# doc_events = {
-# 	"*": {
-# 		"on_update": "method",
-# 		"on_cancel": "method",
-# 		"on_trash": "method"
-# 	}
-# }
+doc_events = {
+	"*": {
+		"after_insert": "frappe_ai.triggers.dispatch",
+		"on_update": "frappe_ai.triggers.dispatch",
+		"on_submit": "frappe_ai.triggers.dispatch",
+		"on_cancel": "frappe_ai.triggers.dispatch",
+		"on_trash": "frappe_ai.triggers.dispatch",
+	}
+}
 
 # Scheduled Tasks
 # ---------------
 
-# scheduler_events = {
-# 	"all": [
-# 		"frappe_ai.tasks.all"
-# 	],
-# 	"daily": [
-# 		"frappe_ai.tasks.daily"
-# 	],
-# 	"hourly": [
-# 		"frappe_ai.tasks.hourly"
-# 	],
-# 	"weekly": [
-# 		"frappe_ai.tasks.weekly"
-# 	],
-# 	"monthly": [
-# 		"frappe_ai.tasks.monthly"
-# 	],
-# }
+scheduler_events = {
+	"daily": [
+		# Incremental DocType-source sync — see 002-feature-mapping.md §5.22.
+		"frappe_ai.knowledge.ingest.sync_due_sources",
+	],
+	"cron": {
+		"*/5 * * * *": [
+			"frappe_ai.triggers.dispatch_scheduled",
+			"frappe_ai.api.mcp.check_all_mcp_connections",
+		],
+	},
+}
 
 # Testing
 # -------
 
 # before_tests = "frappe_ai.install.before_tests"
+
+# Migration
+# ---------
+# Upserts the 10 builtin tools as system-generated AI Tool rows on every migrate.
+# Phase 7's sync_builtin_assistant will also call this (see AI Model.after_insert's
+# ImportError guard); it runs independently here so builtins exist before Phase 7 lands.
+after_migrate = ["frappe_ai.tools.builtins.sync_builtin_tools"]
+
+extend_bootinfo = "frappe_ai.boot.boot_session"
 
 # Extend DocType Class
 # ------------------------------
@@ -195,7 +213,9 @@ app_license = "mit"
 # Ignore links to specified DocTypes when deleting documents
 # -----------------------------------------------------------
 
-# ignore_links_on_delete = ["Communication", "ToDo"]
+# A deleted DocType-source row's chunk is expected to disappear on the next
+# incremental sweep / reconcile — link-checking must not block that delete instead.
+ignore_links_on_delete = ["AI Knowledge Chunk", "AI Run", "AI Session"]
 
 # Request Events
 # ----------------
@@ -244,4 +264,3 @@ app_license = "mit"
 # default_log_clearing_doctypes = {
 # 	"Logging DocType Name": 30  # days to retain logs
 # }
-

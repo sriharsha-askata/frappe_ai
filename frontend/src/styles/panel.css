@@ -1,0 +1,744 @@
+#frappe-ai-root.faip-root {
+	position: fixed;
+	top: 0;
+	right: 0;
+	height: 100vh;
+	z-index: 1040;
+}
+
+.faip-root,
+.faip-root * {
+	box-sizing: border-box;
+}
+
+:where(.faip-root, .faip-page-host) .faip-shell[data-theme="dark"] {
+	--faip-bg: #09111f;
+	--faip-bg-soft: #0e1a2d;
+	--faip-bg-elevated: rgba(13, 24, 42, 0.86);
+	--faip-bg-muted: rgba(72, 187, 255, 0.12);
+	--faip-border: rgba(148, 163, 184, 0.22);
+	--faip-border-strong: rgba(148, 163, 184, 0.36);
+	--faip-text: #edf4ff;
+	--faip-text-muted: #9bb0ca;
+	--faip-primary: #24b3ff;
+	--faip-primary-strong: #0b8dde;
+	--faip-accent: #41e0c2;
+	--faip-danger: #ff7b8f;
+	--faip-chip: rgba(17, 33, 57, 0.9);
+	--faip-shadow: 0 28px 80px rgba(2, 8, 23, 0.46);
+}
+
+:where(.faip-root, .faip-page-host) .faip-shell[data-theme="light"],
+:where(.faip-root, .faip-page-host) .faip-shell:not([data-theme]) {
+	--faip-bg: #f5f7fb;
+	--faip-bg-soft: #eef4fb;
+	--faip-bg-elevated: rgba(255, 255, 255, 0.92);
+	--faip-bg-muted: rgba(38, 132, 255, 0.1);
+	--faip-border: rgba(15, 23, 42, 0.08);
+	--faip-border-strong: rgba(15, 23, 42, 0.14);
+	--faip-text: #122033;
+	--faip-text-muted: #5f728c;
+	--faip-primary: #0f82ff;
+	--faip-primary-strong: #0666cf;
+	--faip-accent: #00b894;
+	--faip-danger: #df4862;
+	--faip-chip: rgba(255, 255, 255, 0.84);
+	--faip-shadow: 0 30px 70px rgba(15, 23, 42, 0.14);
+}
+
+:where(.faip-root, .faip-page-host) .faip-shell {
+	position: fixed;
+	top: 0;
+	right: 0;
+	height: 100vh;
+	background:
+		radial-gradient(circle at top right, rgba(36, 179, 255, 0.18), transparent 34%),
+		radial-gradient(circle at 0% 100%, rgba(65, 224, 194, 0.14), transparent 24%),
+		var(--faip-bg);
+	color: var(--faip-text);
+	box-shadow: var(--faip-shadow);
+	transition:
+		transform 0.22s ease,
+		width 0.18s ease;
+	overflow: hidden;
+}
+
+:where(.faip-root, .faip-page-host) .faip-resize-handle {
+	position: absolute;
+	top: 0;
+	left: 0;
+	width: 8px;
+	height: 100%;
+	cursor: ew-resize;
+	z-index: 12;
+}
+
+:where(.faip-root, .faip-page-host) .faip-panel {
+	position: relative;
+	display: flex;
+	flex-direction: column;
+	height: 100%;
+	border-left: 1px solid var(--faip-border);
+	background: transparent;
+	color: var(--faip-text);
+	isolation: isolate;
+}
+
+:where(.faip-root, .faip-page-host) .faip-panel.is-page,
+.faip-page-host .faip-panel {
+	border-left: 0;
+	height: calc(100vh - 110px);
+	min-height: 720px;
+	border-radius: 28px;
+	overflow: hidden;
+	border: 1px solid var(--faip-border);
+	box-shadow: var(--faip-shadow);
+}
+
+.faip-page-host {
+	--faip-bg: #f3f6fb;
+	--faip-bg-soft: #ebf1f9;
+	--faip-bg-elevated: rgba(255, 255, 255, 0.94);
+	--faip-bg-muted: rgba(38, 132, 255, 0.08);
+	--faip-border: rgba(15, 23, 42, 0.08);
+	--faip-border-strong: rgba(15, 23, 42, 0.14);
+	--faip-text: #122033;
+	--faip-text-muted: #60738b;
+	--faip-primary: #0f82ff;
+	--faip-primary-strong: #0666cf;
+	--faip-accent: #00b894;
+	--faip-danger: #df4862;
+	--faip-chip: rgba(255, 255, 255, 0.84);
+	--faip-shadow: 0 32px 75px rgba(15, 23, 42, 0.12);
+	padding: 22px;
+	background:
+		radial-gradient(circle at top left, rgba(15, 130, 255, 0.12), transparent 28%),
+		radial-gradient(circle at bottom right, rgba(0, 184, 148, 0.08), transparent 24%),
+		transparent;
+}
+
+:where(.faip-root, .faip-page-host) .faip-panel-glow {
+	position: absolute;
+	border-radius: 999px;
+	filter: blur(48px);
+	pointer-events: none;
+	opacity: 0.6;
+	z-index: -1;
+}
+
+:where(.faip-root, .faip-page-host) .faip-panel-glow-a {
+	top: -120px;
+	right: -80px;
+	width: 260px;
+	height: 260px;
+	background: rgba(36, 179, 255, 0.18);
+}
+
+:where(.faip-root, .faip-page-host) .faip-panel-glow-b {
+	left: 6%;
+	bottom: 8%;
+	width: 220px;
+	height: 220px;
+	background: rgba(65, 224, 194, 0.14);
+}
+
+:where(.faip-root, .faip-page-host) .faip-header {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 16px;
+	padding: 18px 22px;
+	border-bottom: 1px solid var(--faip-border);
+	background: var(--faip-bg-elevated);
+	backdrop-filter: blur(18px);
+}
+
+:where(.faip-root, .faip-page-host) .faip-header-brand,
+:where(.faip-root, .faip-page-host) .faip-header-actions,
+:where(.faip-root, .faip-page-host) .faip-header-status,
+:where(.faip-root, .faip-page-host) .faip-composer-tools,
+:where(.faip-root, .faip-page-host) .faip-composer-footer,
+:where(.faip-root, .faip-page-host) .faip-confirm-actions,
+:where(.faip-root, .faip-page-host) .faip-feedback {
+	display: flex;
+	align-items: center;
+	gap: 10px;
+}
+
+:where(.faip-root, .faip-page-host) .faip-header-mark,
+:where(.faip-root, .faip-page-host) .faip-empty-mark {
+	width: 44px;
+	height: 44px;
+	display: grid;
+	place-items: center;
+	border-radius: 16px;
+	color: white;
+	background: linear-gradient(135deg, var(--faip-primary), var(--faip-accent));
+	box-shadow: 0 18px 28px rgba(15, 130, 255, 0.24);
+}
+
+:where(.faip-root, .faip-page-host) .faip-header-copy {
+	display: flex;
+	flex-direction: column;
+	gap: 3px;
+}
+
+:where(.faip-root, .faip-page-host) .faip-header-title {
+	font-size: 15px;
+	font-weight: 700;
+	letter-spacing: 0.01em;
+}
+
+:where(.faip-root, .faip-page-host) .faip-header-subtitle {
+	font-size: 12px;
+	color: var(--faip-text-muted);
+}
+
+:where(.faip-root, .faip-page-host) .faip-status-pill {
+	display: inline-flex;
+	align-items: center;
+	gap: 6px;
+	padding: 7px 11px;
+	border-radius: 999px;
+	border: 1px solid var(--faip-border);
+	background: rgba(255, 255, 255, 0.4);
+	color: var(--faip-text-muted);
+	font-size: 12px;
+}
+
+:where(.faip-root, .faip-page-host) .faip-status-pill.is-primary {
+	background: var(--faip-bg-muted);
+	color: var(--faip-primary);
+	border-color: rgba(15, 130, 255, 0.18);
+}
+
+:where(.faip-root, .faip-page-host) .faip-message-list {
+	flex: 1;
+	overflow-y: auto;
+	padding: 28px 24px calc(var(--faip-composer-h, 140px) + 34px);
+	background:
+		linear-gradient(180deg, rgba(255, 255, 255, 0.02), transparent 24%),
+		linear-gradient(180deg, var(--faip-bg-soft) 0%, transparent 70%);
+}
+
+:where(.faip-root, .faip-page-host) .faip-message-stack {
+	width: 100%;
+	max-width: 940px;
+	margin: 0 auto;
+	display: flex;
+	flex-direction: column;
+	gap: 20px;
+}
+
+:where(.faip-root, .faip-page-host) .faip-empty {
+	min-height: 420px;
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	justify-content: center;
+	text-align: center;
+	gap: 14px;
+	padding: 26px 22px;
+	border: 1px solid var(--faip-border);
+	border-radius: 30px;
+	background:
+		linear-gradient(145deg, rgba(255, 255, 255, 0.84), rgba(255, 255, 255, 0.56)),
+		var(--faip-bg-elevated);
+	backdrop-filter: blur(18px);
+	box-shadow: 0 24px 55px rgba(15, 23, 42, 0.08);
+}
+
+:where(.faip-root, .faip-page-host) .faip-empty h3 {
+	margin: 0;
+	font-size: 26px;
+	line-height: 1.08;
+	letter-spacing: -0.03em;
+	color: var(--faip-text);
+	max-width: 560px;
+}
+
+:where(.faip-root, .faip-page-host) .faip-empty p,
+:where(.faip-root, .faip-page-host) .faip-empty li,
+:where(.faip-root, .faip-page-host) .faip-confirm-prompt,
+:where(.faip-root, .faip-page-host) .faip-activity-meta,
+:where(.faip-root, .faip-page-host) .faip-chip-size,
+:where(.faip-root, .faip-page-host) .faip-chip-error,
+:where(.faip-root, .faip-page-host) .faip-inline-error,
+:where(.faip-root, .faip-page-host) .faip-working {
+	font-size: 13px;
+	line-height: 1.5;
+	color: var(--faip-text-muted);
+}
+
+:where(.faip-root, .faip-page-host) .faip-empty-list {
+	margin: 0;
+	padding-left: 18px;
+	text-align: left;
+	display: flex;
+	flex-direction: column;
+	gap: 8px;
+	max-width: 520px;
+}
+
+:where(.faip-root, .faip-page-host) .faip-empty-feature-grid {
+	display: grid;
+	grid-template-columns: repeat(3, minmax(0, 1fr));
+	gap: 12px;
+	width: 100%;
+	max-width: 700px;
+	margin-top: 4px;
+}
+
+:where(.faip-root, .faip-page-host) .faip-empty-feature,
+:where(.faip-root, .faip-page-host) .faip-prompt-card {
+	display: flex;
+	align-items: center;
+	gap: 10px;
+	padding: 14px 16px;
+	border: 1px solid var(--faip-border);
+	border-radius: 18px;
+	background: rgba(255, 255, 255, 0.56);
+	color: var(--faip-text);
+}
+
+:where(.faip-root, .faip-page-host) .faip-empty-feature span {
+	font-size: 13px;
+	font-weight: 600;
+	text-align: left;
+}
+
+:where(.faip-root, .faip-page-host) .faip-empty-prompts {
+	width: 100%;
+	max-width: 700px;
+	display: grid;
+	grid-template-columns: repeat(3, minmax(0, 1fr));
+	gap: 12px;
+	margin-top: 8px;
+}
+
+:where(.faip-root, .faip-page-host) .faip-prompt-card {
+	cursor: pointer;
+	text-align: left;
+	font: inherit;
+	transition:
+		transform 0.18s ease,
+		border-color 0.18s ease,
+		box-shadow 0.18s ease;
+}
+
+:where(.faip-root, .faip-page-host) .faip-prompt-card:hover {
+	transform: translateY(-1px);
+	border-color: rgba(15, 130, 255, 0.22);
+	box-shadow: 0 16px 32px rgba(15, 23, 42, 0.08);
+}
+
+:where(.faip-root, .faip-page-host) .faip-user-wrap {
+	display: flex;
+	justify-content: flex-end;
+}
+
+:where(.faip-root, .faip-page-host) .faip-user-message,
+:where(.faip-root, .faip-page-host) .faip-assistant-text,
+:where(.faip-root, .faip-page-host) .faip-confirm-card,
+:where(.faip-root, .faip-page-host) .faip-activity-group,
+:where(.faip-root, .faip-page-host) .faip-working {
+	border: 1px solid var(--faip-border);
+	border-radius: 22px;
+	backdrop-filter: blur(16px);
+}
+
+:where(.faip-root, .faip-page-host) .faip-user-message {
+	max-width: min(78%, 760px);
+	padding: 15px 16px;
+	background: linear-gradient(135deg, var(--faip-primary), #1f98ff 60%, #48c9ff 100%);
+	border-color: transparent;
+	color: white;
+	box-shadow: 0 20px 32px rgba(15, 130, 255, 0.22);
+}
+
+:where(.faip-root, .faip-page-host) .faip-user-attachments,
+:where(.faip-root, .faip-page-host) .faip-composer-attachments {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 8px;
+	margin-bottom: 10px;
+}
+
+:where(.faip-root, .faip-page-host) .faip-assistant {
+	display: flex;
+	flex-direction: column;
+	gap: 12px;
+}
+
+:where(.faip-root, .faip-page-host) .faip-assistant-text,
+:where(.faip-root, .faip-page-host) .faip-confirm-card {
+	padding: 16px 18px;
+	background: var(--faip-bg-elevated);
+	box-shadow: 0 18px 36px rgba(15, 23, 42, 0.06);
+}
+
+:where(.faip-root, .faip-page-host) .faip-text-block {
+	white-space: pre-wrap;
+	word-break: break-word;
+	line-height: 1.65;
+	font-size: 14px;
+}
+
+:where(.faip-root, .faip-page-host) .faip-activity-group {
+	display: flex;
+	flex-direction: column;
+	gap: 10px;
+	padding: 13px;
+	background: rgba(255, 255, 255, 0.48);
+}
+
+:where(.faip-root, .faip-page-host) .faip-activity {
+	padding: 14px;
+	border-radius: 18px;
+	background: rgba(255, 255, 255, 0.62);
+	border: 1px solid transparent;
+}
+
+:where(.faip-root, .faip-page-host) .faip-activity.is-error,
+:where(.faip-root, .faip-page-host) .faip-confirm-card.is-danger {
+	border: 1px solid color-mix(in srgb, var(--faip-danger) 26%, transparent);
+	background: color-mix(in srgb, var(--faip-danger) 7%, var(--faip-bg-elevated));
+}
+
+:where(.faip-root, .faip-page-host) .faip-activity-header,
+:where(.faip-root, .faip-page-host) .faip-confirm-header,
+:where(.faip-root, .faip-page-host) .faip-inline-error,
+:where(.faip-root, .faip-page-host) .faip-working {
+	display: flex;
+	align-items: flex-start;
+	gap: 10px;
+}
+
+:where(.faip-root, .faip-page-host) .faip-working {
+	padding: 12px 14px;
+	align-self: flex-start;
+	background: var(--faip-bg-elevated);
+}
+
+:where(.faip-root, .faip-page-host) .faip-activity-title,
+:where(.faip-root, .faip-page-host) .faip-confirm-title {
+	font-size: 14px;
+	font-weight: 700;
+	color: var(--faip-text);
+}
+
+:where(.faip-root, .faip-page-host) .faip-code-block {
+	margin: 10px 0 0;
+	padding: 12px 14px;
+	border-radius: 14px;
+	background: rgba(15, 23, 42, 0.06);
+	font-size: 12px;
+	line-height: 1.5;
+	overflow-x: auto;
+	white-space: pre-wrap;
+	word-break: break-word;
+}
+
+:where(.faip-root, .faip-page-host) .faip-shell[data-theme="dark"] .faip-code-block {
+	background: rgba(148, 163, 184, 0.12);
+}
+
+:where(.faip-root, .faip-page-host) .faip-confirm-redirect {
+	margin-top: 12px;
+	display: flex;
+	flex-direction: column;
+	gap: 8px;
+}
+
+:where(.faip-root, .faip-page-host) .faip-feedback {
+	flex-wrap: wrap;
+}
+
+:where(.faip-root, .faip-page-host) .faip-chip {
+	display: inline-flex;
+	align-items: center;
+	gap: 8px;
+	max-width: 100%;
+	padding: 7px 10px;
+	border: 1px solid var(--faip-border);
+	border-radius: 999px;
+	background: var(--faip-chip);
+	font-size: 12px;
+	backdrop-filter: blur(14px);
+}
+
+:where(.faip-root, .faip-page-host) .faip-chip.is-error {
+	border-color: color-mix(in srgb, var(--faip-danger) 30%, var(--faip-border));
+}
+
+:where(.faip-root, .faip-page-host) .faip-chip-label {
+	max-width: 180px;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+:where(.faip-root, .faip-page-host) .faip-chip .faip-icon-button {
+	width: 22px;
+	height: 22px;
+	padding: 0;
+	border-radius: 999px;
+}
+
+:where(.faip-root, .faip-page-host) .faip-composer {
+	position: absolute;
+	left: 24px;
+	right: 24px;
+	bottom: 18px;
+	max-width: 940px;
+	margin: 0 auto;
+	padding: 14px;
+	border: 1px solid var(--faip-border-strong);
+	border-radius: 26px;
+	background: var(--faip-bg-elevated);
+	backdrop-filter: blur(22px);
+	box-shadow: 0 24px 48px rgba(15, 23, 42, 0.12);
+}
+
+:where(.faip-root, .faip-page-host) .faip-composer.is-dragging {
+	background: color-mix(in srgb, var(--faip-primary) 7%, var(--faip-bg-elevated));
+}
+
+:where(.faip-root, .faip-page-host) .faip-composer-input,
+:where(.faip-root, .faip-page-host) .faip-textarea,
+:where(.faip-root, .faip-page-host) .faip-search input,
+:where(.faip-root, .faip-page-host) .faip-select {
+	width: 100%;
+	border: 1px solid var(--faip-border);
+	border-radius: 14px;
+	background: rgba(255, 255, 255, 0.58);
+	color: var(--faip-text);
+	padding: 10px 12px;
+	font: inherit;
+	outline: none;
+	transition:
+		border-color 0.18s ease,
+		box-shadow 0.18s ease,
+		background 0.18s ease;
+}
+
+:where(.faip-root, .faip-page-host) .faip-composer-input:focus,
+:where(.faip-root, .faip-page-host) .faip-textarea:focus,
+:where(.faip-root, .faip-page-host) .faip-search input:focus,
+:where(.faip-root, .faip-page-host) .faip-select:focus {
+	border-color: rgba(15, 130, 255, 0.28);
+	box-shadow: 0 0 0 4px rgba(15, 130, 255, 0.08);
+}
+
+:where(.faip-root, .faip-page-host) .faip-composer-input {
+	min-height: 72px;
+	max-height: 180px;
+	resize: none;
+	border: 0;
+	background: transparent;
+	padding: 8px 6px 12px;
+	font-size: 15px;
+	line-height: 1.5;
+}
+
+:where(.faip-root, .faip-page-host) .faip-textarea {
+	min-height: 88px;
+	resize: vertical;
+}
+
+:where(.faip-root, .faip-page-host) .faip-select {
+	width: auto;
+	max-width: 220px;
+	padding-right: 34px;
+}
+
+:where(.faip-root, .faip-page-host) .faip-primary-button,
+:where(.faip-root, .faip-page-host) .faip-secondary-button,
+:where(.faip-root, .faip-page-host) .faip-danger-button,
+:where(.faip-root, .faip-page-host) .faip-icon-button,
+:where(.faip-root, .faip-page-host) .faip-feedback-button,
+:where(.faip-root, .faip-page-host) .faip-menu-item {
+	border: 1px solid var(--faip-border);
+	background: rgba(255, 255, 255, 0.64);
+	color: var(--faip-text);
+	border-radius: 14px;
+	padding: 9px 12px;
+	display: inline-flex;
+	align-items: center;
+	gap: 8px;
+	cursor: pointer;
+	font: inherit;
+	transition:
+		transform 0.16s ease,
+		border-color 0.16s ease,
+		background 0.16s ease,
+		box-shadow 0.16s ease;
+}
+
+:where(.faip-root, .faip-page-host) .faip-primary-button:hover,
+:where(.faip-root, .faip-page-host) .faip-secondary-button:hover,
+:where(.faip-root, .faip-page-host) .faip-danger-button:hover,
+:where(.faip-root, .faip-page-host) .faip-icon-button:hover,
+:where(.faip-root, .faip-page-host) .faip-feedback-button:hover,
+:where(.faip-root, .faip-page-host) .faip-menu-item:hover {
+	transform: translateY(-1px);
+	border-color: rgba(15, 130, 255, 0.18);
+	box-shadow: 0 12px 24px rgba(15, 23, 42, 0.06);
+}
+
+:where(.faip-root, .faip-page-host) .faip-primary-button {
+	background: linear-gradient(135deg, var(--faip-primary), var(--faip-primary-strong));
+	color: white;
+	border-color: transparent;
+}
+
+:where(.faip-root, .faip-page-host) .faip-danger-button {
+	background: color-mix(in srgb, var(--faip-danger) 10%, white);
+	color: var(--faip-danger);
+}
+
+:where(.faip-root, .faip-page-host) .faip-icon-button {
+	padding: 8px;
+}
+
+:where(.faip-root, .faip-page-host) .faip-feedback-button.is-active {
+	background: var(--faip-bg-muted);
+	color: var(--faip-primary);
+	border-color: rgba(15, 130, 255, 0.18);
+}
+
+:where(.faip-root, .faip-page-host) .faip-primary-button:disabled,
+:where(.faip-root, .faip-page-host) .faip-secondary-button:disabled,
+:where(.faip-root, .faip-page-host) .faip-danger-button:disabled,
+:where(.faip-root, .faip-page-host) .faip-icon-button:disabled,
+:where(.faip-root, .faip-page-host) .faip-feedback-button:disabled,
+:where(.faip-root, .faip-page-host) .faip-select:disabled {
+	opacity: 0.5;
+	cursor: default;
+	box-shadow: none;
+	transform: none;
+}
+
+:where(.faip-root, .faip-page-host) .faip-menu {
+	position: relative;
+}
+
+:where(.faip-root, .faip-page-host) .faip-menu-popover {
+	position: absolute;
+	top: calc(100% + 10px);
+	right: 0;
+	width: 320px;
+	padding: 12px;
+	border: 1px solid var(--faip-border-strong);
+	border-radius: 20px;
+	background: var(--faip-bg-elevated);
+	box-shadow: 0 24px 45px rgba(15, 23, 42, 0.14);
+	backdrop-filter: blur(18px);
+	z-index: 30;
+}
+
+:where(.faip-root, .faip-page-host) .faip-search {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	margin-bottom: 10px;
+}
+
+:where(.faip-root, .faip-page-host) .faip-search input {
+	padding: 10px 11px;
+}
+
+:where(.faip-root, .faip-page-host) .faip-menu-list {
+	max-height: 320px;
+	overflow-y: auto;
+	display: flex;
+	flex-direction: column;
+	gap: 7px;
+}
+
+:where(.faip-root, .faip-page-host) .faip-menu-item {
+	width: 100%;
+	justify-content: space-between;
+	text-align: left;
+}
+
+:where(.faip-root, .faip-page-host) .faip-menu-item-title {
+	max-width: 200px;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+:where(.faip-root, .faip-page-host) .faip-menu-item small {
+	color: var(--faip-text-muted);
+}
+
+:where(.faip-root, .faip-page-host) .faip-inline-error {
+	color: var(--faip-danger);
+}
+
+:where(.faip-root, .faip-page-host) .faip-spin {
+	animation: faip-spin 1s linear infinite;
+}
+
+:where(.faip-root, .faip-page-host) .faip-spin-slow {
+	animation: faip-spin 1.6s linear infinite;
+}
+
+@keyframes faip-spin {
+	from {
+		transform: rotate(0deg);
+	}
+	to {
+		transform: rotate(360deg);
+	}
+}
+
+@media (max-width: 1100px) {
+	:where(.faip-root, .faip-page-host) .faip-empty-feature-grid,
+	:where(.faip-root, .faip-page-host) .faip-empty-prompts {
+		grid-template-columns: 1fr;
+	}
+}
+
+@media (max-width: 920px) {
+	:where(.faip-root, .faip-page-host) .faip-header {
+		align-items: flex-start;
+		flex-direction: column;
+	}
+
+	:where(.faip-root, .faip-page-host) .faip-header-actions {
+		flex-wrap: wrap;
+	}
+}
+
+@media (max-width: 768px) {
+	:where(.faip-root, .faip-page-host) .faip-message-list {
+		padding: 18px 16px calc(var(--faip-composer-h, 140px) + 24px);
+	}
+
+	:where(.faip-root, .faip-page-host) .faip-composer {
+		left: 12px;
+		right: 12px;
+		bottom: 12px;
+	}
+
+	:where(.faip-root, .faip-page-host) .faip-composer-footer,
+	:where(.faip-root, .faip-page-host) .faip-composer-tools {
+		flex-wrap: wrap;
+	}
+
+	:where(.faip-root, .faip-page-host) .faip-user-message {
+		max-width: 100%;
+	}
+
+	:where(.faip-root, .faip-page-host) .faip-panel.is-page,
+	.faip-page-host .faip-panel {
+		height: calc(100vh - 40px);
+		min-height: 0;
+	}
+
+	.faip-page-host {
+		padding: 10px;
+	}
+}
