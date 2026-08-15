@@ -4,25 +4,17 @@ import { AttachmentChip } from "./AttachmentChip";
 import { useStore } from "../state/store";
 import { __ } from "../lib/translate";
 
-export function Composer({ onHeight }: { onHeight?: (height: number) => void }) {
+export function Composer() {
 	const {
-		agents,
-		models,
-		selectedAgent,
-		selectedModel,
+		agentRecord,
 		attachments,
 		supportedFileTypes,
 		sending,
 		paused,
-		locked,
 		loaded,
 		needsSetup,
 		uploading,
 		focusTick,
-		agentLabel,
-		modelLabel,
-		setAgent,
-		setModel,
 		send,
 		stopRun,
 		attachFiles,
@@ -32,7 +24,6 @@ export function Composer({ onHeight }: { onHeight?: (height: number) => void }) 
 	const [text, setText] = useState("");
 	const [dragging, setDragging] = useState(false);
 	const textareaRef = useRef<HTMLTextAreaElement | null>(null);
-	const rootRef = useRef<HTMLDivElement | null>(null);
 	const fileInputRef = useRef<HTMLInputElement | null>(null);
 
 	const accept = useMemo(
@@ -45,15 +36,7 @@ export function Composer({ onHeight }: { onHeight?: (height: number) => void }) 
 		? __("Loading…")
 		: needsSetup
 			? __("Setup required…")
-			: __("Ask {0}…", [agentLabel(selectedAgent)]);
-
-	useEffect(() => {
-		const observer = new ResizeObserver((entries) => {
-			onHeight?.(entries[0].target.clientHeight);
-		});
-		if (rootRef.current) observer.observe(rootRef.current);
-		return () => observer.disconnect();
-	}, [onHeight]);
+			: __("Ask {0}…", [agentRecord?.title || __("your agent")]);
 
 	useEffect(() => {
 		textareaRef.current?.focus();
@@ -75,7 +58,6 @@ export function Composer({ onHeight }: { onHeight?: (height: number) => void }) 
 
 	return (
 		<div
-			ref={rootRef}
 			className={`faip-composer ${dragging ? "is-dragging" : ""}`}
 			onDragOver={(event) => {
 				if (inputDisabled) return;
@@ -142,21 +124,10 @@ export function Composer({ onHeight }: { onHeight?: (height: number) => void }) 
 							event.target.value = "";
 						}}
 					/>
-					<select className="faip-select" disabled={locked} value={selectedAgent || ""} onChange={(event) => setAgent(event.target.value)}>
-						{agents.map((agent) => (
-							<option key={agent.name} value={agent.name}>
-								{agent.title || agent.name}
-							</option>
-						))}
-					</select>
-					<select className="faip-select" value={selectedModel || ""} onChange={(event) => setModel(event.target.value || null)}>
-						<option value="">{__("Default")}</option>
-						{models.map((model) => (
-							<option key={model.name} value={model.name}>
-								{modelLabel(model.name) || model.name}
-							</option>
-						))}
-					</select>
+					<div className="faip-composer-agent-chip">
+						<span>{agentRecord?.title || __("Agent")}</span>
+						<small>{agentRecord?.model?.title || __("Agent default model")}</small>
+					</div>
 				</div>
 
 				{sending ? (

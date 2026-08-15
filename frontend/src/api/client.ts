@@ -53,11 +53,11 @@ async function request(methodPath: string, options: RequestOptions = {}) {
 export const bootstrap = () => request("frappe_ai.api.frontend.bootstrap");
 
 export const loadHistory = () =>
-	request("frappe_ai.api.frontend.sessions").then((data) => data.sessions || []);
+	request("frappe_ai.api.frontend.sessions").then((data) => data.session?.history || []);
 
 export const searchSessions = (query: string) =>
 	request("frappe_ai.api.frontend.sessions", { params: { query, limit: 20 } }).then(
-		(data) => data.sessions || []
+		(data) => data.session?.history || []
 	);
 
 export const getSession = (session: string) =>
@@ -80,12 +80,10 @@ export const stopRun = (runName: string) =>
 	request("frappe_ai.api.frontend.stop_run", { method: "POST", body: { run: runName } });
 
 export const getAgentTools = (agent: string) =>
-	request("frappe_ai.api.frontend.agent_tools", { params: { agent } }).then((data) => {
-		const tools = data.tools || {};
-		return Object.fromEntries(
-			Object.entries(tools).map(([slug, meta]: any) => [slug, Boolean(meta?.requires_confirmation)])
-		);
-	});
+	request("frappe_ai.api.frontend.agent_tools", { params: { agent } });
+
+export const checkMcpConnection = (name: string) =>
+	request("frappe_ai.api.mcp.check_connection", { method: "POST", body: { name } });
 
 export async function uploadAttachment(file: File) {
 	const form = new FormData();

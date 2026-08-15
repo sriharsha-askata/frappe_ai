@@ -75,6 +75,11 @@ async def _check_connection_async(doc) -> dict[str, Any]:
 	try:
 		async with toolkit:
 			await toolkit.initialize()
+			if not getattr(toolkit, "initialized", False):
+				return {
+					"is_connected": False,
+					"status_message": "Failed to initialize MCP toolkit.",
+				}
 			return {
 				"is_connected": True,
 				"status_message": f"Connected ({len(toolkit.functions)} tools)",

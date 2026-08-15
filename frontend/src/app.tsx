@@ -1,31 +1,30 @@
 import React from "react";
 import { PageRoot } from "./components/PageRoot";
 import { PanelRoot } from "./components/PanelRoot";
-import { StoreProvider } from "./state/store";
+import { SessionHostAdapter, StoreProvider } from "./state/store";
 
 export function App({
-	fullscreen,
-	onClose,
-	onToggleFullscreen,
-	onSessionChange,
-	mode = "panel",
+	host,
+	variant = "panel",
+	panel,
 }: {
-	fullscreen: boolean;
-	onClose: () => void;
-	onToggleFullscreen: () => void;
-	onSessionChange: (sessionName: string | null) => void;
-	mode?: "panel" | "page";
+	host?: SessionHostAdapter;
+	variant?: "panel" | "standalone";
+	panel?: {
+		fullscreen: boolean;
+		onClose: () => void;
+		onToggleFullscreen: () => void;
+	};
 }) {
 	return (
-		<StoreProvider onSessionChange={onSessionChange}>
-			{mode === "page" ? (
+		<StoreProvider host={host}>
+			{variant === "standalone" ? (
 				<PageRoot />
 			) : (
 				<PanelRoot
-					fullscreen={fullscreen}
-					onClose={onClose}
-					onToggleFullscreen={onToggleFullscreen}
-					mode={mode}
+					fullscreen={panel?.fullscreen ?? false}
+					onClose={panel?.onClose || (() => {})}
+					onToggleFullscreen={panel?.onToggleFullscreen || (() => {})}
 				/>
 			)}
 		</StoreProvider>

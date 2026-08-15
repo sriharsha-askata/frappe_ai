@@ -12,6 +12,18 @@ bench get-app $URL_OF_THIS_REPO --branch main
 bench install-app frappe_ai
 ```
 
+### Optional Dependencies
+
+PDF extraction uses `pdfplumber` and RapidOCR by default. For faster, higher-fidelity PDF
+conversion, install Docling in the bench environment:
+
+```bash
+bench pip install "docling>=1.0.0"
+```
+
+When Docling is present, PDF extraction uses it first and falls back to the default extractor if
+Docling is unavailable or fails.
+
 ### Contributing
 
 This app uses `pre-commit` for code formatting and linting. Please [install pre-commit](https://pre-commit.com/#installation) and enable it for this repository:

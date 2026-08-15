@@ -7,11 +7,9 @@ knowledge, event-driven automation, persistent memory, and a full audit trail.
 + Agno (agent framework) + LanceDB (vectors).
 
 **Current status:** ✅ Phase 5 verified (Triggers, Memory & MCP). Phase 6 frontend work
-has started: the Vue/Vite plan was replaced with a React + TypeScript + esbuild bundle,
-the desk panel runtime exists, and a frontend-oriented JSON API layer now exists for
-same-origin custom frontends. The full-page `/app/frappe-ai` route is mounted but is
-**not yet considered complete UI work**: page mode is still borrowing a panel-first shell,
-so layout/design work remains open. See the
+now has an API-first React SPA with a dedicated `/app/frappe-ai` workspace, plus thin
+Desk/page host adapters for compatibility. The same-origin frontend contract is now
+documented explicitly for custom clients. See the
 [progress tracker](progress/flow-to-frappe-ai-migration.md).
 
 > ⚠️ **Phases 1–7 deliver parity, not production readiness.** Safety-critical items —
@@ -28,6 +26,7 @@ so layout/design work remains open. See the
 | Understand how the system fits together | [001 — Architecture](specifications/001-architecture.md) |
 | Know what feature lives where | [002 — Feature Mapping](specifications/002-feature-mapping.md) |
 | Look up a DocType or field | [003 — DocType Reference](specifications/003-doctype-reference.md) |
+| Implement or review a custom frontend client | [005 — Frontend Contract](specifications/005-frontend-contract.md) |
 | Know where the work stands | [Progress tracker](progress/flow-to-frappe-ai-migration.md) |
 | Understand *why* something is the way it is | [Decisions](#decisions) below |
 | See what surprised us while building this, and why | [Learnings](learnings.md) |
@@ -41,6 +40,8 @@ so layout/design work remains open. See the
 | [001 — Architecture](specifications/001-architecture.md) | Component boundaries, request lifecycles, auth model, data architecture, streaming protocol, failure handling, deployment |
 | [002 — Feature Mapping](specifications/002-feature-mapping.md) | Every `flow` capability and its `frappe_ai` equivalent, marked Port / Adapt / Redesign / New / Drop. The parity checklist. |
 | [003 — DocType Reference](specifications/003-doctype-reference.md) | All 18 DocTypes: fields, types, naming rules, controllers, permissions |
+| [006 — Dynamic MCP Server Profiles](specifications/006-dynamic-mcp-server-profiles.md) | Central AI Tool definitions, configurable MCP profiles, dynamic tool publication, and migration from app-specific MCP server files |
+| [005 — Frontend Contract](specifications/005-frontend-contract.md) | Stable same-origin JSON endpoints, SSE stream protocol, host adapter boundaries, and end-to-end client flows for the standalone SPA or any custom frontend |
 
 ## Decisions
 

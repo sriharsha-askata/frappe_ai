@@ -12,14 +12,36 @@ actually gates access, so it needs direct coverage.
 
 from __future__ import annotations
 
+import json
 from unittest.mock import patch
 
 import frappe
 from frappe.tests import IntegrationTestCase
 
+from frappe_ai.api import service
 from frappe_ai.api.service import _model_call_config, get_service_config
+from frappe_ai.frappe_ai.doctype.ai_run.ai_run import create_run
 
 TEST_SECRET = "test-service-secret-for-api-tests"
+
+
+def _model_and_agent(title: str = "Service API Test Agent") -> str:
+	if not frappe.db.exists("AI Provider", "openai"):
+		frappe.get_doc({"doctype": "AI Provider", "provider": "openai"}).insert(ignore_permissions=True)
+	if not frappe.db.exists("AI Model", "Service API Test Model"):
+		frappe.get_doc(
+			{"doctype": "AI Model", "title": "Service API Test Model", "provider": "openai", "model_id": "gpt-4o-mini"}
+		).insert(ignore_permissions=True)
+	if not frappe.db.exists("AI Agent", title):
+		frappe.get_doc(
+			{
+				"doctype": "AI Agent",
+				"title": title,
+				"model": "Service API Test Model",
+				"instructions": "Be terse.",
+			}
+		).insert(ignore_permissions=True)
+	return title
 
 
 def _patch_request_header(header_value: str | None):
@@ -146,3 +168,41 @@ class TestModelCallConfig(IntegrationTestCase):
 		self.assertEqual(config["class_name"], "OpenAIChat")
 		self.assertIsNone(config["api_key"])
 		self.assertFalse(config["base_url"])
+
+
+class TestGetRunConfigAuth(IntegrationTestCase):
+	def setUp(self):
+		self._original_secret = frappe.conf.get("frappe_ai_service_secret")
+		frappe.conf.frappe_ai_service_secret = TEST_SECRET
+
+	def tearDown(self):
+		if self._original_secret is None:
+			frappe.conf.pop("frappe_ai_service_secret", None)
+		else:
+			frappe.conf.frappe_ai_service_secret = self._original_secret
+		frappe.set_user("Administrator")
+		frappe.db.rollback()
+
+	def test_guest_entry_uses_explicit_acting_user_for_run_lookup(self):
+		agent = _model_and_agent("Service Run Config Agent")
+		session = frappe.get_doc(
+			{
+				"doctype": "AI Session",
+				"agent": agent,
+				"source": "Trigger",
+				"title": "Run Config Session",
+			}
+		).insert(ignore_permissions=True)
+		run = create_run(
+			source="Trigger",
+			input="hello",
+			session=session.name,
+			config_snapshot={"auto_approve": False},
+		)
+		frappe.set_user("Guest")
+
+		with patch("frappe.get_request_header", new=_patch_request_header(TEST_SECRET)):
+			result = service.get_run_config(run.name, "Administrator")
+
+		self.assertEqual(result["agent"]["name"], agent)
+		self.assertEqual(json.loads(json.dumps(result["config_snapshot"])), {"auto_approve": False})

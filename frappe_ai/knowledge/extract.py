@@ -11,6 +11,7 @@ from __future__ import annotations
 
 import os
 import re
+import tempfile
 from dataclasses import dataclass
 from io import BytesIO
 
@@ -22,6 +23,7 @@ IMAGE_EXTENSIONS = {"png", "jpg", "jpeg", "webp", "bmp", "tiff", "tif", "gif"}
 FILE_EXTENSIONS = {"pdf", "xlsx", "docx", "html", "htm"} | TEXT_EXTENSIONS | IMAGE_EXTENSIONS
 
 OCR_DPI = 200
+DOCLING_MIN_MARKDOWN_CHARS = 50
 
 CHILD_FIELDTYPES = {"Table", "Table MultiSelect"}
 HTML_FIELDTYPES = {"Text Editor"}
@@ -145,6 +147,13 @@ def _extract_by_extension(content, extension: str) -> str:
 
 
 def _extract_pdf(data: bytes) -> str:
+	docling_text = _extract_pdf_docling(data)
+	if docling_text is not None:
+		return docling_text.strip()
+	return _extract_pdf_fallback(data)
+
+
+def _extract_pdf_fallback(data: bytes) -> str:
 	import pdfplumber
 	from pdfminer.pdfdocument import PDFPasswordIncorrect
 
@@ -154,6 +163,92 @@ def _extract_pdf(data: bytes) -> str:
 	except PDFPasswordIncorrect:
 		frappe.throw(_("PDF is password protected and cannot be read."), title=_("Cannot Read PDF"))
 	return "\n\n".join(page for page in pages if page)
+
+
+def _extract_pdf_docling(data: bytes) -> str | None:
+	with tempfile.NamedTemporaryFile(suffix=".pdf") as tmp:
+		tmp.write(data)
+		tmp.flush()
+
+		attempts = (
+			{"do_ocr": True, "scale": 1.0, "do_table_structure": False, "require_minimum": True},
+			{"do_ocr": True, "scale": 0.5, "do_table_structure": False, "require_minimum": True},
+			{"do_ocr": True, "scale": 0.2, "do_table_structure": False, "require_minimum": True},
+			{"do_ocr": False, "scale": 1.0, "do_table_structure": False, "require_minimum": False},
+		)
+
+		for attempt in attempts:
+			try:
+				converter = _get_docling_pdf_converter(
+					do_ocr=attempt["do_ocr"],
+					scale=attempt["scale"],
+					do_table_structure=attempt["do_table_structure"],
+				)
+				result = converter.convert(tmp.name)
+				markdown = _export_docling_markdown_with_pages(result.document).strip()
+			except Exception:
+				return None
+
+			if not attempt["require_minimum"] or len(markdown) >= DOCLING_MIN_MARKDOWN_CHARS:
+				return markdown
+
+	return None
+
+
+def _get_docling_pdf_converter(
+	do_ocr: bool = True, scale: float = 1.0, do_table_structure: bool = False
+):
+	from docling.datamodel.pipeline_options import PdfPipelineOptions
+	from docling.document_converter import DocumentConverter, PdfFormatOption
+	from docling.pipeline.standard_pdf_pipeline import StandardPdfPipeline
+
+	pipeline_options = PdfPipelineOptions()
+	pipeline_options.do_ocr = do_ocr
+	pipeline_options.do_table_structure = do_table_structure
+	pipeline_options.images_scale = scale
+	pipeline_options.generate_page_images = False
+	pipeline_options.generate_picture_images = False
+
+	return DocumentConverter(
+		format_options={
+			"pdf": PdfFormatOption(
+				pipeline_cls=StandardPdfPipeline,
+				pipeline_options=pipeline_options,
+			)
+		}
+	)
+
+
+def _export_docling_markdown_with_pages(doc) -> str:
+	lines = []
+	current_page = None
+
+	for item in doc.iterate_items():
+		elem = item[0]
+		page_no = None
+		if hasattr(elem, "prov") and elem.prov:
+			page_no = elem.prov[0].page_no
+
+		if page_no is not None and page_no != current_page:
+			current_page = page_no
+			lines.append(f"\n\n--- PAGE {current_page} ---\n\n")
+
+		if hasattr(elem, "export_to_markdown"):
+			try:
+				lines.append(elem.export_to_markdown(doc))
+			except TypeError:
+				lines.append(elem.export_to_markdown())
+		elif hasattr(elem, "text") and elem.text:
+			name = elem.__class__.__name__
+			if name == "SectionHeaderItem":
+				level = getattr(elem, "level", 1)
+				lines.append(f"{'#' * level} {elem.text}")
+			elif name == "ListItem":
+				lines.append(f"- {elem.text}")
+			else:
+				lines.append(elem.text)
+
+	return "\n".join(lines)
 
 
 def _extract_pdf_page(page) -> str:
@@ -172,16 +267,11 @@ def _extract_pdf_page(page) -> str:
 	if prose:
 		parts.append(prose)
 
-	# No text layer → raw scan; OCR the full page. Otherwise OCR every image region
-	# individually (logos, stamps, embedded scans). Duplicated text on searchable PDFs
-	# is acceptable; missing text is not.
+	# No text layer -> raw scan; OCR the full page. Do not OCR every embedded
+	# image on searchable pages: logos/stamps can turn a normal tender PDF into
+	# hundreds of slow OCR calls with little extraction value.
 	if page.images and not parts:
 		parts.append(_ocr_image(_render_page_png(page)))
-	elif page.images:
-		for image in page.images:
-			text = _ocr_region(page, image)
-			if text:
-				parts.append(text)
 
 	return "\n\n".join(part for part in parts if part)
 

@@ -37,6 +37,8 @@ GET_RUN_CONFIG_METHOD = "frappe_ai.api.service.get_run_config"
 DISPATCH_TOOL_METHOD = "frappe_ai.api.dispatch.dispatch_tool"
 PERSIST_RUN_RESULT_METHOD = "frappe_ai.api.api.persist_run_result"
 FAIL_RUN_METHOD = "frappe_ai.api.api.fail_run"
+DEFAULT_REQUEST_TIMEOUT_SECONDS = 15.0
+TOOL_DISPATCH_TIMEOUT_SECONDS = 300.0
 
 
 class FrappeClientError(Exception):
@@ -50,12 +52,13 @@ class FrappeClient:
 		settings (ServiceSettings): Bootstrap settings (secret, site, base URL).
 	"""
 
-	def __init__(self, settings: ServiceSettings, timeout: float = 15.0):
+	def __init__(self, settings: ServiceSettings, timeout: float = DEFAULT_REQUEST_TIMEOUT_SECONDS):
 		"""
 		Args:
 			settings (ServiceSettings): Bootstrap settings this client authenticates with.
-			timeout (float): Per-request timeout in seconds. Defaults to 15s — this
-				client is only used for short config/control calls, never streaming.
+			timeout (float): Per-request timeout in seconds for config/control calls.
+				Tool dispatch uses a separate longer timeout because Frappe-side tools
+				can do OCR/PDF extraction.
 		"""
 		self.settings = settings
 		self._timeout = timeout
@@ -131,7 +134,9 @@ class FrappeClient:
 				tool-level error, which comes back as `{"error": ...}` in the 200).
 		"""
 		return await self._post_json(
-			DISPATCH_TOOL_METHOD, json={"tool": tool, "user": user, "arguments": arguments or {}}
+			DISPATCH_TOOL_METHOD,
+			json={"tool": tool, "user": user, "arguments": arguments or {}},
+			timeout=TOOL_DISPATCH_TIMEOUT_SECONDS,
 		)
 
 	async def persist_run_result(self, run: str, result: dict[str, Any]) -> dict[str, Any]:
@@ -173,10 +178,12 @@ class FrappeClient:
 			raise FrappeClientError(f"Could not reach Frappe at {url}: {e}")
 		return self._unwrap(url, response)
 
-	async def _post_json(self, method: str, *, json: dict[str, Any]) -> dict[str, Any]:
+	async def _post_json(
+		self, method: str, *, json: dict[str, Any], timeout: float | None = None
+	) -> dict[str, Any]:
 		url = f"{self.settings.frappe_url}/api/method/{method}"
 		try:
-			async with httpx.AsyncClient(timeout=self._timeout) as client:
+			async with httpx.AsyncClient(timeout=timeout or self._timeout) as client:
 				response = await client.post(url, headers=self._headers(), json=json)
 		except httpx.HTTPError as e:
 			raise FrappeClientError(f"Could not reach Frappe at {url}: {e}")

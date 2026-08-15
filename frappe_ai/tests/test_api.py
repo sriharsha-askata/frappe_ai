@@ -12,7 +12,9 @@ tool." Everything else in `dispatch.py` is secondary to getting that right.
 
 from __future__ import annotations
 
+import io
 import json
+from types import SimpleNamespace
 from unittest.mock import patch
 
 import frappe
@@ -329,12 +331,14 @@ class TestPersistenceCallbacks(IntegrationTestCase):
 	def setUp(self):
 		self._original_secret = frappe.conf.get("frappe_ai_service_secret")
 		frappe.conf.frappe_ai_service_secret = TEST_SECRET
+		frappe.set_user("Administrator")
 
 	def tearDown(self):
 		if self._original_secret is None:
 			frappe.conf.pop("frappe_ai_service_secret", None)
 		else:
 			frappe.conf.frappe_ai_service_secret = self._original_secret
+		frappe.set_user("Administrator")
 		frappe.db.rollback()
 
 	def test_persist_run_result_requires_service_secret(self):
@@ -361,6 +365,26 @@ class TestPersistenceCallbacks(IntegrationTestCase):
 			result = api.fail_run(started["run"], "boom")
 		self.assertEqual(result["status"], "Failed")
 
+	def test_fail_run_with_valid_secret_works_from_guest_entry(self):
+		agent = _model_and_agent("Fail Agent Guest")
+		started = api.start_run(input="hello", agent=agent)
+		frappe.set_user("Guest")
+
+		with patch("frappe.get_request_header", new=_patch_request_header(TEST_SECRET)):
+			result = api.fail_run(started["run"], "boom")
+
+		self.assertEqual(result["status"], "Failed")
+
+	def test_persist_run_result_with_valid_secret_works_from_guest_entry(self):
+		agent = _model_and_agent("Persist Agent Guest")
+		started = api.start_run(input="hello", agent=agent)
+		frappe.set_user("Guest")
+
+		with patch("frappe.get_request_header", new=_patch_request_header(TEST_SECRET)):
+			result = api.persist_run_result(started["run"], {"status": "Completed", "iterations": 1, "messages": []})
+
+		self.assertEqual(result["status"], "Completed")
+
 
 class TestFrontendAPI(IntegrationTestCase):
 	def tearDown(self):
@@ -369,12 +393,33 @@ class TestFrontendAPI(IntegrationTestCase):
 
 	def test_bootstrap_returns_frontend_state(self):
 		agent = _model_and_agent("Frontend Bootstrap Agent")
+		if not frappe.db.exists("AI MCP Connection", "frontend-bootstrap-mcp"):
+			frappe.get_doc(
+				{
+					"doctype": "AI MCP Connection",
+					"connection_name": "Frontend Bootstrap MCP",
+					"connection_type": "SSE",
+					"endpoint_url": "https://example.com/mcp",
+					"enabled": 1,
+					"is_connected": 1,
+					"status_message": "Healthy",
+				}
+			).insert(ignore_permissions=True)
+		agent_doc = frappe.get_doc("AI Agent", agent)
+		if not any(row.mcp_connection == "frontend-bootstrap-mcp" for row in agent_doc.mcp_connections):
+			agent_doc.append("mcp_connections", {"mcp_connection": "frontend-bootstrap-mcp"})
+			agent_doc.save(ignore_permissions=True)
 
 		data = frontend.bootstrap()
 
 		self.assertEqual(data["user"]["name"], frappe.session.user)
-		self.assertTrue(any(row["name"] == agent for row in data["agents"]))
-		self.assertIsInstance(data["supported_file_types"], list)
+		agent_row = next(row for row in data["agent"]["items"] if row["name"] == agent)
+		self.assertEqual(agent_row["mcp_connections"][0]["name"], "frontend-bootstrap-mcp")
+		self.assertEqual(agent_row["mcp_connections"][0]["status"], "connected")
+		self.assertGreaterEqual(agent_row["tools"]["count"], 1)
+		self.assertTrue(any(row["name"] == data["agent"]["selected"] for row in data["agent"]["items"]))
+		self.assertIsInstance(data["session"]["history"], list)
+		self.assertIsInstance(data["composer"]["supported_file_types"], list)
 		self.assertIn("custom_frontend", data["capabilities"])
 
 	def test_sessions_and_session_detail_normalize_transcript(self):
@@ -423,17 +468,24 @@ class TestFrontendAPI(IntegrationTestCase):
 		)
 
 		rows = frontend.sessions(query="Find this frontend")
-		self.assertTrue(any(row["name"] == started["session"] for row in rows["sessions"]))
+		self.assertTrue(any(row["name"] == started["session"] for row in rows["session"]["history"]))
 
 		detail = frontend.session_detail(started["session"])
-		self.assertEqual(detail["session"]["name"], started["session"])
-		self.assertTrue(any(message["role"] == "user" for message in detail["messages"]))
-		self.assertTrue(any(message["role"] == "assistant" for message in detail["messages"]))
-		self.assertEqual(detail["paused_run"]["run"], started["run"])
-		self.assertEqual(detail["paused_run"]["questions"][0]["key"], "call_1")
-		self.assertEqual(detail["feedback"][0]["run"], started["run"])
-		self.assertEqual(detail["feedback"][0]["rating"], "Up")
-		self.assertIsInstance(detail["messages"][2]["tool_calls"], list)
+		self.assertEqual(detail["session"]["current"]["name"], started["session"])
+		self.assertEqual(detail["agent"]["selected"], agent)
+		self.assertTrue(any(message["role"] == "user" for message in detail["execution"]["transcript"]))
+		self.assertTrue(any(message["role"] == "assistant" for message in detail["execution"]["transcript"]))
+		self.assertEqual(detail["execution"]["paused_run"]["run"], started["run"])
+		self.assertEqual(detail["execution"]["paused_run"]["questions"][0]["key"], "call_1")
+		self.assertEqual(detail["execution"]["feedback"][0]["run"], started["run"])
+		self.assertEqual(detail["execution"]["feedback"][0]["rating"], "Up")
+		assistant_message = next(
+			item for item in detail["execution"]["transcript"] if item["role"] == "assistant" and item["run"] == started["run"]
+		)
+		self.assertEqual(assistant_message["executions"][0]["id"], "call_1")
+		self.assertEqual(assistant_message["executions"][0]["status"], "awaiting_confirmation")
+		self.assertEqual(assistant_message["executions"][0]["result_summary"], "approved")
+		self.assertEqual(detail["execution"]["current_run"]["status"], "Paused")
 
 	def test_frontend_start_run_returns_stream_bootstrap(self):
 		agent = _model_and_agent("Frontend Start Agent")
@@ -444,3 +496,75 @@ class TestFrontendAPI(IntegrationTestCase):
 		self.assertIn("session", result)
 		self.assertIn("token", result)
 		self.assertIn("stream_url", result)
+
+	def test_frontend_resume_run_returns_stream_bootstrap(self):
+		agent = _model_and_agent("Frontend Resume Agent")
+		started = api.start_run(input="hello from frontend", agent=agent)
+		frappe.db.set_value(
+			"AI Run",
+			started["run"],
+			{
+				"status": "Paused",
+				"questions": json.dumps(
+					[
+						{
+							"key": "call_1",
+							"name": "read",
+							"prompt": "Allow this tool call?",
+							"arguments": {"doctype": "DocType"},
+						}
+					]
+				),
+			},
+		)
+
+		result = frontend.resume_run(started["run"], {"call_1": "Approve"})
+
+		self.assertEqual(result["run"], started["run"])
+		self.assertEqual(result["session"], started["session"])
+		self.assertIn("token", result)
+		self.assertIn("stream_url", result)
+
+	def test_frontend_agent_tools_and_run_feedback_are_normalized(self):
+		agent = _model_and_agent("Frontend Tool Meta Agent")
+		started = api.start_run(input="hello from frontend", agent=agent)
+		frappe.db.set_value(
+			"AI Run",
+			started["run"],
+			{"status": "Completed", "feedback_rating": "Up", "feedback_comment": "Nice"},
+		)
+
+		tools = frontend.agent_tools(agent)
+		feedback = frontend.run_feedback(started["run"])
+
+		self.assertGreaterEqual(tools["tools"]["count"], 1)
+		self.assertTrue(any(tool["name"] == "read" for tool in tools["tools"]["summaries"]))
+		self.assertEqual(feedback["run"], started["run"])
+		self.assertEqual(feedback["rating"], "Up")
+		self.assertEqual(feedback["comment"], "Nice")
+
+	def test_frontend_recover_session_returns_recovered_count(self):
+		agent = _model_and_agent("Frontend Recover Agent")
+		started = api.start_run(input="recover this frontend session", agent=agent)
+
+		result = frontend.recover_session(started["session"])
+
+		self.assertEqual(result["recovered"], 1)
+		self.assertEqual(frappe.get_value("AI Run", started["run"], "status"), "Failed")
+
+	def test_frontend_upload_attachment_returns_staged_attachment_shape(self):
+		uploaded = SimpleNamespace(filename="notes.txt", stream=io.BytesIO(b"hello"))
+		request = SimpleNamespace(files={"file": uploaded})
+		saved = SimpleNamespace(name="FILE-0001")
+		staged = {"file": "FILE-0001", "file_name": "notes.txt", "file_size": 5}
+
+		with (
+			patch("frappe.request", request),
+			patch("frappe_ai.api.frontend.save_file", return_value=saved) as save_mock,
+			patch("frappe_ai.api.frontend.api.attach_file", return_value=staged) as attach_mock,
+		):
+			result = frontend.upload_attachment()
+
+		save_mock.assert_called_once()
+		attach_mock.assert_called_once_with("FILE-0001")
+		self.assertEqual(result, {"attachment": staged})

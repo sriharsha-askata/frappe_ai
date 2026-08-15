@@ -39,6 +39,7 @@ from fastapi.testclient import TestClient  # noqa: E402
 
 from frappe_ai.service.auth import mint_run_token  # noqa: E402
 from frappe_ai.service.main import app, settings  # noqa: E402
+from frappe_ai.service.routes.chat import MAX_STORED_TOOL_CONTENT_CHARS, _trim_stored_tool_content, _to_agno_messages  # noqa: E402
 
 
 class TestHealthEndpoint(unittest.TestCase):
@@ -108,6 +109,30 @@ class TestCORSConfig(unittest.TestCase):
 		# A mutating/authenticated API should never allow `*`.
 		self.assertNotIn("*", settings.cors_origins)
 		self.assertTrue(settings.cors_origins)
+
+
+class TestMessageConversion(unittest.TestCase):
+	def test_system_message_is_preserved_for_provider_input(self):
+		messages = _to_agno_messages(
+			[
+				{"role": "system", "content": "You are terse."},
+				{"role": "user", "content": "hello"},
+			],
+			questions_by_id={},
+			redirect_answers={},
+		)
+
+		self.assertEqual(messages[0].role, "system")
+		self.assertEqual(messages[0].content, "You are terse.")
+		self.assertEqual(messages[1].role, "user")
+
+	def test_trim_stored_tool_content_caps_large_payloads(self):
+		row = {"role": "tool", "content": "x" * (MAX_STORED_TOOL_CONTENT_CHARS + 10)}
+
+		_trim_stored_tool_content(row)
+
+		self.assertLess(len(row["content"]), MAX_STORED_TOOL_CONTENT_CHARS + 100)
+		self.assertIn("truncated 10 chars", row["content"])
 
 
 if __name__ == "__main__":

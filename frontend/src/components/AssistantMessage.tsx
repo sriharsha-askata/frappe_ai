@@ -1,72 +1,38 @@
-import React, { useMemo } from "react";
+import React from "react";
 import { CircleAlert, LoaderCircle } from "lucide-react";
-import { ActivityGroup } from "./ActivityGroup";
 import { ConfirmCard } from "./ConfirmCard";
+import { ExecutionCard } from "./ExecutionCard";
 import { FeedbackBar } from "./FeedbackBar";
 import { useStore } from "../state/store";
 
 export function AssistantMessage({ message }: { message: any }) {
-	const { answerQuestion, toolApproval } = useStore();
-
-	const questionByKey = useMemo(
-		() => new Map((message.questions || []).map((question: any) => [question.key, question])),
-		[message.questions]
-	);
-
-	const items = useMemo(() => {
-		const output: any[] = [];
-		for (const part of message.parts) {
-			if (part.type !== "tool") {
-				output.push({ kind: "text", id: part.id, part });
-				continue;
-			}
-			const question = questionByKey.get(part.id);
-			const approval = toolApproval[part.name] === true || question !== undefined || part.approval !== null;
-			if (approval) {
-				if (question && question._answer === undefined) {
-					output.push({ kind: "confirm", id: part.id, part, question });
-				} else {
-					output.push({ kind: "approval", id: part.id, parts: [part] });
-				}
-				continue;
-			}
-			const last = output[output.length - 1];
-			if (last?.kind === "activity") last.parts.push(part);
-			else output.push({ kind: "activity", id: part.id, parts: [part] });
-		}
-		return output;
-	}, [message.parts, questionByKey, toolApproval]);
+	const { answerQuestion } = useStore();
 
 	return (
 		<div className="faip-assistant">
-			{items.map((item: any) => {
-				if (item.kind === "text") {
-					return (
-						<div key={item.id} className="faip-assistant-text faip-text-block">
-							{item.part.text}
-						</div>
-					);
-				}
-				if (item.kind === "confirm") {
+			{message.content ? <div className="faip-assistant-text faip-text-block">{message.content}</div> : null}
+			{message.executions.map((execution: any) => {
+				const question = message.questions.find((item: any) => item.key === execution.id && item._answer === undefined);
+				if (question) {
 					return (
 						<ConfirmCard
-							key={item.id}
-							question={item.question}
-							tool={item.part}
-							onAnswer={(answer) => answerQuestion(message.id, item.question.key, answer)}
+							key={execution.id}
+							question={question}
+							tool={{ name: execution.tool_name, arguments: execution.raw_input }}
+							onAnswer={(answer) => answerQuestion(message.id, question.key, answer)}
 						/>
 					);
 				}
-				return <ActivityGroup key={item.id} parts={item.parts} live={message.pending} />;
+				return <ExecutionCard key={execution.id} execution={execution} message={message} />;
 			})}
-			{message.pending && !message.parts.length ? (
+			{message.pending && !message.content && !message.executions.length ? (
 				<div className="faip-working">
 					<LoaderCircle size={15} className="faip-spin" />
 					Thinking…
 				</div>
 			) : null}
-			{message.runName && !message.pending && !message.questions?.length ? (
-				<FeedbackBar runName={message.runName} feedback={message.feedback} />
+			{message.run && !message.pending && !message.questions?.length ? (
+				<FeedbackBar runName={message.run} feedback={message.feedback} />
 			) : null}
 			{message.error ? (
 				<div className="faip-inline-error">

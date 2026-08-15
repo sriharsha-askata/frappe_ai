@@ -7,7 +7,7 @@ import { useStore } from "../state/store";
 import { __ } from "../lib/translate";
 
 export function MessageList() {
-	const { messages, needsSetup, agents, models, scrollTick, forceScroll, clearForceScroll } = useStore();
+	const { transcript, needsSetup, agents, models, scrollTick, forceScroll, clearForceScroll } = useStore();
 	const ref = useRef<HTMLDivElement | null>(null);
 	const stickRef = useRef(true);
 
@@ -32,14 +32,8 @@ export function MessageList() {
 			}}
 		>
 			<div className="faip-message-stack">
-				{!messages.length ? (
-					<EmptyState
-						setup={needsSetup}
-						hasModels={models.length > 0}
-						hasAgents={agents.length > 0}
-					/>
-				) : null}
-				{messages.map((message) =>
+				{!transcript.length ? <EmptyState setup={needsSetup} hasModels={models.length > 0} hasAgents={agents.length > 0} /> : null}
+				{transcript.map((message) =>
 					message.role === "user" ? (
 						<React.Fragment key={message.id}>
 							<UserMessage content={message.content} attachments={message.attachments} />

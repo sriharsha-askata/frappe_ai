@@ -11,16 +11,6 @@ export function parseArgs(args: unknown): Record<string, any> {
 	}
 }
 
-export function rawArgs(args: unknown) {
-	if (typeof args !== "string" || !args.trim()) return "";
-	try {
-		JSON.parse(args);
-		return "";
-	} catch {
-		return args;
-	}
-}
-
 export function humanize(name: string) {
 	return String(name || "")
 		.replace(/_/g, " ")
@@ -39,45 +29,90 @@ const LABELS: Record<string, string> = {
 	run_action: "Running Document Actions",
 };
 
-export function normalizeToolName(name: string) {
-	const clean = String(name || "")
-		.split("<|")[0]
-		.trim();
-	return clean || String(name || "").trim();
+export function parseToolIdentity(name: string) {
+	const raw = String(name || "").trim();
+	if (!raw.includes("<|")) {
+		return { kind: "tool" as const, toolName: raw, connectionName: null };
+	}
+	const [toolName, connectionName] = raw.split("<|", 2);
+	return {
+		kind: "mcp_tool" as const,
+		toolName: toolName.trim(),
+		connectionName: connectionName?.trim() || null,
+	};
 }
 
 export function toolLabel(name: string) {
 	return LABELS[name] ? __(LABELS[name]) : humanize(name);
 }
 
-export function toolContext(args: unknown) {
-	const parsed = parseArgs(args);
-	for (const key of ["doctype", "search", "action"]) {
-		const value = parsed[key];
-		if (typeof value === "string" && value) return key === "action" ? humanize(value) : value;
-	}
-	return null;
+export function summarizeValues(values: Record<string, any>) {
+	return Object.entries(values || {})
+		.slice(0, 4)
+		.map(([label, value]) => ({
+			label,
+			value:
+				typeof value === "string"
+					? value
+					: Array.isArray(value)
+						? value.join(", ")
+						: value && typeof value === "object"
+							? Object.entries(value)
+									.slice(0, 2)
+									.map(([key, item]) => `${key}: ${String(item)}`)
+									.join(", ")
+							: String(value),
+		}))
+		.filter((row) => row.value && row.value !== "undefined");
 }
 
-export function toolError(result: string | null) {
-	if (typeof result !== "string") return null;
+export function resultSummary(result: string | null) {
+	if (!result) return "";
 	try {
 		const parsed = JSON.parse(result);
 		if (parsed && typeof parsed === "object") {
-			if (typeof parsed.error === "string") return parsed.error;
-			const failures = parsed.failures;
-			if (Array.isArray(failures) && failures.length) {
-				const combined = failures
-					.map((item) => item?.error)
-					.filter((item) => typeof item === "string")
-					.join("\n");
-				return combined || null;
+			for (const key of ["message", "result", "status", "error"]) {
+				if (typeof parsed[key] === "string" && parsed[key]) return parsed[key];
 			}
+			return JSON.stringify(parsed, null, 2);
+		}
+		return String(parsed);
+	} catch {
+		return result;
+	}
+}
+
+export function executionStatusFromResult(result: string | null) {
+	if (!result) return { status: "running", error: null, approvalStatus: null };
+	try {
+		const parsed = JSON.parse(result);
+		if (parsed && typeof parsed === "object") {
+			const status = parsed.error ? "error" : "completed";
+			const approvalStatus =
+				parsed.status === "approved"
+					? "approved"
+					: parsed.status === "denied"
+						? "denied"
+						: parsed.status === "redirect"
+							? "redirected"
+							: null;
+			return { status, error: parsed.error || null, approvalStatus };
 		}
 	} catch {
-		return null;
+		// ignore
 	}
-	return null;
+	return { status: "completed", error: null, approvalStatus: null };
+}
+
+export function summarizeSchema(schema: any) {
+	const properties = schema?.properties || {};
+	return Object.entries(properties)
+		.slice(0, 6)
+		.map(([name, field]: any) => ({
+			name,
+			type: field?.type || field?.anyOf?.map((item: any) => item.type).filter(Boolean).join(" | ") || "value",
+			description: field?.description || "",
+		}));
 }
 
 const pick = (one: string, many: string, count: number, doctype: string) =>
@@ -101,8 +136,7 @@ export function confirmTitle(name: string, args: unknown) {
 		]);
 	} else if (name === "execute") {
 		title =
-			(typeof parsed.description === "string" && parsed.description.trim()) ||
-			__("Run Python code");
+			(typeof parsed.description === "string" && parsed.description.trim()) || __("Run Python code");
 	}
 	return { title: title || toolLabel(name), danger: name === "delete" };
 }

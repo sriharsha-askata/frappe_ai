@@ -4,7 +4,8 @@
  "doctype": "DocType",
  "engine": "InnoDB",
  "field_order": [
-  "mcp_connection"
+  "mcp_connection",
+  "include_tools"
  ],
  "fields": [
   {
@@ -14,6 +15,12 @@
    "label": "MCP Connection",
    "options": "AI MCP Connection",
    "reqd": 1
+  },
+  {
+   "description": "Optional JSON array of MCP tool names to expose from this connection for this agent only.",
+   "fieldname": "include_tools",
+   "fieldtype": "JSON",
+   "label": "Include Tools"
   }
  ],
  "istable": 1,
@@ -29,4 +36,3 @@
  "sort_order": "DESC",
  "states": []
 }
-

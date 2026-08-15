@@ -281,10 +281,14 @@ def persist_run_result(run: str, result: dict | str) -> dict[str, str]:
 	_verify_service_secret()
 	if isinstance(result, str):
 		result = json.loads(result)
-
-	doc = frappe.get_doc("AI Run", run)
-	doc.apply_result(result)
-	return {"status": doc.status}
+	original_user = frappe.session.user
+	frappe.set_user("Administrator")
+	try:
+		doc = frappe.get_doc("AI Run", run)
+		doc.apply_result(result)
+		return {"status": doc.status}
+	finally:
+		frappe.set_user(original_user)
 
 
 @frappe.whitelist(allow_guest=True)
@@ -305,9 +309,14 @@ def fail_run(run: str, error: str) -> dict[str, str]:
 		frappe.AuthenticationError: If the service secret is missing or invalid.
 	"""
 	_verify_service_secret()
-	doc = frappe.get_doc("AI Run", run)
-	doc.mark_failed(error)
-	return {"status": doc.status}
+	original_user = frappe.session.user
+	frappe.set_user("Administrator")
+	try:
+		doc = frappe.get_doc("AI Run", run)
+		doc.mark_failed(error)
+		return {"status": doc.status}
+	finally:
+		frappe.set_user(original_user)
 
 
 def _verify_service_secret() -> None:

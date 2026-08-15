@@ -43,3 +43,32 @@ class TestMCP(IntegrationTestCase):
 			result = mcp.check_connection(doc.name)
 		self.assertFalse(result["is_connected"])
 		self.assertIn("mcp", result["status_message"].lower())
+
+	def test_check_connection_fails_when_toolkit_does_not_initialize(self):
+		doc = frappe.get_doc(
+			{
+				"doctype": "AI MCP Connection",
+				"connection_name": "Uninitialized MCP",
+				"connection_type": "stdio",
+				"command": "python -m example_mcp",
+			}
+		).insert(ignore_permissions=True)
+
+		class UninitializedToolkit:
+			functions = {}
+			initialized = False
+
+			async def __aenter__(self):
+				return self
+
+			async def __aexit__(self, exc_type, exc_val, exc_tb):
+				return None
+
+			async def initialize(self):
+				return None
+
+		with patch("frappe_ai.api.mcp._build_toolkit", return_value=UninitializedToolkit()):
+			result = mcp.check_connection(doc.name)
+
+		self.assertFalse(result["is_connected"])
+		self.assertIn("initialize", result["status_message"].lower())

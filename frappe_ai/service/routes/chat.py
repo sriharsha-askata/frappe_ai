@@ -45,6 +45,7 @@ from frappe_ai.service.builder import PENDING_CONFIRMATION_MARKER, AgentBuilder,
 from frappe_ai.service.frappe_client import FrappeClient, FrappeClientError
 
 logger = logging.getLogger("frappe_ai.service.chat")
+MAX_STORED_TOOL_CONTENT_CHARS = 8000
 
 
 async def stream_chat(
@@ -113,6 +114,13 @@ async def stream_chat(
 			redirect_answers=_redirects(answers),
 			approved_results=approved_results,
 		)
+		logger.error(
+			"Run %s provider input roles=%s agent_instructions=%s system_message_role=%s",
+			run,
+			[getattr(message, "role", None) for message in messages],
+			getattr(agent, "instructions", None),
+			getattr(agent, "system_message_role", None),
+		)
 		pending: list[PendingConfirmation] = []
 		final_output: RunOutput | None = None
 		run_error: str | None = None
@@ -152,6 +160,7 @@ async def stream_chat(
 			run_error = final_output.content or "Model call failed."
 
 		if run_error is not None:
+			logger.error("Run %s failed in provider/model execution: %s", run, run_error)
 			# Agno reports model/run failures via a RunErrorEvent (and/or
 			# RunOutput.status) rather than raising out of arun(), so this isn't
 			# caught by the except clauses below. Treat it the same as any other
@@ -162,6 +171,13 @@ async def stream_chat(
 			return
 
 		result = _build_result(final_output, pending, approved_results=approved_results)
+		logger.error(
+			"Run %s persist payload size bytes=%s messages=%s status=%s",
+			run,
+			len(json.dumps(result, default=str)),
+			len(result.get("messages") or []),
+			result.get("status"),
+		)
 		await frappe_client.persist_run_result(run, result)
 		persisted = True
 		yield _frame("done", _done_payload(result))
@@ -209,9 +225,10 @@ def _to_agno_messages(
 	"""Convert Frappe's stored transcript (OpenAI-format dicts) to Agno `Message`s
 	for this turn's model call.
 
-	The stored `system` row is dropped — `AgentBuilder` already passes the agent's
-	`instructions` to `Agent(instructions=...)`, which builds Agno's own system
-	message; including both would duplicate it.
+	The stored `system` row is preserved. Some OpenAI-compatible providers reject
+	Agno's provider-specific `developer` role for agent instructions, so
+	`AgentBuilder` leaves `instructions=None` and relies on the transcript's
+	`system` message instead.
 
 	On resume, neither the assistant tool-call request nor its result for a
 	previously-pending call is part of the stored transcript `messages` came from
@@ -226,8 +243,6 @@ def _to_agno_messages(
 	"""
 	out: list[Message] = []
 	for m in messages:
-		if m.get("role") == "system":
-			continue
 		out.append(Message(role=m["role"], content=m.get("content"), tool_call_id=m.get("tool_call_id")))
 	for r in approved_results or []:
 		out.append(_reconstructed_tool_call_message(r["id"], r["name"], r["arguments"]))
@@ -409,7 +424,9 @@ def _approved_result_messages(approved_results: list[dict[str, Any]] | None) -> 
 				],
 			}
 		)
-		out.append({"role": "tool", "tool_call_id": r["id"], "content": json.dumps(r["result"], default=str)})
+		tool_row = {"role": "tool", "tool_call_id": r["id"], "content": json.dumps(r["result"], default=str)}
+		_trim_stored_tool_content(tool_row)
+		out.append(tool_row)
 	return out
 
 
@@ -522,8 +539,21 @@ def _messages(output: RunOutput | None) -> list[dict[str, Any]]:
 			row["tool_call_id"] = m.tool_call_id
 		if getattr(m, "tool_calls", None):
 			row["tool_calls"] = m.tool_calls
+		_trim_stored_tool_content(row)
 		out.append(row)
 	return out
+
+
+def _trim_stored_tool_content(row: dict[str, Any]) -> None:
+	if row.get("role") != "tool" or not isinstance(row.get("content"), str):
+		return
+	content = row["content"]
+	if len(content) <= MAX_STORED_TOOL_CONTENT_CHARS:
+		return
+	row["content"] = (
+		content[:MAX_STORED_TOOL_CONTENT_CHARS]
+		+ f"\n\n[truncated {len(content) - MAX_STORED_TOOL_CONTENT_CHARS} chars from stored tool output]"
+	)
 
 
 def _messages_excluding_pending(

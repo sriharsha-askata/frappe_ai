@@ -29,7 +29,7 @@ class AITrigger(Document):
 		cron_expression: DF.Data | None
 		doc_event: DF.Literal[None, "after_insert", "on_update", "on_submit", "on_cancel", "on_trash"]
 		enabled: DF.Check
-		event: DF.Literal["DocType Event", "Scheduled"]
+		event: DF.Literal["DocType Event", "Scheduled", "Manual"]
 		last_fired_at: DF.Datetime | None
 		prompt_template: DF.Code
 		run_as: DF.Link | None
@@ -79,4 +79,3 @@ class AITrigger(Document):
 			SandboxedEnvironment().parse(self.prompt_template or "")
 		except TemplateSyntaxError as e:
 			frappe.throw(_("Invalid Jinja template: {0}").format(e), title=_("Invalid Template"))
-

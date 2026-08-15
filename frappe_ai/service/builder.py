@@ -144,7 +144,11 @@ class AgentBuilder:
 		agent = Agent(
 			model=model,
 			name=agent_cfg["name"],
-			instructions=agent_cfg["instructions"],
+			# Keep instructions in the transcript as a `system` message rather than
+			# Agno's provider-specific `developer` role, which some OpenAI-compatible
+			# backends reject.
+			instructions=None,
+			system_message_role="system",
 			tools=tools,
 			markdown=agent_cfg["markdown"],
 			reasoning=agent_cfg["reasoning"],
@@ -170,6 +174,18 @@ class AgentBuilder:
 			kwargs["api_key"] = model_cfg["api_key"]
 		if model_cfg.get("base_url"):
 			kwargs["base_url"] = model_cfg["base_url"]
+		if (
+			model_cfg["class_module"].startswith("agno.models.openai")
+			and model_cfg["class_name"] == "OpenAIChat"
+			and "role_map" not in (model_cfg.get("params") or {})
+		):
+			kwargs["role_map"] = {
+				"system": "system",
+				"user": "user",
+				"assistant": "assistant",
+				"tool": "tool",
+				"model": "assistant",
+			}
 		kwargs.update(model_cfg.get("params") or {})
 
 		try:
@@ -237,10 +253,25 @@ class AgentBuilder:
 				continue
 			try:
 				env = connection.get("environment_variables") or {}
+				include_tools = connection.get("include_tools") or None
 				if connection.get("connection_type") == "stdio":
-					tools.append(MCPTools(command=connection.get("command"), env=env, transport="stdio"))
+					tools.append(
+						MCPTools(
+							command=connection.get("command"),
+							env=env,
+							transport="stdio",
+							include_tools=include_tools,
+						)
+					)
 				else:
-					tools.append(MCPTools(url=connection.get("endpoint_url"), env=env, transport="sse"))
+					tools.append(
+						MCPTools(
+							url=connection.get("endpoint_url"),
+							env=env,
+							transport="sse",
+							include_tools=include_tools,
+						)
+					)
 			except Exception as e:
 				logger.warning("Skipping MCP connection %s: %s", connection.get("name"), e)
 		return tools

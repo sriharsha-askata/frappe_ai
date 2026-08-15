@@ -31,6 +31,7 @@ from frappe_ai.knowledge.embedder import embed_texts, probe_dimension
 from frappe_ai.knowledge.extract import (
 	_extract_by_extension,
 	_extract_docx,
+	_export_docling_markdown_with_pages,
 	_extract_html,
 	_extract_pdf,
 	_extract_xlsx,
@@ -47,6 +48,45 @@ from frappe_ai.knowledge.ingest import (
 from frappe_ai.knowledge.retriever import retrieve, retrieve_attachments
 
 DIM = 4
+
+
+class _DoclingResult:
+	def __init__(self, document):
+		self.document = document
+
+
+class _DoclingConverter:
+	def __init__(self, document=None, error=None):
+		self.document = document
+		self.error = error
+
+	def convert(self, _file_path):
+		if self.error:
+			raise self.error
+		return _DoclingResult(self.document)
+
+
+class _DoclingDocument:
+	def __init__(self, *elements):
+		self.elements = elements
+
+	def iterate_items(self):
+		for element in self.elements:
+			yield (element,)
+
+
+class _DoclingProvenance:
+	def __init__(self, page_no):
+		self.page_no = page_no
+
+
+class _DoclingElement:
+	def __init__(self, text, page_no):
+		self.text = text
+		self.prov = [_DoclingProvenance(page_no)]
+
+	def export_to_markdown(self, _doc):
+		return self.text
 
 
 def _rows():
@@ -576,6 +616,76 @@ class TestExtract(IntegrationTestCase):
 		buffer = io.BytesIO()
 		writer.write(buffer)
 		self.assertEqual(_extract_pdf(buffer.getvalue()), "")
+
+	def test_extract_pdf_uses_docling_when_available(self):
+		document = _DoclingDocument(
+			_DoclingElement(
+				"Docling extracted tender specification content with enough text to pass validation.",
+				1,
+			)
+		)
+
+		with patch(
+			"frappe_ai.knowledge.extract._get_docling_pdf_converter",
+			return_value=_DoclingConverter(document),
+		):
+			text = _extract_pdf(b"%PDF docling")
+
+		self.assertIn("--- PAGE 1 ---", text)
+		self.assertIn("Docling extracted tender specification", text)
+
+	def test_extract_pdf_retries_docling_at_lower_scale_when_output_is_short(self):
+		short = _DoclingDocument(_DoclingElement("too short", 1))
+		long = _DoclingDocument(
+			_DoclingElement(
+				"Docling extracted tender specification content after lower image scale fallback.",
+				1,
+			)
+		)
+
+		with patch(
+			"frappe_ai.knowledge.extract._get_docling_pdf_converter",
+			side_effect=[_DoclingConverter(short), _DoclingConverter(long)],
+		) as get_converter:
+			text = _extract_pdf(b"%PDF docling")
+
+		self.assertIn("lower image scale fallback", text)
+		self.assertEqual(get_converter.call_args_list[0].kwargs["scale"], 1.0)
+		self.assertEqual(get_converter.call_args_list[1].kwargs["scale"], 0.5)
+
+	def test_extract_pdf_falls_back_when_docling_unavailable(self):
+		with (
+			patch("frappe_ai.knowledge.extract._get_docling_pdf_converter", side_effect=ImportError),
+			patch("frappe_ai.knowledge.extract._extract_pdf_fallback", return_value="fallback text") as fallback,
+		):
+			self.assertEqual(_extract_pdf(b"%PDF fallback"), "fallback text")
+
+		fallback.assert_called_once_with(b"%PDF fallback")
+
+	def test_extract_pdf_falls_back_when_docling_conversion_fails(self):
+		with (
+			patch(
+				"frappe_ai.knowledge.extract._get_docling_pdf_converter",
+				return_value=_DoclingConverter(error=RuntimeError("docling failed")),
+			),
+			patch("frappe_ai.knowledge.extract._extract_pdf_fallback", return_value="fallback text") as fallback,
+		):
+			self.assertEqual(_extract_pdf(b"%PDF fallback"), "fallback text")
+
+		fallback.assert_called_once_with(b"%PDF fallback")
+
+	def test_export_docling_markdown_inserts_page_markers(self):
+		document = _DoclingDocument(
+			_DoclingElement("Page one content", 1),
+			_DoclingElement("Page two content", 2),
+		)
+
+		text = _export_docling_markdown_with_pages(document)
+
+		self.assertIn("--- PAGE 1 ---", text)
+		self.assertIn("--- PAGE 2 ---", text)
+		self.assertLess(text.index("--- PAGE 1 ---"), text.index("Page one content"))
+		self.assertLess(text.index("--- PAGE 2 ---"), text.index("Page two content"))
 
 	def test_extract_image_file_via_ocr(self):
 		import io

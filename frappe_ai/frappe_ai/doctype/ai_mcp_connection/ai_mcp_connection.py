@@ -52,4 +52,3 @@ class AIMCPConnection(Document):
 				frappe.throw(_("Environment Variables must be valid JSON: {0}").format(e), title=_("Invalid JSON"))
 			if not isinstance(value, dict):
 				frappe.throw(_("Environment Variables must be a JSON object."), title=_("Invalid JSON"))
-

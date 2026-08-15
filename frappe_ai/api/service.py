@@ -190,48 +190,52 @@ def get_run_config(run: str, user: str) -> dict:
 		frappe.AuthenticationError: If the bearer secret is missing or does not match.
 	"""
 	_verify_service_secret()
-
-	run_doc = frappe.get_doc("AI Run", run)
-	if run_doc.status != "Running" and run_doc.status != "Paused":
-		frappe.throw(_("Run {0} is not active (status: {1}).").format(run, run_doc.status))
-
-	session_doc = frappe.get_doc("AI Session", run_doc.session)
-	if session_doc.owner != user:
-		frappe.throw(_("Run {0} does not belong to {1}.").format(run, user), frappe.PermissionError)
-
+	original_user = frappe.session.user
 	frappe.set_user(user)
+	try:
+		run_doc = frappe.get_doc("AI Run", run)
+		if run_doc.status != "Running" and run_doc.status != "Paused":
+			frappe.throw(_("Run {0} is not active (status: {1}).").format(run, run_doc.status))
 
-	agent_doc = frappe.get_doc("AI Agent", session_doc.agent)
-	model_name = session_doc.model or agent_doc.model
-	if not frappe.has_permission("AI Model", "read", model_name):
-		frappe.throw(
-			_("{0} is not permitted to use AI Model {1}.").format(user, model_name), frappe.PermissionError
-		)
-	model_doc = frappe.get_doc("AI Model", model_name)
-	if not model_doc.enabled:
-		frappe.throw(_("AI Model {0} is disabled.").format(model_name), title=_("Disabled Model"))
+		session_doc = frappe.get_doc("AI Session", run_doc.session)
+		if session_doc.owner != user:
+			frappe.throw(_("Run {0} does not belong to {1}.").format(run, user), frappe.PermissionError)
 
-	return {
-		"agent": {
-			"name": agent_doc.name,
-			"instructions": agent_doc.instructions,
-			"max_iterations": agent_doc.max_iterations,
-			"temperature": agent_doc.temperature,
-			"top_p": agent_doc.top_p,
-			"reasoning": bool(agent_doc.reasoning),
-			"markdown": bool(agent_doc.markdown),
-			"auto_approve": bool((json.loads(run_doc.config_snapshot) if run_doc.config_snapshot else {}).get("auto_approve")),
-		},
-		"model": _model_call_config(model_doc),
-		"tools": _resolve_agent_tools(agent_doc),
-		"mcp_connections": _resolve_agent_mcp_connections(agent_doc),
-		"messages": session_doc.build_prompt_messages(),
-		"config_snapshot": json.loads(run_doc.config_snapshot) if run_doc.config_snapshot else {},
-		# Pending confirmations from the prior segment, `[{key, name, arguments,
-		# prompt}, ...]` — the arguments a resume's approved calls must actually be
-		# dispatched with. Empty on a fresh (non-resumed) run.
-		"questions": json.loads(run_doc.questions) if run_doc.questions else [],
-	}
+		agent_doc = frappe.get_doc("AI Agent", session_doc.agent)
+		model_name = session_doc.model or agent_doc.model
+		if not frappe.has_permission("AI Model", "read", model_name):
+			frappe.throw(
+				_("{0} is not permitted to use AI Model {1}.").format(user, model_name), frappe.PermissionError
+			)
+		model_doc = frappe.get_doc("AI Model", model_name)
+		if not model_doc.enabled:
+			frappe.throw(_("AI Model {0} is disabled.").format(model_name), title=_("Disabled Model"))
+
+		return {
+			"agent": {
+				"name": agent_doc.name,
+				"instructions": agent_doc.instructions,
+				"max_iterations": agent_doc.max_iterations,
+				"temperature": agent_doc.temperature,
+				"top_p": agent_doc.top_p,
+				"reasoning": bool(agent_doc.reasoning),
+				"markdown": bool(agent_doc.markdown),
+				"auto_approve": bool(
+					(json.loads(run_doc.config_snapshot) if run_doc.config_snapshot else {}).get("auto_approve")
+				),
+			},
+			"model": _model_call_config(model_doc),
+			"tools": _resolve_agent_tools(agent_doc),
+			"mcp_connections": _resolve_agent_mcp_connections(agent_doc),
+			"messages": session_doc.build_prompt_messages(),
+			"config_snapshot": json.loads(run_doc.config_snapshot) if run_doc.config_snapshot else {},
+			# Pending confirmations from the prior segment, `[{key, name, arguments,
+			# prompt}, ...]` — the arguments a resume's approved calls must actually be
+			# dispatched with. Empty on a fresh (non-resumed) run.
+			"questions": json.loads(run_doc.questions) if run_doc.questions else [],
+		}
+	finally:
+		frappe.set_user(original_user)
 
 
 def _model_call_config(model_doc) -> dict:
@@ -321,6 +325,7 @@ def _resolve_agent_mcp_connections(agent_doc) -> list[dict]:
 				"command": doc.command,
 				"endpoint_url": doc.endpoint_url,
 				"environment_variables": json.loads(doc.environment_variables) if doc.environment_variables else {},
+				"include_tools": json.loads(row.include_tools) if getattr(row, "include_tools", None) else None,
 				"is_connected": bool(doc.is_connected),
 				"status_message": doc.status_message,
 			}

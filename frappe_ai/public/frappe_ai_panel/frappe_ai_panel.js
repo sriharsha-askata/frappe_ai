@@ -767,7 +767,7 @@ var FrappeAIPanel = (() => {
   var require_react_dom_production = __commonJS({
     "../../factory_automation_api/fact-frontend/node_modules/react-dom/cjs/react-dom.production.js"(exports) {
       "use strict";
-      var React10 = require_react();
+      var React11 = require_react();
       function formatProdErrorMessage(code) {
         var url = "https://react.dev/errors/" + code;
         if (1 < arguments.length) {
@@ -807,7 +807,7 @@ var FrappeAIPanel = (() => {
           implementation
         };
       }
-      var ReactSharedInternals = React10.__CLIENT_INTERNALS_DO_NOT_USE_OR_WARN_USERS_THEY_CANNOT_UPGRADE;
+      var ReactSharedInternals = React11.__CLIENT_INTERNALS_DO_NOT_USE_OR_WARN_USERS_THEY_CANNOT_UPGRADE;
       function getCrossOriginStringAs(as, input) {
         if ("font" === as) return "";
         if ("string" === typeof input)
@@ -943,7 +943,7 @@ var FrappeAIPanel = (() => {
     "../../factory_automation_api/fact-frontend/node_modules/react-dom/cjs/react-dom-client.production.js"(exports) {
       "use strict";
       var Scheduler = require_scheduler();
-      var React10 = require_react();
+      var React11 = require_react();
       var ReactDOM = require_react_dom();
       function formatProdErrorMessage(code) {
         var url = "https://react.dev/errors/" + code;
@@ -1134,7 +1134,7 @@ var FrappeAIPanel = (() => {
         return null;
       }
       var isArrayImpl = Array.isArray;
-      var ReactSharedInternals = React10.__CLIENT_INTERNALS_DO_NOT_USE_OR_WARN_USERS_THEY_CANNOT_UPGRADE;
+      var ReactSharedInternals = React11.__CLIENT_INTERNALS_DO_NOT_USE_OR_WARN_USERS_THEY_CANNOT_UPGRADE;
       var ReactDOMSharedInternals = ReactDOM.__DOM_INTERNALS_DO_NOT_USE_OR_WARN_USERS_THEY_CANNOT_UPGRADE;
       var sharedNotPendingObject = {
         pending: false,
@@ -12580,7 +12580,7 @@ var FrappeAIPanel = (() => {
           0 === i && attemptExplicitHydrationTarget(target);
         }
       };
-      var isomorphicReactPackageVersion$jscomp$inline_1840 = React10.version;
+      var isomorphicReactPackageVersion$jscomp$inline_1840 = React11.version;
       if ("19.2.3" !== isomorphicReactPackageVersion$jscomp$inline_1840)
         throw Error(
           formatProdErrorMessage(
@@ -12747,15 +12747,15 @@ var FrappeAIPanel = (() => {
     }
   });
 
-  // src/main.tsx
-  var import_react11 = __toESM(require_react(), 1);
+  // src/hosts/deskPanel.tsx
+  var import_react12 = __toESM(require_react(), 1);
   var import_client2 = __toESM(require_client(), 1);
 
-  // src/components/PanelRoot.tsx
+  // src/components/PageRoot.tsx
   var import_react10 = __toESM(require_react(), 1);
 
-  // src/components/Composer.tsx
-  var import_react4 = __toESM(require_react(), 1);
+  // src/components/WorkspaceShell.tsx
+  var import_react9 = __toESM(require_react(), 1);
 
   // ../../factory_automation_api/fact-frontend/node_modules/lucide-react/dist/esm/createLucideIcon.js
   var import_react2 = __toESM(require_react());
@@ -12864,23 +12864,27 @@ var FrappeAIPanel = (() => {
   ];
   var Bot = createLucideIcon("bot", __iconNode2);
 
+  // ../../factory_automation_api/fact-frontend/node_modules/lucide-react/dist/esm/icons/chevron-right.js
+  var __iconNode3 = [["path", { d: "m9 18 6-6-6-6", key: "mthhwq" }]];
+  var ChevronRight = createLucideIcon("chevron-right", __iconNode3);
+
   // ../../factory_automation_api/fact-frontend/node_modules/lucide-react/dist/esm/icons/circle-alert.js
-  var __iconNode3 = [
+  var __iconNode4 = [
     ["circle", { cx: "12", cy: "12", r: "10", key: "1mglay" }],
     ["line", { x1: "12", x2: "12", y1: "8", y2: "12", key: "1pkeuh" }],
     ["line", { x1: "12", x2: "12.01", y1: "16", y2: "16", key: "4dfq90" }]
   ];
-  var CircleAlert = createLucideIcon("circle-alert", __iconNode3);
+  var CircleAlert = createLucideIcon("circle-alert", __iconNode4);
 
   // ../../factory_automation_api/fact-frontend/node_modules/lucide-react/dist/esm/icons/circle-check.js
-  var __iconNode4 = [
+  var __iconNode5 = [
     ["circle", { cx: "12", cy: "12", r: "10", key: "1mglay" }],
     ["path", { d: "m9 12 2 2 4-4", key: "dzmm74" }]
   ];
-  var CircleCheck = createLucideIcon("circle-check", __iconNode4);
+  var CircleCheck = createLucideIcon("circle-check", __iconNode5);
 
   // ../../factory_automation_api/fact-frontend/node_modules/lucide-react/dist/esm/icons/circle-dashed.js
-  var __iconNode5 = [
+  var __iconNode6 = [
     ["path", { d: "M10.1 2.182a10 10 0 0 1 3.8 0", key: "5ilxe3" }],
     ["path", { d: "M13.9 21.818a10 10 0 0 1-3.8 0", key: "11zvb9" }],
     ["path", { d: "M17.609 3.721a10 10 0 0 1 2.69 2.7", key: "1iw5b2" }],
@@ -12890,26 +12894,68 @@ var FrappeAIPanel = (() => {
     ["path", { d: "M3.721 6.391a10 10 0 0 1 2.7-2.69", key: "1mcia2" }],
     ["path", { d: "M6.391 20.279a10 10 0 0 1-2.69-2.7", key: "1fvljs" }]
   ];
-  var CircleDashed = createLucideIcon("circle-dashed", __iconNode5);
+  var CircleDashed = createLucideIcon("circle-dashed", __iconNode6);
+
+  // ../../factory_automation_api/fact-frontend/node_modules/lucide-react/dist/esm/icons/circle-play.js
+  var __iconNode7 = [
+    [
+      "path",
+      {
+        d: "M9 9.003a1 1 0 0 1 1.517-.859l4.997 2.997a1 1 0 0 1 0 1.718l-4.997 2.997A1 1 0 0 1 9 14.996z",
+        key: "kmsa83"
+      }
+    ],
+    ["circle", { cx: "12", cy: "12", r: "10", key: "1mglay" }]
+  ];
+  var CirclePlay = createLucideIcon("circle-play", __iconNode7);
 
   // ../../factory_automation_api/fact-frontend/node_modules/lucide-react/dist/esm/icons/circle-x.js
-  var __iconNode6 = [
+  var __iconNode8 = [
     ["circle", { cx: "12", cy: "12", r: "10", key: "1mglay" }],
     ["path", { d: "m15 9-6 6", key: "1uzhvr" }],
     ["path", { d: "m9 9 6 6", key: "z0biqf" }]
   ];
-  var CircleX = createLucideIcon("circle-x", __iconNode6);
+  var CircleX = createLucideIcon("circle-x", __iconNode8);
+
+  // ../../factory_automation_api/fact-frontend/node_modules/lucide-react/dist/esm/icons/compass.js
+  var __iconNode9 = [
+    [
+      "path",
+      {
+        d: "m16.24 7.76-1.804 5.411a2 2 0 0 1-1.265 1.265L7.76 16.24l1.804-5.411a2 2 0 0 1 1.265-1.265z",
+        key: "9ktpf1"
+      }
+    ],
+    ["circle", { cx: "12", cy: "12", r: "10", key: "1mglay" }]
+  ];
+  var Compass = createLucideIcon("compass", __iconNode9);
 
   // ../../factory_automation_api/fact-frontend/node_modules/lucide-react/dist/esm/icons/database.js
-  var __iconNode7 = [
+  var __iconNode10 = [
     ["ellipse", { cx: "12", cy: "5", rx: "9", ry: "3", key: "msslwz" }],
     ["path", { d: "M3 5V19A9 3 0 0 0 21 19V5", key: "1wlel7" }],
     ["path", { d: "M3 12A9 3 0 0 0 21 12", key: "mv7ke4" }]
   ];
-  var Database = createLucideIcon("database", __iconNode7);
+  var Database = createLucideIcon("database", __iconNode10);
+
+  // ../../factory_automation_api/fact-frontend/node_modules/lucide-react/dist/esm/icons/ellipsis.js
+  var __iconNode11 = [
+    ["circle", { cx: "12", cy: "12", r: "1", key: "41hilf" }],
+    ["circle", { cx: "19", cy: "12", r: "1", key: "1wjl8i" }],
+    ["circle", { cx: "5", cy: "12", r: "1", key: "1pcz8c" }]
+  ];
+  var Ellipsis = createLucideIcon("ellipsis", __iconNode11);
+
+  // ../../factory_automation_api/fact-frontend/node_modules/lucide-react/dist/esm/icons/external-link.js
+  var __iconNode12 = [
+    ["path", { d: "M15 3h6v6", key: "1q9fwt" }],
+    ["path", { d: "M10 14 21 3", key: "gplh6r" }],
+    ["path", { d: "M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6", key: "a6xqqp" }]
+  ];
+  var ExternalLink = createLucideIcon("external-link", __iconNode12);
 
   // ../../factory_automation_api/fact-frontend/node_modules/lucide-react/dist/esm/icons/hammer.js
-  var __iconNode8 = [
+  var __iconNode13 = [
     ["path", { d: "m15 12-9.373 9.373a1 1 0 0 1-3.001-3L12 9", key: "1hayfq" }],
     ["path", { d: "m18 15 4-4", key: "16gjal" }],
     [
@@ -12920,48 +12966,70 @@ var FrappeAIPanel = (() => {
       }
     ]
   ];
-  var Hammer = createLucideIcon("hammer", __iconNode8);
-
-  // ../../factory_automation_api/fact-frontend/node_modules/lucide-react/dist/esm/icons/history.js
-  var __iconNode9 = [
-    ["path", { d: "M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8", key: "1357e3" }],
-    ["path", { d: "M3 3v5h5", key: "1xhq8a" }],
-    ["path", { d: "M12 7v5l4 2", key: "1fdv2h" }]
-  ];
-  var History = createLucideIcon("history", __iconNode9);
+  var Hammer = createLucideIcon("hammer", __iconNode13);
 
   // ../../factory_automation_api/fact-frontend/node_modules/lucide-react/dist/esm/icons/loader-circle.js
-  var __iconNode10 = [["path", { d: "M21 12a9 9 0 1 1-6.219-8.56", key: "13zald" }]];
-  var LoaderCircle = createLucideIcon("loader-circle", __iconNode10);
+  var __iconNode14 = [["path", { d: "M21 12a9 9 0 1 1-6.219-8.56", key: "13zald" }]];
+  var LoaderCircle = createLucideIcon("loader-circle", __iconNode14);
 
   // ../../factory_automation_api/fact-frontend/node_modules/lucide-react/dist/esm/icons/maximize-2.js
-  var __iconNode11 = [
+  var __iconNode15 = [
     ["path", { d: "M15 3h6v6", key: "1q9fwt" }],
     ["path", { d: "m21 3-7 7", key: "1l2asr" }],
     ["path", { d: "m3 21 7-7", key: "tjx5ai" }],
     ["path", { d: "M9 21H3v-6", key: "wtvkvv" }]
   ];
-  var Maximize2 = createLucideIcon("maximize-2", __iconNode11);
+  var Maximize2 = createLucideIcon("maximize-2", __iconNode15);
+
+  // ../../factory_automation_api/fact-frontend/node_modules/lucide-react/dist/esm/icons/menu.js
+  var __iconNode16 = [
+    ["path", { d: "M4 12h16", key: "1lakjw" }],
+    ["path", { d: "M4 18h16", key: "19g7jn" }],
+    ["path", { d: "M4 6h16", key: "1o0s65" }]
+  ];
+  var Menu = createLucideIcon("menu", __iconNode16);
+
+  // ../../factory_automation_api/fact-frontend/node_modules/lucide-react/dist/esm/icons/message-square-plus.js
+  var __iconNode17 = [
+    [
+      "path",
+      {
+        d: "M22 17a2 2 0 0 1-2 2H6.828a2 2 0 0 0-1.414.586l-2.202 2.202A.71.71 0 0 1 2 21.286V5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2z",
+        key: "18887p"
+      }
+    ],
+    ["path", { d: "M12 8v6", key: "1ib9pf" }],
+    ["path", { d: "M9 11h6", key: "1fldmi" }]
+  ];
+  var MessageSquarePlus = createLucideIcon("message-square-plus", __iconNode17);
 
   // ../../factory_automation_api/fact-frontend/node_modules/lucide-react/dist/esm/icons/minimize-2.js
-  var __iconNode12 = [
+  var __iconNode18 = [
     ["path", { d: "m14 10 7-7", key: "oa77jy" }],
     ["path", { d: "M20 10h-6V4", key: "mjg0md" }],
     ["path", { d: "m3 21 7-7", key: "tjx5ai" }],
     ["path", { d: "M4 14h6v6", key: "rmj7iw" }]
   ];
-  var Minimize2 = createLucideIcon("minimize-2", __iconNode12);
+  var Minimize2 = createLucideIcon("minimize-2", __iconNode18);
 
   // ../../factory_automation_api/fact-frontend/node_modules/lucide-react/dist/esm/icons/panel-right-close.js
-  var __iconNode13 = [
+  var __iconNode19 = [
     ["rect", { width: "18", height: "18", x: "3", y: "3", rx: "2", key: "afitv7" }],
     ["path", { d: "M15 3v18", key: "14nvp0" }],
     ["path", { d: "m8 9 3 3-3 3", key: "12hl5m" }]
   ];
-  var PanelRightClose = createLucideIcon("panel-right-close", __iconNode13);
+  var PanelRightClose = createLucideIcon("panel-right-close", __iconNode19);
+
+  // ../../factory_automation_api/fact-frontend/node_modules/lucide-react/dist/esm/icons/panels-top-left.js
+  var __iconNode20 = [
+    ["rect", { width: "18", height: "18", x: "3", y: "3", rx: "2", key: "afitv7" }],
+    ["path", { d: "M3 9h18", key: "1pudct" }],
+    ["path", { d: "M9 21V9", key: "1oto5p" }]
+  ];
+  var PanelsTopLeft = createLucideIcon("panels-top-left", __iconNode20);
 
   // ../../factory_automation_api/fact-frontend/node_modules/lucide-react/dist/esm/icons/paperclip.js
-  var __iconNode14 = [
+  var __iconNode21 = [
     [
       "path",
       {
@@ -12970,24 +13038,26 @@ var FrappeAIPanel = (() => {
       }
     ]
   ];
-  var Paperclip = createLucideIcon("paperclip", __iconNode14);
-
-  // ../../factory_automation_api/fact-frontend/node_modules/lucide-react/dist/esm/icons/plus.js
-  var __iconNode15 = [
-    ["path", { d: "M5 12h14", key: "1ays0h" }],
-    ["path", { d: "M12 5v14", key: "s699le" }]
-  ];
-  var Plus = createLucideIcon("plus", __iconNode15);
+  var Paperclip = createLucideIcon("paperclip", __iconNode21);
 
   // ../../factory_automation_api/fact-frontend/node_modules/lucide-react/dist/esm/icons/search.js
-  var __iconNode16 = [
+  var __iconNode22 = [
     ["path", { d: "m21 21-4.34-4.34", key: "14j7rj" }],
     ["circle", { cx: "11", cy: "11", r: "8", key: "4ej97u" }]
   ];
-  var Search = createLucideIcon("search", __iconNode16);
+  var Search = createLucideIcon("search", __iconNode22);
+
+  // ../../factory_automation_api/fact-frontend/node_modules/lucide-react/dist/esm/icons/server.js
+  var __iconNode23 = [
+    ["rect", { width: "20", height: "8", x: "2", y: "2", rx: "2", ry: "2", key: "ngkwjq" }],
+    ["rect", { width: "20", height: "8", x: "2", y: "14", rx: "2", ry: "2", key: "iecqi9" }],
+    ["line", { x1: "6", x2: "6.01", y1: "6", y2: "6", key: "16zg32" }],
+    ["line", { x1: "6", x2: "6.01", y1: "18", y2: "18", key: "nzw8ys" }]
+  ];
+  var Server = createLucideIcon("server", __iconNode23);
 
   // ../../factory_automation_api/fact-frontend/node_modules/lucide-react/dist/esm/icons/shield-alert.js
-  var __iconNode17 = [
+  var __iconNode24 = [
     [
       "path",
       {
@@ -12998,10 +13068,10 @@ var FrappeAIPanel = (() => {
     ["path", { d: "M12 8v4", key: "1got3b" }],
     ["path", { d: "M12 16h.01", key: "1drbdi" }]
   ];
-  var ShieldAlert = createLucideIcon("shield-alert", __iconNode17);
+  var ShieldAlert = createLucideIcon("shield-alert", __iconNode24);
 
   // ../../factory_automation_api/fact-frontend/node_modules/lucide-react/dist/esm/icons/sparkles.js
-  var __iconNode18 = [
+  var __iconNode25 = [
     [
       "path",
       {
@@ -13013,16 +13083,16 @@ var FrappeAIPanel = (() => {
     ["path", { d: "M22 4h-4", key: "gwowj6" }],
     ["circle", { cx: "4", cy: "20", r: "2", key: "6kqj1y" }]
   ];
-  var Sparkles = createLucideIcon("sparkles", __iconNode18);
+  var Sparkles = createLucideIcon("sparkles", __iconNode25);
 
   // ../../factory_automation_api/fact-frontend/node_modules/lucide-react/dist/esm/icons/square.js
-  var __iconNode19 = [
+  var __iconNode26 = [
     ["rect", { width: "18", height: "18", x: "3", y: "3", rx: "2", key: "afitv7" }]
   ];
-  var Square = createLucideIcon("square", __iconNode19);
+  var Square = createLucideIcon("square", __iconNode26);
 
   // ../../factory_automation_api/fact-frontend/node_modules/lucide-react/dist/esm/icons/thumbs-down.js
-  var __iconNode20 = [
+  var __iconNode27 = [
     ["path", { d: "M17 14V2", key: "8ymqnk" }],
     [
       "path",
@@ -13032,10 +13102,10 @@ var FrappeAIPanel = (() => {
       }
     ]
   ];
-  var ThumbsDown = createLucideIcon("thumbs-down", __iconNode20);
+  var ThumbsDown = createLucideIcon("thumbs-down", __iconNode27);
 
   // ../../factory_automation_api/fact-frontend/node_modules/lucide-react/dist/esm/icons/thumbs-up.js
-  var __iconNode21 = [
+  var __iconNode28 = [
     ["path", { d: "M7 10v12", key: "1qc93n" }],
     [
       "path",
@@ -13045,29 +13115,10 @@ var FrappeAIPanel = (() => {
       }
     ]
   ];
-  var ThumbsUp = createLucideIcon("thumbs-up", __iconNode21);
-
-  // ../../factory_automation_api/fact-frontend/node_modules/lucide-react/dist/esm/icons/wand-sparkles.js
-  var __iconNode22 = [
-    [
-      "path",
-      {
-        d: "m21.64 3.64-1.28-1.28a1.21 1.21 0 0 0-1.72 0L2.36 18.64a1.21 1.21 0 0 0 0 1.72l1.28 1.28a1.2 1.2 0 0 0 1.72 0L21.64 5.36a1.2 1.2 0 0 0 0-1.72",
-        key: "ul74o6"
-      }
-    ],
-    ["path", { d: "m14 7 3 3", key: "1r5n42" }],
-    ["path", { d: "M5 6v4", key: "ilb8ba" }],
-    ["path", { d: "M19 14v4", key: "blhpug" }],
-    ["path", { d: "M10 2v2", key: "7u0qdc" }],
-    ["path", { d: "M7 8H3", key: "zfb6yr" }],
-    ["path", { d: "M21 16h-4", key: "1cnmox" }],
-    ["path", { d: "M11 3H9", key: "1obp7u" }]
-  ];
-  var WandSparkles = createLucideIcon("wand-sparkles", __iconNode22);
+  var ThumbsUp = createLucideIcon("thumbs-up", __iconNode28);
 
   // ../../factory_automation_api/fact-frontend/node_modules/lucide-react/dist/esm/icons/wrench.js
-  var __iconNode23 = [
+  var __iconNode29 = [
     [
       "path",
       {
@@ -13076,14 +13127,17 @@ var FrappeAIPanel = (() => {
       }
     ]
   ];
-  var Wrench = createLucideIcon("wrench", __iconNode23);
+  var Wrench = createLucideIcon("wrench", __iconNode29);
 
   // ../../factory_automation_api/fact-frontend/node_modules/lucide-react/dist/esm/icons/x.js
-  var __iconNode24 = [
+  var __iconNode30 = [
     ["path", { d: "M18 6 6 18", key: "1bl5f8" }],
     ["path", { d: "m6 6 12 12", key: "d8bk6v" }]
   ];
-  var X = createLucideIcon("x", __iconNode24);
+  var X = createLucideIcon("x", __iconNode30);
+
+  // src/components/Composer.tsx
+  var import_react4 = __toESM(require_react(), 1);
 
   // src/components/AttachmentChip.tsx
   var import_jsx_runtime = __toESM(require_jsx_runtime(), 1);
@@ -13164,9 +13218,15 @@ var FrappeAIPanel = (() => {
     return (_a = data.message) != null ? _a : data;
   }
   var bootstrap = () => request("frappe_ai.api.frontend.bootstrap");
-  var loadHistory = () => request("frappe_ai.api.frontend.sessions").then((data) => data.sessions || []);
+  var loadHistory = () => request("frappe_ai.api.frontend.sessions").then((data) => {
+    var _a;
+    return ((_a = data.session) == null ? void 0 : _a.history) || [];
+  });
   var searchSessions = (query) => request("frappe_ai.api.frontend.sessions", { params: { query, limit: 20 } }).then(
-    (data) => data.sessions || []
+    (data) => {
+      var _a;
+      return ((_a = data.session) == null ? void 0 : _a.history) || [];
+    }
   );
   var getSession = (session) => request("frappe_ai.api.frontend.session_detail", { params: { session } });
   var submitFeedback = (args) => request("frappe_ai.api.frontend.submit_feedback", {
@@ -13179,12 +13239,7 @@ var FrappeAIPanel = (() => {
   });
   var recoverSession = (session) => request("frappe_ai.api.frontend.recover_session", { method: "POST", body: { session } });
   var stopRun = (runName) => request("frappe_ai.api.frontend.stop_run", { method: "POST", body: { run: runName } });
-  var getAgentTools = (agent) => request("frappe_ai.api.frontend.agent_tools", { params: { agent } }).then((data) => {
-    const tools = data.tools || {};
-    return Object.fromEntries(
-      Object.entries(tools).map(([slug, meta]) => [slug, Boolean(meta == null ? void 0 : meta.requires_confirmation)])
-    );
-  });
+  var checkMcpConnection = (name) => request("frappe_ai.api.mcp.check_connection", { method: "POST", body: { name } });
   async function uploadAttachment(file) {
     const form = new FormData();
     form.append("file", file, file.name);
@@ -13276,22 +13331,6 @@ var FrappeAIPanel = (() => {
     signal
   );
 
-  // src/lib/panelState.ts
-  var KEY = "frappe-ai-panel-state";
-  function readPanelState() {
-    try {
-      return JSON.parse(localStorage.getItem(KEY) || "{}");
-    } catch {
-      return {};
-    }
-  }
-  function writePanelState(state) {
-    try {
-      localStorage.setItem(KEY, JSON.stringify(state));
-    } catch {
-    }
-  }
-
   // src/lib/toolMeta.ts
   function parseArgs(args) {
     if (!args) return {};
@@ -13317,37 +13356,65 @@ var FrappeAIPanel = (() => {
     delete: "Deleting Records",
     run_action: "Running Document Actions"
   };
-  function normalizeToolName(name) {
-    const clean = String(name || "").split("<|")[0].trim();
-    return clean || String(name || "").trim();
+  function parseToolIdentity(name) {
+    const raw = String(name || "").trim();
+    if (!raw.includes("<|")) {
+      return { kind: "tool", toolName: raw, connectionName: null };
+    }
+    const [toolName, connectionName] = raw.split("<|", 2);
+    return {
+      kind: "mcp_tool",
+      toolName: toolName.trim(),
+      connectionName: (connectionName == null ? void 0 : connectionName.trim()) || null
+    };
   }
   function toolLabel(name) {
     return LABELS[name] ? __(LABELS[name]) : humanize(name);
   }
-  function toolContext(args) {
-    const parsed = parseArgs(args);
-    for (const key of ["doctype", "search", "action"]) {
-      const value = parsed[key];
-      if (typeof value === "string" && value) return key === "action" ? humanize(value) : value;
-    }
-    return null;
+  function summarizeValues(values) {
+    return Object.entries(values || {}).slice(0, 4).map(([label, value]) => ({
+      label,
+      value: typeof value === "string" ? value : Array.isArray(value) ? value.join(", ") : value && typeof value === "object" ? Object.entries(value).slice(0, 2).map(([key, item]) => `${key}: ${String(item)}`).join(", ") : String(value)
+    })).filter((row) => row.value && row.value !== "undefined");
   }
-  function toolError(result) {
-    if (typeof result !== "string") return null;
+  function resultSummary(result) {
+    if (!result) return "";
     try {
       const parsed = JSON.parse(result);
       if (parsed && typeof parsed === "object") {
-        if (typeof parsed.error === "string") return parsed.error;
-        const failures = parsed.failures;
-        if (Array.isArray(failures) && failures.length) {
-          const combined = failures.map((item) => item == null ? void 0 : item.error).filter((item) => typeof item === "string").join("\n");
-          return combined || null;
+        for (const key of ["message", "result", "status", "error"]) {
+          if (typeof parsed[key] === "string" && parsed[key]) return parsed[key];
         }
+        return JSON.stringify(parsed, null, 2);
+      }
+      return String(parsed);
+    } catch {
+      return result;
+    }
+  }
+  function executionStatusFromResult(result) {
+    if (!result) return { status: "running", error: null, approvalStatus: null };
+    try {
+      const parsed = JSON.parse(result);
+      if (parsed && typeof parsed === "object") {
+        const status = parsed.error ? "error" : "completed";
+        const approvalStatus = parsed.status === "approved" ? "approved" : parsed.status === "denied" ? "denied" : parsed.status === "redirect" ? "redirected" : null;
+        return { status, error: parsed.error || null, approvalStatus };
       }
     } catch {
-      return null;
     }
-    return null;
+    return { status: "completed", error: null, approvalStatus: null };
+  }
+  function summarizeSchema(schema) {
+    const properties = (schema == null ? void 0 : schema.properties) || {};
+    return Object.entries(properties).slice(0, 6).map(([name, field]) => {
+      var _a;
+      return {
+        name,
+        type: (field == null ? void 0 : field.type) || ((_a = field == null ? void 0 : field.anyOf) == null ? void 0 : _a.map((item) => item.type).filter(Boolean).join(" | ")) || "value",
+        description: (field == null ? void 0 : field.description) || ""
+      };
+    });
   }
   var pick = (one, many, count, doctype) => count === 1 ? __(one, [doctype]) : __(many, [count, doctype]);
   function confirmTitle(name, args) {
@@ -13377,20 +13444,20 @@ var FrappeAIPanel = (() => {
   var initialState = {
     agents: [],
     models: [],
-    recentSessions: [],
-    supportedFileTypes: [],
-    toolApproval: {},
+    history: [],
     selectedAgent: null,
     selectedModel: null,
-    sessionName: null,
-    runName: null,
-    messages: [],
+    currentSession: null,
+    currentRun: null,
+    transcript: [],
     attachments: [],
+    supportedFileTypes: [],
     sending: false,
     loaded: false,
     scrollTick: 0,
     forceScroll: false,
-    focusTick: 0
+    focusTick: 0,
+    inspector: { open: false, mode: "agent", title: "", payload: null }
   };
   var StoreContext = (0, import_react3.createContext)(null);
   function reducer(_state, nextState) {
@@ -13400,56 +13467,64 @@ var FrappeAIPanel = (() => {
   var attachmentUid = 0;
   var nextId = () => `n${++uid}`;
   var nextAttachmentId = () => `a${++attachmentUid}`;
-  function makeTextPart(text) {
-    return { id: nextId(), type: "text", text };
-  }
-  function makeToolPart(id, name, args) {
-    return {
-      id,
-      type: "tool",
-      name: normalizeToolName(name),
-      arguments: args,
-      result: null,
-      approval: null
-    };
-  }
   function prepareQuestions(questions) {
-    return (questions || []).map((question) => ({
-      ...question,
-      _showOther: false,
-      _otherText: "",
-      _answer: void 0
-    }));
+    return (questions || []).map((question) => ({ ...question, _answer: void 0 }));
   }
-  function approvalFromResult(result) {
-    var _a;
-    if (typeof result !== "string") return null;
-    try {
-      const status = (_a = JSON.parse(result)) == null ? void 0 : _a.status;
-      if (status === "denied") return "denied";
-      if (status === "redirect") return "redirected";
-    } catch {
-      return null;
-    }
-    return null;
+  function cloneExecution(item) {
+    return { ...item, input_summary: item.input_summary.map((row) => ({ ...row })) };
   }
-  function cloneMessages(messages) {
+  function cloneTranscript(messages) {
     return messages.map(
       (message) => message.role === "user" ? { ...message, attachments: [...message.attachments] } : {
         ...message,
-        parts: message.parts.map((part) => ({ ...part })),
+        executions: message.executions.map(cloneExecution),
         questions: message.questions.map((question) => ({ ...question })),
         feedback: message.feedback ? { ...message.feedback } : null
       }
     );
   }
+  function requestScrollState(current, force = false) {
+    return {
+      ...current,
+      forceScroll: force ? true : current.forceScroll,
+      scrollTick: current.scrollTick + 1
+    };
+  }
+  function buildExecution(rawName, args, existing) {
+    var _a, _b, _c, _d;
+    const identity = parseToolIdentity(rawName);
+    return {
+      id: (existing == null ? void 0 : existing.id) || nextId(),
+      kind: identity.kind,
+      tool_name: identity.toolName,
+      display_title: toolLabel(identity.toolName),
+      connection_name: identity.connectionName,
+      status: (existing == null ? void 0 : existing.status) || "running",
+      duration_ms: (_a = existing == null ? void 0 : existing.duration_ms) != null ? _a : null,
+      input_summary: summarizeValues(parseArgs(args)),
+      result_summary: (existing == null ? void 0 : existing.result_summary) || "",
+      raw_input: parseArgs(args),
+      raw_output: (_b = existing == null ? void 0 : existing.raw_output) != null ? _b : null,
+      error: (_c = existing == null ? void 0 : existing.error) != null ? _c : null,
+      approval_status: (_d = existing == null ? void 0 : existing.approval_status) != null ? _d : null
+    };
+  }
+  function setInterrupted(messages) {
+    var _a;
+    for (let index = 0; index < messages.length; index++) {
+      const current = messages[index];
+      if (current.role !== "user") continue;
+      current.interrupted = ((_a = messages[index + 1]) == null ? void 0 : _a.role) !== "assistant";
+    }
+    return messages;
+  }
   function StoreProvider({
     children,
-    onSessionChange
+    host
   }) {
+    var _a;
     const [state, dispatch] = (0, import_react3.useReducer)(reducer, initialState);
     const stateRef = (0, import_react3.useRef)(state);
-    const toolApprovalCache = (0, import_react3.useRef)({});
     const sessionRestored = (0, import_react3.useRef)(false);
     const switchSeq = (0, import_react3.useRef)(0);
     const abortController = (0, import_react3.useRef)(null);
@@ -13463,256 +13538,103 @@ var FrappeAIPanel = (() => {
       },
       [commit]
     );
-    const requestScroll = (0, import_react3.useCallback)(
-      (force = false) => {
-        update((current) => ({
-          ...current,
-          forceScroll: force ? true : current.forceScroll,
-          scrollTick: current.scrollTick + 1
-        }));
-      },
-      [update]
-    );
-    const focusComposer = (0, import_react3.useCallback)(() => {
-      update((current) => ({ ...current, focusTick: current.focusTick + 1 }));
-    }, [update]);
-    const loadToolApproval = (0, import_react3.useCallback)(
-      async (agent) => {
-        if (!agent) {
-          update((current) => ({ ...current, toolApproval: {} }));
-          return;
-        }
-        const cached = toolApprovalCache.current[agent];
-        if (cached) update((current) => ({ ...current, toolApproval: cached }));
-        try {
-          const map = await getAgentTools(agent);
-          toolApprovalCache.current[agent] = map;
-          if (stateRef.current.selectedAgent === agent) {
-            update((current) => ({ ...current, toolApproval: map }));
-          }
-        } catch {
-          if (!cached && stateRef.current.selectedAgent === agent) {
-            update((current) => ({ ...current, toolApproval: {} }));
-          }
-        }
-      },
-      [update]
-    );
-    const pushAssistant = (0, import_react3.useCallback)(
-      (pending = true) => {
-        let created = {
-          id: nextId(),
-          role: "assistant",
-          parts: [],
-          pending,
-          questions: [],
-          runName: null,
-          feedback: null
-        };
-        update((current) => {
-          const nextMessages = cloneMessages(current.messages);
-          created = {
-            id: nextId(),
-            role: "assistant",
-            parts: [],
-            pending,
-            questions: [],
-            runName: null,
-            feedback: null
-          };
-          nextMessages.push(created);
-          return { ...current, messages: nextMessages };
-        });
-        return created.id;
-      },
-      [update]
-    );
-    const appendText = (0, import_react3.useCallback)((message, delta) => {
-      const last = message.parts[message.parts.length - 1];
-      if (last && last.type === "text") {
-        last.text += delta;
-      } else if (delta.trim()) {
-        message.parts.push(makeTextPart(delta));
-      }
-    }, []);
-    const setToolResult = (0, import_react3.useCallback)(
-      (message, id, result) => {
-        const part = message.parts.find((item) => item.type === "tool" && item.id === id);
-        if (!part) return;
-        part.result = result;
-        if (part.approval === null && stateRef.current.toolApproval[part.name] === true) {
-          part.approval = approvalFromResult(result);
-        }
-      },
+    const selectedAgentRecord = (0, import_react3.useCallback)(
+      (name, items = stateRef.current.agents) => items.find((item) => item.name === name) || null,
       []
     );
-    const findAssistantById = (0, import_react3.useCallback)((messageId, messages) => {
-      return messages.find((item) => item.role === "assistant" && item.id === messageId);
-    }, []);
-    const refreshHistory = (0, import_react3.useCallback)(async () => {
-      const recentSessions = await loadHistory().catch(() => []);
-      update((current) => ({ ...current, recentSessions }));
-    }, [update]);
-    const restoreFeedback = (0, import_react3.useCallback)(
-      async (feedbackRows, seq, messages) => {
-        if (seq !== switchSeq.current || !(feedbackRows == null ? void 0 : feedbackRows.length)) return messages;
-        const byRun = new Map(feedbackRows.map((row) => [row.run, row]));
-        return messages.map((message) => {
-          if (message.role !== "assistant" || !message.runName) return message;
-          const feedback = byRun.get(message.runName);
-          return feedback ? {
-            ...message,
-            feedback: {
-              rating: feedback.rating,
-              comment: feedback.comment || ""
-            }
-          } : message;
-        });
+    const openInspector = (0, import_react3.useCallback)(
+      (mode, title, payload) => {
+        update((current) => ({ ...current, inspector: { open: true, mode, title, payload } }));
       },
-      []
+      [update]
     );
-    const restorePausedRun = (0, import_react3.useCallback)(
-      async (session, pausedRun) => {
-        var _a;
-        if (stateRef.current.sessionName !== session || !((_a = pausedRun == null ? void 0 : pausedRun.questions) == null ? void 0 : _a.length)) return;
-        const questions = pausedRun.questions;
+    const hydrateFromBootstrap = (0, import_react3.useCallback)(
+      (data) => {
+        var _a2;
+        const selectedSession = ((_a2 = data.session) == null ? void 0 : _a2.current) || null;
         update((current) => {
-          const nextMessages = cloneMessages(current.messages);
-          const last = [...nextMessages].reverse().find((item) => item.role === "assistant");
-          if (!last) return current;
-          last.questions = prepareQuestions(questions);
-          last.runName = pausedRun.run;
-          return { ...current, runName: pausedRun.run, messages: nextMessages };
-        });
-        requestScroll();
-      },
-      [requestScroll, update]
-    );
-    const switchSession = (0, import_react3.useCallback)(
-      async (name) => {
-        var _a, _b, _c;
-        if (stateRef.current.sending) return;
-        const seq = ++switchSeq.current;
-        update((current) => ({
-          ...current,
-          sessionName: name,
-          runName: null,
-          messages: [],
-          attachments: []
-        }));
-        await recoverSession(name).catch(() => {
-        });
-        const doc = await getSession(name);
-        if (seq !== switchSeq.current) return;
-        update((current) => {
-          var _a2, _b2;
+          var _a3, _b, _c, _d, _e, _f, _g;
           return {
             ...current,
-            selectedAgent: ((_a2 = doc.session) == null ? void 0 : _a2.agent) || null,
-            selectedModel: ((_b2 = doc.session) == null ? void 0 : _b2.model) || null
+            agents: ((_a3 = data.agent) == null ? void 0 : _a3.items) || [],
+            models: ((_b = data.agent) == null ? void 0 : _b.models) || [],
+            history: ((_c = data.session) == null ? void 0 : _c.history) || [],
+            selectedAgent: ((_d = data.agent) == null ? void 0 : _d.selected) || null,
+            selectedModel: (selectedSession == null ? void 0 : selectedSession.model) || null,
+            currentSession: selectedSession,
+            currentRun: ((_e = data.execution) == null ? void 0 : _e.current_run) || null,
+            transcript: ((_f = data.execution) == null ? void 0 : _f.transcript) || [],
+            supportedFileTypes: ((_g = data.composer) == null ? void 0 : _g.supported_file_types) || [],
+            loaded: true,
+            focusTick: current.focusTick + 1
           };
         });
-        await loadToolApproval(((_a = doc.session) == null ? void 0 : _a.agent) || null);
-        if (seq !== switchSeq.current) return;
-        const attachmentsByRun = {};
-        for (const attachment of doc.attachments || []) {
-          (attachmentsByRun[_b = attachment.run] || (attachmentsByRun[_b] = [])).push({
-            file_name: attachment.file_name,
-            file_size: attachment.file_size
-          });
-        }
-        const built = [];
-        let currentAssistant = null;
-        for (const message of doc.messages || []) {
-          if (message.role === "user") {
-            currentAssistant = null;
-            built.push({
-              id: nextId(),
-              role: "user",
-              content: message.content,
-              attachments: attachmentsByRun[message.run] || []
-            });
-          } else if (message.role === "assistant") {
-            if (!currentAssistant) {
-              currentAssistant = {
-                id: nextId(),
-                role: "assistant",
-                parts: [],
-                pending: false,
-                questions: [],
-                runName: null,
-                feedback: null
-              };
-              built.push(currentAssistant);
-            }
-            if (message.run) currentAssistant.runName = message.run;
-            if (message.content) currentAssistant.parts.push(makeTextPart(message.content));
-            for (const toolCall of message.tool_calls || []) {
-              currentAssistant.parts.push(
-                makeToolPart(toolCall.id, toolCall.function.name, toolCall.function.arguments)
-              );
-            }
-          } else if (message.role === "tool" && currentAssistant) {
-            setToolResult(currentAssistant, message.tool_call_id, message.content);
-          }
-        }
-        for (let index = 0; index < built.length; index++) {
-          if (built[index].role === "user" && ((_c = built[index + 1]) == null ? void 0 : _c.role) !== "assistant") {
-            built[index].interrupted = true;
-          }
-        }
-        const withFeedback = await restoreFeedback(doc.feedback, seq, built);
-        update((current) => ({ ...current, messages: withFeedback }));
-        requestScroll();
-        await restorePausedRun(name, doc.paused_run);
       },
-      [loadToolApproval, requestScroll, restoreFeedback, restorePausedRun, setToolResult, update]
+      [update]
     );
     const loadInitial = (0, import_react3.useCallback)(async () => {
-      var _a, _b;
       try {
         const data = await bootstrap();
-        const agents = data.agents || [];
-        const models = data.models || [];
-        const recentSessions = data.recent_sessions || [];
-        const assistant = agents.find((item) => item.name === "Frappe AI");
-        const selectedAgent = assistant ? assistant.name : (_b = (_a = agents[0]) == null ? void 0 : _a.name) != null ? _b : null;
-        update((current) => ({
-          ...current,
-          agents,
-          models,
-          recentSessions,
-          supportedFileTypes: data.supported_file_types || [],
-          selectedAgent,
-          loaded: true,
-          focusTick: current.focusTick + 1
-        }));
-        await loadToolApproval(selectedAgent);
+        hydrateFromBootstrap(data);
       } catch {
         frappe.show_alert({
           message: __("Frappe AI failed to load. Refresh the page to retry."),
           indicator: "red"
         });
       }
-    }, [loadToolApproval, update]);
+    }, [hydrateFromBootstrap]);
+    const refreshHistory = (0, import_react3.useCallback)(async () => {
+      const rows = await loadHistory().catch(() => []);
+      update((current) => ({ ...current, history: rows }));
+    }, [update]);
+    const switchSession = (0, import_react3.useCallback)(
+      async (name) => {
+        if (stateRef.current.sending) return;
+        const seq = ++switchSeq.current;
+        update((current) => ({
+          ...current,
+          currentSession: current.history.find((item) => item.name === name) || { id: name, name, title: name, preview: name },
+          currentRun: null,
+          transcript: [],
+          attachments: []
+        }));
+        await recoverSession(name).catch(() => {
+        });
+        const detail = await getSession(name);
+        if (seq !== switchSeq.current) return;
+        update((current) => {
+          var _a2, _b, _c, _d, _e, _f;
+          return {
+            ...current,
+            selectedAgent: ((_a2 = detail.agent) == null ? void 0 : _a2.selected) || current.selectedAgent,
+            selectedModel: ((_c = (_b = detail.session) == null ? void 0 : _b.current) == null ? void 0 : _c.model) || null,
+            currentSession: ((_d = detail.session) == null ? void 0 : _d.current) || current.currentSession,
+            currentRun: ((_e = detail.execution) == null ? void 0 : _e.current_run) || null,
+            transcript: setInterrupted(((_f = detail.execution) == null ? void 0 : _f.transcript) || [])
+          };
+        });
+        update((current) => requestScrollState(current));
+      },
+      [update]
+    );
     const restoreSession = (0, import_react3.useCallback)(async () => {
+      var _a2;
       if (sessionRestored.current) return;
       sessionRestored.current = true;
-      const { session } = readPanelState();
+      const session = ((_a2 = host == null ? void 0 : host.getInitialSession) == null ? void 0 : _a2.call(host)) || null;
       if (!session) return;
       try {
         await switchSession(session);
       } catch {
-        update((current) => ({ ...current, sessionName: null, runName: null, messages: [] }));
+        update((current) => ({ ...current, currentSession: null, currentRun: null, transcript: [] }));
       }
-    }, [switchSession, update]);
+    }, [host, switchSession, update]);
     const setAgent = (0, import_react3.useCallback)(
       (name) => {
-        if (stateRef.current.messages.length > 0) return;
+        if (stateRef.current.transcript.length > 0) return;
         update((current) => ({ ...current, selectedAgent: name }));
-        void loadToolApproval(name);
       },
-      [loadToolApproval, update]
+      [update]
     );
     const setModel = (0, import_react3.useCallback)((name) => {
       update((current) => ({ ...current, selectedModel: name || null }));
@@ -13721,120 +13643,147 @@ var FrappeAIPanel = (() => {
       if (stateRef.current.sending) return;
       update((current) => ({
         ...current,
-        sessionName: null,
-        runName: null,
-        messages: [],
+        currentSession: null,
+        currentRun: null,
+        transcript: [],
         attachments: [],
+        selectedModel: null,
         focusTick: current.focusTick + 1
       }));
     }, [update]);
     const searchSessions2 = (0, import_react3.useCallback)(async (query) => {
-      if (!query.trim()) return stateRef.current.recentSessions;
+      if (!query.trim()) return stateRef.current.history;
       return searchSessions(query).catch(() => []);
     }, []);
     const clearForceScroll = (0, import_react3.useCallback)(() => {
       update((current) => current.forceScroll ? { ...current, forceScroll: false } : current);
     }, [update]);
+    const findAssistant = (0, import_react3.useCallback)((messageId, messages) => {
+      return messages.find((item) => item.role === "assistant" && item.id === messageId);
+    }, []);
+    const findToolSummary = (0, import_react3.useCallback)((toolName) => {
+      const agent = selectedAgentRecord(stateRef.current.selectedAgent);
+      return (agent == null ? void 0 : agent.tools.summaries.find((item) => item.name === toolName)) || null;
+    }, [selectedAgentRecord]);
     const handleEvent = (0, import_react3.useCallback)(
       (event, messageId) => {
         update((current) => {
-          const nextMessages = cloneMessages(current.messages);
-          const message = findAssistantById(messageId, nextMessages);
+          var _a2;
+          const transcript = cloneTranscript(current.transcript);
+          const message = findAssistant(messageId, transcript);
           if (!message) return current;
           switch (event.type) {
             case "run_started":
-              message.runName = event.name;
+              message.run = event.name;
               return {
                 ...current,
-                runName: event.name,
-                sessionName: event.session,
-                messages: nextMessages
+                currentRun: { run: event.name, status: "Running" },
+                currentSession: current.currentSession || { id: event.session, name: event.session, title: __("New chat"), preview: __("New chat") },
+                transcript
               };
             case "text":
-              appendText(message, event.delta);
-              return { ...current, messages: nextMessages };
+              message.content += event.delta || "";
+              return { ...current, transcript };
             case "tool_started": {
-              const part = message.parts.find(
-                (item) => item.type === "tool" && item.id === event.id
-              );
-              if (part) {
-                part.arguments = event.arguments;
+              const existing = message.executions.find((item) => item.id === event.id);
+              if (existing) {
+                Object.assign(existing, buildExecution(event.name, event.arguments, { ...existing, id: event.id, status: "running" }));
               } else {
-                message.parts.push(makeToolPart(event.id, event.name, event.arguments));
+                message.executions.push({ ...buildExecution(event.name, event.arguments), id: event.id });
               }
-              return { ...current, messages: nextMessages };
+              return { ...current, transcript };
             }
-            case "tool_ended":
-              setToolResult(message, event.id, event.result);
-              return { ...current, messages: nextMessages };
+            case "tool_ended": {
+              const execution = message.executions.find((item) => item.id === event.id);
+              if (!execution) return current;
+              execution.raw_output = event.result;
+              execution.result_summary = resultSummary(event.result);
+              const parsed = executionStatusFromResult(event.result);
+              execution.status = parsed.status;
+              execution.error = parsed.error;
+              execution.approval_status = parsed.approvalStatus;
+              return { ...current, transcript };
+            }
             case "done":
               message.pending = false;
+              message.run = message.run || ((_a2 = current.currentRun) == null ? void 0 : _a2.run) || null;
               if (event.status === "Paused") {
                 message.questions = prepareQuestions(event.questions || []);
-                message.runName = current.runName;
+                for (const execution of message.executions) {
+                  if (message.questions.some((question) => question.key === execution.id)) {
+                    execution.status = "awaiting_confirmation";
+                  }
+                }
               }
-              return { ...current, messages: nextMessages };
+              return {
+                ...current,
+                currentRun: current.currentRun ? { ...current.currentRun, status: event.status || "Completed" } : current.currentRun,
+                transcript
+              };
             case "error":
-              appendText(message, `
-
-${__("Error")}: ${event.message}`);
+              message.error = event.message;
               message.pending = false;
-              return { ...current, messages: nextMessages };
+              return {
+                ...current,
+                currentRun: current.currentRun ? { ...current.currentRun, status: "Failed", error: event.message } : current.currentRun,
+                transcript
+              };
             default:
               return current;
           }
         });
-        if (event.type === "text" || event.type === "tool_started" || event.type === "tool_ended") {
-          requestScroll();
+        if (["text", "tool_started", "tool_ended"].includes(event.type)) {
+          update((current) => requestScrollState(current));
         }
-        if (event.type === "done" && event.status === "Paused") requestScroll(true);
+        if (event.type === "done" && event.status === "Paused") {
+          update((current) => requestScrollState(current, true));
+        }
         if (event.type === "done") void refreshHistory();
       },
-      [appendText, findAssistantById, refreshHistory, requestScroll, setToolResult, update]
+      [findAssistant, refreshHistory, update]
     );
     const send = (0, import_react3.useCallback)(
       async (rawText) => {
         const text = rawText.trim();
         const current = stateRef.current;
-        const paused = Boolean(
-          current.messages[current.messages.length - 1] && current.messages[current.messages.length - 1].role === "assistant" && current.messages[current.messages.length - 1].questions.length
+        const paused = current.transcript.some(
+          (item) => item.role === "assistant" && item.pending === false && item.questions.length > 0
         );
         const uploading = current.attachments.some((item) => item.status === "uploading");
         if (!text || current.sending || paused || uploading) return;
         const ready = current.attachments.filter((item) => item.status === "ready");
         const files = ready.map((item) => item.file).filter(Boolean);
-        const chips = ready.map((item) => ({
-          file_name: item.file_name,
-          file_size: item.file_size
-        }));
+        const chips = ready.map((item) => ({ file_name: item.file_name, file_size: item.file_size }));
         const assistantId = nextId();
         update((stateNow) => ({
           ...stateNow,
           attachments: [],
-          messages: [
-            ...cloneMessages(stateNow.messages),
-            { id: nextId(), role: "user", content: text, attachments: chips },
+          transcript: [
+            ...cloneTranscript(stateNow.transcript),
+            { id: nextId(), role: "user", content: text, run: null, attachments: chips },
             {
               id: assistantId,
               role: "assistant",
-              parts: [],
-              pending: true,
+              run: null,
+              content: "",
+              executions: [],
               questions: [],
-              runName: null,
-              feedback: null
+              feedback: null,
+              pending: true,
+              error: null
             }
           ],
           sending: true
         }));
         abortController.current = new AbortController();
-        requestScroll(true);
+        update((currentState) => requestScrollState(currentState, true));
         try {
           await startRun(
             {
               input: text,
               ...files.length && { attachments: files },
-              ...current.sessionName && { session: current.sessionName },
-              ...current.selectedAgent && !current.sessionName && { agent: current.selectedAgent },
+              ...current.currentSession && { session: current.currentSession.name },
+              ...current.selectedAgent && !current.currentSession && { agent: current.selectedAgent },
               ...current.selectedModel && { model: current.selectedModel }
             },
             (event) => handleEvent(event, assistantId),
@@ -13842,48 +13791,46 @@ ${__("Error")}: ${event.message}`);
           );
         } catch (error) {
           update((stateNow) => {
-            const nextMessages = cloneMessages(stateNow.messages);
-            const message = findAssistantById(assistantId, nextMessages);
+            const transcript = cloneTranscript(stateNow.transcript);
+            const message = findAssistant(assistantId, transcript);
             if (message) {
               if ((error == null ? void 0 : error.name) !== "AbortError") {
-                appendText(message, `
-
-${__("Error")}: ${error.message}`);
+                message.error = error.message;
               }
               message.pending = false;
             }
-            return { ...stateNow, messages: nextMessages };
+            return { ...stateNow, transcript };
           });
         } finally {
           abortController.current = null;
           update((stateNow) => ({
-            ...stateNow,
+            ...requestScrollState(stateNow),
             sending: false,
             focusTick: stateNow.focusTick + 1
           }));
-          requestScroll();
         }
       },
-      [appendText, findAssistantById, handleEvent, requestScroll, update]
+      [findAssistant, handleEvent, update]
     );
     const resume = (0, import_react3.useCallback)(
       async (answers, messageId) => {
+        var _a2;
         const current = stateRef.current;
-        const message = current.messages.find(
+        const message = current.transcript.find(
           (item) => item.role === "assistant" && item.id === messageId
         );
-        const runName = (message == null ? void 0 : message.runName) || current.runName;
+        const runName = (message == null ? void 0 : message.run) || ((_a2 = current.currentRun) == null ? void 0 : _a2.run);
         if (!runName) return;
         update((stateNow) => {
-          const nextMessages = cloneMessages(stateNow.messages);
-          const target = findAssistantById(messageId, nextMessages);
+          const transcript = cloneTranscript(stateNow.transcript);
+          const target = findAssistant(messageId, transcript);
           if (!target) return stateNow;
           target.questions = [];
           target.pending = true;
-          return { ...stateNow, messages: nextMessages, sending: true };
+          return { ...stateNow, transcript, sending: true };
         });
         abortController.current = new AbortController();
-        requestScroll(true);
+        update((currentState) => requestScrollState(currentState, true));
         try {
           await resumeRun(
             { run_name: runName, answers },
@@ -13892,58 +13839,49 @@ ${__("Error")}: ${error.message}`);
           );
         } catch (error) {
           update((stateNow) => {
-            const nextMessages = cloneMessages(stateNow.messages);
-            const target = findAssistantById(messageId, nextMessages);
+            const transcript = cloneTranscript(stateNow.transcript);
+            const target = findAssistant(messageId, transcript);
             if (target) {
-              if ((error == null ? void 0 : error.name) !== "AbortError") {
-                appendText(target, `
-
-${__("Error")}: ${error.message}`);
-              }
               target.pending = false;
+              target.error = (error == null ? void 0 : error.name) !== "AbortError" ? error.message : target.error;
             }
-            return { ...stateNow, messages: nextMessages };
+            return { ...stateNow, transcript };
           });
         } finally {
           abortController.current = null;
           update((stateNow) => ({
-            ...stateNow,
+            ...requestScrollState(stateNow),
             sending: false,
             focusTick: stateNow.focusTick + 1
           }));
-          requestScroll();
         }
       },
-      [appendText, findAssistantById, handleEvent, requestScroll, update]
+      [findAssistant, handleEvent, update]
     );
     const stopRun2 = (0, import_react3.useCallback)(() => {
-      var _a;
+      var _a2, _b;
       if (!stateRef.current.sending) return;
-      (_a = abortController.current) == null ? void 0 : _a.abort();
-      const runName = stateRef.current.runName;
+      (_a2 = abortController.current) == null ? void 0 : _a2.abort();
+      const runName = (_b = stateRef.current.currentRun) == null ? void 0 : _b.run;
       if (runName) {
         void stopRun(runName).catch(() => {
         });
-      } else if (stateRef.current.sessionName) {
-        void recoverSession(stateRef.current.sessionName).catch(() => {
+      } else if (stateRef.current.currentSession) {
+        void recoverSession(stateRef.current.currentSession.name).catch(() => {
         });
       }
     }, []);
     const submitFeedback2 = (0, import_react3.useCallback)(
       async (runName, rating, comment = "") => {
-        await submitFeedback({
-          run_name: runName,
-          rating,
-          comment: comment || null
-        });
+        await submitFeedback({ run_name: runName, rating, comment: comment || null });
         update((current) => {
-          const nextMessages = cloneMessages(current.messages);
-          for (const message of nextMessages) {
-            if (message.role === "assistant" && message.runName === runName) {
+          const transcript = cloneTranscript(current.transcript);
+          for (const message of transcript) {
+            if (message.role === "assistant" && message.run === runName) {
               message.feedback = rating === "None" ? null : { rating, comment };
             }
           }
-          return { ...current, messages: nextMessages };
+          return { ...current, transcript };
         });
       },
       [update]
@@ -13954,27 +13892,26 @@ ${__("Error")}: ${error.message}`);
         if (!trimmed) return;
         let answersToSubmit = null;
         update((current) => {
-          const nextMessages = cloneMessages(current.messages);
-          const message = findAssistantById(messageId, nextMessages);
+          const transcript = cloneTranscript(current.transcript);
+          const message = findAssistant(messageId, transcript);
           if (!message) return current;
           const question = message.questions.find((item) => item.key === questionKey);
           if (!question) return current;
           question._answer = trimmed;
-          const tool = message.parts.find(
-            (item) => item.type === "tool" && item.id === questionKey
-          );
-          if (tool) {
-            tool.approval = trimmed === "Approve" ? "approved" : trimmed === "Deny" ? "denied" : "redirected";
+          const execution = message.executions.find((item) => item.id === questionKey);
+          if (execution) {
+            execution.approval_status = trimmed === "Approve" ? "approved" : trimmed === "Deny" ? "denied" : "redirected";
+            execution.status = "running";
           }
           if (!message.questions.some((item) => item._answer === void 0)) {
             answersToSubmit = {};
             for (const item of message.questions) answersToSubmit[item.key] = item._answer;
           }
-          return { ...current, messages: nextMessages };
+          return { ...current, transcript };
         });
         if (answersToSubmit) await resume(answersToSubmit, messageId);
       },
-      [findAssistantById, resume, update]
+      [findAssistant, resume, update]
     );
     const attachFiles = (0, import_react3.useCallback)(
       (files) => {
@@ -14029,35 +13966,91 @@ ${__("Error")}: ${error.message}`);
         attachments: current.attachments.filter((item) => item.uid !== uidToRemove)
       }));
     }, [update]);
+    const closeInspector = (0, import_react3.useCallback)(() => {
+      update((current) => ({ ...current, inspector: { ...current.inspector, open: false } }));
+    }, [update]);
+    const openAgentInspector = (0, import_react3.useCallback)(() => {
+      const agent = selectedAgentRecord(stateRef.current.selectedAgent);
+      if (agent) openInspector("agent", agent.title, agent);
+    }, [openInspector, selectedAgentRecord]);
+    const openModelInspector = (0, import_react3.useCallback)(() => {
+      const agent = selectedAgentRecord(stateRef.current.selectedAgent);
+      if (!agent) return;
+      openInspector("model", agent.model.title || agent.model.name || __("Model"), {
+        agent,
+        model: agent.model
+      });
+    }, [openInspector, selectedAgentRecord]);
+    const openMcpInspector = (0, import_react3.useCallback)((connection) => {
+      openInspector("mcp", connection.display_name, connection);
+    }, [openInspector]);
+    const openToolInspector = (0, import_react3.useCallback)(
+      (tool) => {
+        openInspector("tool", tool.display_name || tool.name, {
+          ...tool,
+          schema_summary: summarizeSchema(tool.input_schema)
+        });
+      },
+      [openInspector]
+    );
+    const openExecutionInspector = (0, import_react3.useCallback)(
+      (execution, message) => {
+        openInspector("execution", execution.display_title, {
+          execution,
+          message,
+          tool: findToolSummary(execution.tool_name)
+        });
+      },
+      [findToolSummary, openInspector]
+    );
+    const openActivityInspector = (0, import_react3.useCallback)(() => {
+      const activity = stateRef.current.transcript.filter((item) => item.role === "assistant").flatMap((item) => item.executions.map((execution) => ({ execution, message: item })));
+      openInspector("activity", __("Activity"), activity);
+    }, [openInspector]);
+    const testMcpConnection = (0, import_react3.useCallback)(
+      async (name) => {
+        const result = await checkMcpConnection(name);
+        update((current) => ({
+          ...current,
+          agents: current.agents.map(
+            (agent) => agent.name !== current.selectedAgent ? agent : {
+              ...agent,
+              mcp_connections: agent.mcp_connections.map(
+                (connection) => connection.name === name ? {
+                  ...connection,
+                  status: result.is_connected ? "connected" : "disconnected",
+                  status_message: result.status_message || ""
+                } : connection
+              )
+            }
+          )
+        }));
+      },
+      [update]
+    );
     (0, import_react3.useEffect)(() => {
       stateRef.current = state;
     }, [state]);
     (0, import_react3.useEffect)(() => {
-      onSessionChange == null ? void 0 : onSessionChange(state.sessionName);
-    }, [onSessionChange, state.sessionName]);
+      var _a2, _b;
+      (_b = host == null ? void 0 : host.onSessionChange) == null ? void 0 : _b.call(host, ((_a2 = state.currentSession) == null ? void 0 : _a2.name) || null);
+    }, [host, (_a = state.currentSession) == null ? void 0 : _a.name]);
     const value = (0, import_react3.useMemo)(() => {
-      const locked = state.messages.length > 0;
+      const locked = state.transcript.length > 0;
       const needsSetup = state.loaded && (!state.agents.length || !state.models.length);
       const uploading = state.attachments.some((item) => item.status === "uploading");
-      const last = state.messages[state.messages.length - 1];
-      const paused = (last == null ? void 0 : last.role) === "assistant" ? Boolean(last.questions.length) : false;
+      const paused = state.transcript.some(
+        (item) => item.role === "assistant" && item.questions.some((question) => question._answer === void 0)
+      );
       return {
         ...state,
         locked,
         needsSetup,
         paused,
         uploading,
-        agentLabel: (name) => {
-          var _a;
-          return ((_a = state.agents.find((item) => item.name === name)) == null ? void 0 : _a.title) || name || "";
-        },
-        modelLabel: (name) => {
-          var _a;
-          return name ? ((_a = state.models.find((item) => item.name === name)) == null ? void 0 : _a.title) || name : null;
-        },
+        agentRecord: selectedAgentRecord(state.selectedAgent, state.agents),
         loadInitial,
         restoreSession,
-        refreshHistory,
         newChat,
         switchSession,
         setAgent,
@@ -14069,25 +14062,41 @@ ${__("Error")}: ${error.message}`);
         attachFiles,
         removeAttachment,
         searchSessions: searchSessions2,
-        clearForceScroll
+        clearForceScroll,
+        openAgentInspector,
+        openModelInspector,
+        openMcpInspector,
+        openToolInspector,
+        openExecutionInspector,
+        openActivityInspector,
+        closeInspector,
+        testMcpConnection
       };
     }, [
       answerQuestion,
       attachFiles,
+      clearForceScroll,
+      closeInspector,
       loadInitial,
       newChat,
-      refreshHistory,
+      openActivityInspector,
+      openAgentInspector,
+      openExecutionInspector,
+      openMcpInspector,
+      openModelInspector,
+      openToolInspector,
       removeAttachment,
       restoreSession,
       searchSessions2,
-      clearForceScroll,
+      selectedAgentRecord,
       send,
       setAgent,
       setModel,
       state,
       stopRun2,
       submitFeedback2,
-      switchSession
+      switchSession,
+      testMcpConnection
     ]);
     return /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(StoreContext.Provider, { value, children });
   }
@@ -14099,25 +14108,18 @@ ${__("Error")}: ${error.message}`);
 
   // src/components/Composer.tsx
   var import_jsx_runtime3 = __toESM(require_jsx_runtime(), 1);
-  function Composer({ onHeight }) {
+  function Composer() {
+    var _a;
     const {
-      agents,
-      models,
-      selectedAgent,
-      selectedModel,
+      agentRecord,
       attachments,
       supportedFileTypes,
       sending,
       paused,
-      locked,
       loaded,
       needsSetup,
       uploading,
       focusTick,
-      agentLabel,
-      modelLabel,
-      setAgent,
-      setModel,
       send,
       stopRun: stopRun2,
       attachFiles,
@@ -14126,7 +14128,6 @@ ${__("Error")}: ${error.message}`);
     const [text, setText] = (0, import_react4.useState)("");
     const [dragging, setDragging] = (0, import_react4.useState)(false);
     const textareaRef = (0, import_react4.useRef)(null);
-    const rootRef = (0, import_react4.useRef)(null);
     const fileInputRef = (0, import_react4.useRef)(null);
     const accept = (0, import_react4.useMemo)(
       () => (supportedFileTypes || []).map((ext) => `.${ext}`).join(","),
@@ -14134,17 +14135,10 @@ ${__("Error")}: ${error.message}`);
     );
     const inputDisabled = !loaded || sending || paused || needsSetup;
     const canSend = text.trim() && !inputDisabled && !uploading;
-    const placeholder = !loaded ? __("Loading\u2026") : needsSetup ? __("Setup required\u2026") : __("Ask {0}\u2026", [agentLabel(selectedAgent)]);
+    const placeholder = !loaded ? __("Loading\u2026") : needsSetup ? __("Setup required\u2026") : __("Ask {0}\u2026", [(agentRecord == null ? void 0 : agentRecord.title) || __("your agent")]);
     (0, import_react4.useEffect)(() => {
-      const observer = new ResizeObserver((entries) => {
-        onHeight == null ? void 0 : onHeight(entries[0].target.clientHeight);
-      });
-      if (rootRef.current) observer.observe(rootRef.current);
-      return () => observer.disconnect();
-    }, [onHeight]);
-    (0, import_react4.useEffect)(() => {
-      var _a;
-      (_a = textareaRef.current) == null ? void 0 : _a.focus();
+      var _a2;
+      (_a2 = textareaRef.current) == null ? void 0 : _a2.focus();
     }, [focusTick]);
     function resize() {
       const textarea = textareaRef.current;
@@ -14161,7 +14155,6 @@ ${__("Error")}: ${error.message}`);
     return /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)(
       "div",
       {
-        ref: rootRef,
         className: `faip-composer ${dragging ? "is-dragging" : ""}`,
         onDragOver: (event) => {
           if (inputDisabled) return;
@@ -14213,8 +14206,8 @@ ${__("Error")}: ${error.message}`);
           /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)("div", { className: "faip-composer-footer", children: [
             /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)("div", { className: "faip-composer-tools", children: [
               /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("button", { type: "button", className: "faip-icon-button", disabled: inputDisabled, onClick: () => {
-                var _a;
-                return (_a = fileInputRef.current) == null ? void 0 : _a.click();
+                var _a2;
+                return (_a2 = fileInputRef.current) == null ? void 0 : _a2.click();
               }, children: /* @__PURE__ */ (0, import_jsx_runtime3.jsx)(Paperclip, { size: 15 }) }),
               /* @__PURE__ */ (0, import_jsx_runtime3.jsx)(
                 "input",
@@ -14230,10 +14223,9 @@ ${__("Error")}: ${error.message}`);
                   }
                 }
               ),
-              /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("select", { className: "faip-select", disabled: locked, value: selectedAgent || "", onChange: (event) => setAgent(event.target.value), children: agents.map((agent) => /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("option", { value: agent.name, children: agent.title || agent.name }, agent.name)) }),
-              /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)("select", { className: "faip-select", value: selectedModel || "", onChange: (event) => setModel(event.target.value || null), children: [
-                /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("option", { value: "", children: __("Default") }),
-                models.map((model) => /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("option", { value: model.name, children: modelLabel(model.name) || model.name }, model.name))
+              /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)("div", { className: "faip-composer-agent-chip", children: [
+                /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("span", { children: (agentRecord == null ? void 0 : agentRecord.title) || __("Agent") }),
+                /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("small", { children: ((_a = agentRecord == null ? void 0 : agentRecord.model) == null ? void 0 : _a.title) || __("Agent default model") })
               ] })
             ] }),
             sending ? /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)("button", { type: "button", className: "faip-danger-button", onClick: stopRun2, children: [
@@ -14249,44 +14241,200 @@ ${__("Error")}: ${error.message}`);
     );
   }
 
-  // src/components/MessageList.tsx
-  var import_react8 = __toESM(require_react(), 1);
-
-  // src/components/AssistantMessage.tsx
-  var import_react7 = __toESM(require_react(), 1);
-
-  // src/components/ActivityGroup.tsx
+  // src/components/InspectorDrawer.tsx
   var import_jsx_runtime4 = __toESM(require_jsx_runtime(), 1);
-  function renderResult(result) {
-    if (!result) return null;
-    try {
-      return JSON.stringify(JSON.parse(result), null, 2);
-    } catch {
-      return result;
-    }
+  function JsonBlock({ value }) {
+    if (value === void 0 || value === null || value === "") return null;
+    return /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("pre", { className: "faip-code-block", children: typeof value === "string" ? value : JSON.stringify(value, null, 2) });
   }
-  function ActivityGroup({
-    parts,
-    live
-  }) {
-    return /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("div", { className: "faip-activity-group", children: parts.map((part) => {
-      const context = toolContext(part.arguments);
-      const error = toolError(part.result);
-      const args = parseArgs(part.arguments);
-      const statusIcon = error ? /* @__PURE__ */ (0, import_jsx_runtime4.jsx)(CircleX, { size: 15 }) : part.result ? /* @__PURE__ */ (0, import_jsx_runtime4.jsx)(CircleCheck, { size: 15 }) : live ? /* @__PURE__ */ (0, import_jsx_runtime4.jsx)(CircleDashed, { size: 15, className: "faip-spin-slow" }) : /* @__PURE__ */ (0, import_jsx_runtime4.jsx)(Wrench, { size: 15 });
-      return /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)("div", { className: `faip-activity ${error ? "is-error" : ""}`, children: [
-        /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)("div", { className: "faip-activity-header", children: [
-          /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("span", { className: "faip-activity-icon", children: statusIcon }),
-          /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)("div", { children: [
-            /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("div", { className: "faip-activity-title", children: toolLabel(part.name) }),
-            context ? /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("div", { className: "faip-activity-meta", children: context }) : null
-          ] })
+  function InspectorDrawer() {
+    var _a, _b, _c;
+    const {
+      inspector,
+      closeInspector,
+      openToolInspector,
+      openMcpInspector,
+      openExecutionInspector,
+      testMcpConnection
+    } = useStore();
+    if (!inspector.open) return null;
+    const payload = inspector.payload;
+    return /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)("aside", { className: "faip-inspector", children: [
+      /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)("div", { className: "faip-inspector-header", children: [
+        /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)("div", { children: [
+          /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("div", { className: "faip-inspector-eyebrow", children: inspector.mode }),
+          /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("div", { className: "faip-inspector-title", children: inspector.title })
         ] }),
-        Object.keys(args).length ? /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("pre", { className: "faip-code-block", children: JSON.stringify(args, null, 2) }) : null,
-        part.result ? /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("pre", { className: "faip-code-block", children: renderResult(part.result) }) : null
-      ] }, part.id);
-    }) });
+        /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("button", { type: "button", className: "faip-icon-button", onClick: closeInspector, children: /* @__PURE__ */ (0, import_jsx_runtime4.jsx)(PanelRightClose, { size: 16 }) })
+      ] }),
+      /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)("div", { className: "faip-inspector-body", children: [
+        inspector.mode === "agent" ? /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)(import_jsx_runtime4.Fragment, { children: [
+          /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)("div", { className: "faip-inspector-stat-grid", children: [
+            /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)("div", { className: "faip-inspector-stat", children: [
+              /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("span", { children: __("Status") }),
+              /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("strong", { children: payload.readiness.label })
+            ] }),
+            /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)("div", { className: "faip-inspector-stat", children: [
+              /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("span", { children: __("Model") }),
+              /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("strong", { children: payload.model.title || payload.model.name })
+            ] }),
+            /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)("div", { className: "faip-inspector-stat", children: [
+              /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("span", { children: __("Tools") }),
+              /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("strong", { children: payload.tools.count })
+            ] }),
+            /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)("div", { className: "faip-inspector-stat", children: [
+              /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("span", { children: __("MCPs") }),
+              /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("strong", { children: payload.mcp_connections.length })
+            ] })
+          ] }),
+          /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)("div", { className: "faip-inspector-section", children: [
+            /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("div", { className: "faip-inspector-section-title", children: __("Prompt summary") }),
+            /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("p", { children: payload.prompt_summary })
+          ] }),
+          /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)("div", { className: "faip-inspector-section", children: [
+            /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("div", { className: "faip-inspector-section-title", children: __("Tools") }),
+            /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("div", { className: "faip-inspector-list", children: payload.tools.summaries.map((tool) => /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("button", { type: "button", className: "faip-inspector-row", onClick: () => openToolInspector(tool), children: /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)("div", { children: [
+              /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("div", { className: "faip-inspector-row-title", children: tool.display_name }),
+              /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("div", { className: "faip-inspector-row-meta", children: tool.summary })
+            ] }) }, tool.name)) })
+          ] }),
+          /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)("div", { className: "faip-inspector-section", children: [
+            /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("div", { className: "faip-inspector-section-title", children: __("MCP connections") }),
+            /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("div", { className: "faip-inspector-list", children: payload.mcp_connections.map((connection) => /* @__PURE__ */ (0, import_jsx_runtime4.jsx)(
+              "button",
+              {
+                type: "button",
+                className: "faip-inspector-row",
+                onClick: () => openMcpInspector(connection),
+                children: /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)("div", { children: [
+                  /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("div", { className: "faip-inspector-row-title", children: connection.display_name }),
+                  /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("div", { className: "faip-inspector-row-meta", children: connection.status_message || connection.status })
+                ] })
+              },
+              connection.name
+            )) })
+          ] }),
+          payload.configure_action ? /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)("a", { className: "faip-primary-button", href: payload.configure_action.target, children: [
+            /* @__PURE__ */ (0, import_jsx_runtime4.jsx)(ExternalLink, { size: 14 }),
+            payload.configure_action.label
+          ] }) : null
+        ] }) : null,
+        inspector.mode === "model" ? /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)(import_jsx_runtime4.Fragment, { children: [
+          /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)("div", { className: "faip-inspector-stat-grid", children: [
+            /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)("div", { className: "faip-inspector-stat", children: [
+              /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("span", { children: __("Model") }),
+              /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("strong", { children: payload.model.title || payload.model.name })
+            ] }),
+            /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)("div", { className: "faip-inspector-stat", children: [
+              /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("span", { children: __("Agent") }),
+              /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("strong", { children: payload.agent.title })
+            ] })
+          ] }),
+          /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("p", { children: __("Model selection is metadata for this workspace. Switch agents from navigation to change the default.") })
+        ] }) : null,
+        inspector.mode === "mcp" ? /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)(import_jsx_runtime4.Fragment, { children: [
+          /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)("div", { className: "faip-inspector-stat-grid", children: [
+            /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)("div", { className: "faip-inspector-stat", children: [
+              /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("span", { children: __("Status") }),
+              /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("strong", { children: payload.status })
+            ] }),
+            /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)("div", { className: "faip-inspector-stat", children: [
+              /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("span", { children: __("Transport") }),
+              /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("strong", { children: payload.transport })
+            ] }),
+            /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)("div", { className: "faip-inspector-stat", children: [
+              /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("span", { children: __("Tools") }),
+              /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("strong", { children: (_a = payload.tool_count) != null ? _a : "\u2014" })
+            ] })
+          ] }),
+          /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("p", { children: payload.status_message || __("No status details reported.") }),
+          /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)(
+            "button",
+            {
+              type: "button",
+              className: "faip-secondary-button",
+              disabled: !payload.test_connection_supported,
+              onClick: () => void testMcpConnection(payload.name),
+              children: [
+                /* @__PURE__ */ (0, import_jsx_runtime4.jsx)(CirclePlay, { size: 14 }),
+                __("Test connection")
+              ]
+            }
+          ),
+          /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)("div", { className: "faip-inspector-section", children: [
+            /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("div", { className: "faip-inspector-section-title", children: __("Tool list") }),
+            payload.tool_summaries_available && payload.tool_summaries.length ? /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("div", { className: "faip-inspector-list", children: payload.tool_summaries.map((tool) => /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("button", { type: "button", className: "faip-inspector-row", onClick: () => openToolInspector(tool), children: /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("div", { className: "faip-inspector-row-title", children: tool.display_name || tool.name }) }, tool.name)) }) : /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("p", { children: __("Tool metadata is not available for this connection yet.") })
+          ] })
+        ] }) : null,
+        inspector.mode === "tool" ? /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)(import_jsx_runtime4.Fragment, { children: [
+          /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)("div", { className: "faip-inspector-stat-grid", children: [
+            /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)("div", { className: "faip-inspector-stat", children: [
+              /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("span", { children: __("Confirmation") }),
+              /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("strong", { children: payload.requires_confirmation ? __("Required") : __("Not required") })
+            ] }),
+            /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)("div", { className: "faip-inspector-stat", children: [
+              /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("span", { children: __("Fields") }),
+              /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("strong", { children: ((_b = payload.schema_summary) == null ? void 0 : _b.length) || 0 })
+            ] })
+          ] }),
+          /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("p", { children: payload.description || payload.summary }),
+          /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)("div", { className: "faip-inspector-section", children: [
+            /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("div", { className: "faip-inspector-section-title", children: __("Input schema") }),
+            /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("div", { className: "faip-inspector-list", children: (_c = payload.schema_summary) == null ? void 0 : _c.map((field) => /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)("div", { className: "faip-inspector-row is-static", children: [
+              /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)("div", { className: "faip-inspector-row-title", children: [
+                field.name,
+                " ",
+                /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("small", { children: field.type })
+              ] }),
+              /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("div", { className: "faip-inspector-row-meta", children: field.description || __("No description") })
+            ] }, field.name)) }),
+            /* @__PURE__ */ (0, import_jsx_runtime4.jsx)(JsonBlock, { value: payload.input_schema })
+          ] })
+        ] }) : null,
+        inspector.mode === "execution" ? /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)(import_jsx_runtime4.Fragment, { children: [
+          /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)("div", { className: "faip-inspector-stat-grid", children: [
+            /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)("div", { className: "faip-inspector-stat", children: [
+              /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("span", { children: __("Status") }),
+              /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("strong", { children: payload.execution.status })
+            ] }),
+            /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)("div", { className: "faip-inspector-stat", children: [
+              /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("span", { children: __("Type") }),
+              /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("strong", { children: payload.execution.kind })
+            ] }),
+            /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)("div", { className: "faip-inspector-stat", children: [
+              /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("span", { children: __("Tool") }),
+              /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("strong", { children: payload.execution.tool_name })
+            ] })
+          ] }),
+          payload.tool ? /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("button", { type: "button", className: "faip-secondary-button", onClick: () => openToolInspector(payload.tool), children: __("Open tool") }) : null,
+          /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)("div", { className: "faip-inspector-section", children: [
+            /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("div", { className: "faip-inspector-section-title", children: __("Inputs") }),
+            /* @__PURE__ */ (0, import_jsx_runtime4.jsx)(JsonBlock, { value: payload.execution.raw_input })
+          ] }),
+          /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)("div", { className: "faip-inspector-section", children: [
+            /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("div", { className: "faip-inspector-section-title", children: __("Output") }),
+            /* @__PURE__ */ (0, import_jsx_runtime4.jsx)(JsonBlock, { value: payload.execution.raw_output })
+          ] })
+        ] }) : null,
+        inspector.mode === "activity" ? /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("div", { className: "faip-inspector-list", children: payload.map((item) => /* @__PURE__ */ (0, import_jsx_runtime4.jsx)(
+          "button",
+          {
+            type: "button",
+            className: "faip-inspector-row",
+            onClick: () => openExecutionInspector(item.execution, item.message),
+            children: /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)("div", { children: [
+              /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("div", { className: "faip-inspector-row-title", children: item.execution.display_title }),
+              /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("div", { className: "faip-inspector-row-meta", children: item.execution.result_summary || item.execution.status })
+            ] })
+          },
+          item.execution.id
+        )) }) : null
+      ] })
+    ] });
   }
+
+  // src/components/MessageList.tsx
+  var import_react7 = __toESM(require_react(), 1);
 
   // src/components/ConfirmCard.tsx
   var import_react5 = __toESM(require_react(), 1);
@@ -14328,9 +14476,43 @@ ${__("Error")}: ${error.message}`);
     ] });
   }
 
+  // src/components/ExecutionCard.tsx
+  var import_jsx_runtime6 = __toESM(require_jsx_runtime(), 1);
+  function ExecutionCard({ execution, message }) {
+    var _a;
+    const { openExecutionInspector } = useStore();
+    const icon = execution.status === "awaiting_confirmation" ? /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(ShieldAlert, { size: 16 }) : execution.status === "error" ? /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(CircleX, { size: 16 }) : execution.status === "completed" ? /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(CircleCheck, { size: 16 }) : execution.status === "running" ? /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(CircleDashed, { size: 16, className: "faip-spin-slow" }) : execution.kind === "mcp_tool" ? /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(CirclePlay, { size: 16 }) : /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(Wrench, { size: 16 });
+    const statusLabel = execution.status === "awaiting_confirmation" ? __("Awaiting confirmation") : execution.status === "running" ? __("Running") : execution.status === "error" ? __("Failed") : __("Completed");
+    return /* @__PURE__ */ (0, import_jsx_runtime6.jsxs)(
+      "button",
+      {
+        type: "button",
+        className: `faip-execution-card is-${execution.status}`,
+        onClick: () => openExecutionInspector(execution, message),
+        children: [
+          /* @__PURE__ */ (0, import_jsx_runtime6.jsxs)("div", { className: "faip-execution-card-header", children: [
+            /* @__PURE__ */ (0, import_jsx_runtime6.jsxs)("div", { className: "faip-execution-card-title-wrap", children: [
+              /* @__PURE__ */ (0, import_jsx_runtime6.jsx)("span", { className: "faip-execution-card-icon", children: icon }),
+              /* @__PURE__ */ (0, import_jsx_runtime6.jsxs)("div", { children: [
+                /* @__PURE__ */ (0, import_jsx_runtime6.jsx)("div", { className: "faip-execution-card-title", children: execution.display_title }),
+                /* @__PURE__ */ (0, import_jsx_runtime6.jsx)("div", { className: "faip-execution-card-meta", children: execution.kind === "mcp_tool" ? __("MCP: {0}", [execution.connection_name || __("Connection")]) : __("Tool") })
+              ] })
+            ] }),
+            /* @__PURE__ */ (0, import_jsx_runtime6.jsx)("span", { className: "faip-execution-card-status", children: statusLabel })
+          ] }),
+          ((_a = execution.input_summary) == null ? void 0 : _a.length) ? /* @__PURE__ */ (0, import_jsx_runtime6.jsx)("div", { className: "faip-execution-card-grid", children: execution.input_summary.map((row) => /* @__PURE__ */ (0, import_jsx_runtime6.jsxs)("div", { className: "faip-execution-pill", children: [
+            /* @__PURE__ */ (0, import_jsx_runtime6.jsx)("span", { children: row.label }),
+            /* @__PURE__ */ (0, import_jsx_runtime6.jsx)("strong", { children: row.value })
+          ] }, row.label)) }) : null,
+          execution.result_summary ? /* @__PURE__ */ (0, import_jsx_runtime6.jsx)("div", { className: "faip-execution-card-summary", children: execution.result_summary }) : null
+        ]
+      }
+    );
+  }
+
   // src/components/FeedbackBar.tsx
   var import_react6 = __toESM(require_react(), 1);
-  var import_jsx_runtime6 = __toESM(require_jsx_runtime(), 1);
+  var import_jsx_runtime7 = __toESM(require_jsx_runtime(), 1);
   function FeedbackBar({
     runName,
     feedback
@@ -14346,8 +14528,8 @@ ${__("Error")}: ${error.message}`);
         setBusy(false);
       }
     }
-    return /* @__PURE__ */ (0, import_jsx_runtime6.jsxs)("div", { className: "faip-feedback", children: [
-      /* @__PURE__ */ (0, import_jsx_runtime6.jsxs)(
+    return /* @__PURE__ */ (0, import_jsx_runtime7.jsxs)("div", { className: "faip-feedback", children: [
+      /* @__PURE__ */ (0, import_jsx_runtime7.jsxs)(
         "button",
         {
           type: "button",
@@ -14355,12 +14537,12 @@ ${__("Error")}: ${error.message}`);
           disabled: busy,
           onClick: () => rate((feedback == null ? void 0 : feedback.rating) === "Up" ? "None" : "Up"),
           children: [
-            /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(ThumbsUp, { size: 14 }),
+            /* @__PURE__ */ (0, import_jsx_runtime7.jsx)(ThumbsUp, { size: 14 }),
             __("Helpful")
           ]
         }
       ),
-      /* @__PURE__ */ (0, import_jsx_runtime6.jsxs)(
+      /* @__PURE__ */ (0, import_jsx_runtime7.jsxs)(
         "button",
         {
           type: "button",
@@ -14368,12 +14550,12 @@ ${__("Error")}: ${error.message}`);
           disabled: busy,
           onClick: () => rate((feedback == null ? void 0 : feedback.rating) === "Down" ? "None" : "Down"),
           children: [
-            /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(ThumbsDown, { size: 14 }),
+            /* @__PURE__ */ (0, import_jsx_runtime7.jsx)(ThumbsDown, { size: 14 }),
             __("Needs work")
           ]
         }
       ),
-      (feedback == null ? void 0 : feedback.rating) === "Down" ? /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(
+      (feedback == null ? void 0 : feedback.rating) === "Down" ? /* @__PURE__ */ (0, import_jsx_runtime7.jsx)(
         "textarea",
         {
           className: "faip-textarea",
@@ -14387,129 +14569,88 @@ ${__("Error")}: ${error.message}`);
   }
 
   // src/components/AssistantMessage.tsx
-  var import_jsx_runtime7 = __toESM(require_jsx_runtime(), 1);
+  var import_jsx_runtime8 = __toESM(require_jsx_runtime(), 1);
   function AssistantMessage({ message }) {
     var _a;
-    const { answerQuestion, toolApproval } = useStore();
-    const questionByKey = (0, import_react7.useMemo)(
-      () => new Map((message.questions || []).map((question) => [question.key, question])),
-      [message.questions]
-    );
-    const items = (0, import_react7.useMemo)(() => {
-      const output = [];
-      for (const part of message.parts) {
-        if (part.type !== "tool") {
-          output.push({ kind: "text", id: part.id, part });
-          continue;
-        }
-        const question = questionByKey.get(part.id);
-        const approval = toolApproval[part.name] === true || question !== void 0 || part.approval !== null;
-        if (approval) {
-          if (question && question._answer === void 0) {
-            output.push({ kind: "confirm", id: part.id, part, question });
-          } else {
-            output.push({ kind: "approval", id: part.id, parts: [part] });
-          }
-          continue;
-        }
-        const last = output[output.length - 1];
-        if ((last == null ? void 0 : last.kind) === "activity") last.parts.push(part);
-        else output.push({ kind: "activity", id: part.id, parts: [part] });
-      }
-      return output;
-    }, [message.parts, questionByKey, toolApproval]);
-    return /* @__PURE__ */ (0, import_jsx_runtime7.jsxs)("div", { className: "faip-assistant", children: [
-      items.map((item) => {
-        if (item.kind === "text") {
-          return /* @__PURE__ */ (0, import_jsx_runtime7.jsx)("div", { className: "faip-assistant-text faip-text-block", children: item.part.text }, item.id);
-        }
-        if (item.kind === "confirm") {
-          return /* @__PURE__ */ (0, import_jsx_runtime7.jsx)(
+    const { answerQuestion } = useStore();
+    return /* @__PURE__ */ (0, import_jsx_runtime8.jsxs)("div", { className: "faip-assistant", children: [
+      message.content ? /* @__PURE__ */ (0, import_jsx_runtime8.jsx)("div", { className: "faip-assistant-text faip-text-block", children: message.content }) : null,
+      message.executions.map((execution) => {
+        const question = message.questions.find((item) => item.key === execution.id && item._answer === void 0);
+        if (question) {
+          return /* @__PURE__ */ (0, import_jsx_runtime8.jsx)(
             ConfirmCard,
             {
-              question: item.question,
-              tool: item.part,
-              onAnswer: (answer) => answerQuestion(message.id, item.question.key, answer)
+              question,
+              tool: { name: execution.tool_name, arguments: execution.raw_input },
+              onAnswer: (answer) => answerQuestion(message.id, question.key, answer)
             },
-            item.id
+            execution.id
           );
         }
-        return /* @__PURE__ */ (0, import_jsx_runtime7.jsx)(ActivityGroup, { parts: item.parts, live: message.pending }, item.id);
+        return /* @__PURE__ */ (0, import_jsx_runtime8.jsx)(ExecutionCard, { execution, message }, execution.id);
       }),
-      message.pending && !message.parts.length ? /* @__PURE__ */ (0, import_jsx_runtime7.jsxs)("div", { className: "faip-working", children: [
-        /* @__PURE__ */ (0, import_jsx_runtime7.jsx)(LoaderCircle, { size: 15, className: "faip-spin" }),
+      message.pending && !message.content && !message.executions.length ? /* @__PURE__ */ (0, import_jsx_runtime8.jsxs)("div", { className: "faip-working", children: [
+        /* @__PURE__ */ (0, import_jsx_runtime8.jsx)(LoaderCircle, { size: 15, className: "faip-spin" }),
         "Thinking\u2026"
       ] }) : null,
-      message.runName && !message.pending && !((_a = message.questions) == null ? void 0 : _a.length) ? /* @__PURE__ */ (0, import_jsx_runtime7.jsx)(FeedbackBar, { runName: message.runName, feedback: message.feedback }) : null,
-      message.error ? /* @__PURE__ */ (0, import_jsx_runtime7.jsxs)("div", { className: "faip-inline-error", children: [
-        /* @__PURE__ */ (0, import_jsx_runtime7.jsx)(CircleAlert, { size: 14 }),
+      message.run && !message.pending && !((_a = message.questions) == null ? void 0 : _a.length) ? /* @__PURE__ */ (0, import_jsx_runtime8.jsx)(FeedbackBar, { runName: message.run, feedback: message.feedback }) : null,
+      message.error ? /* @__PURE__ */ (0, import_jsx_runtime8.jsxs)("div", { className: "faip-inline-error", children: [
+        /* @__PURE__ */ (0, import_jsx_runtime8.jsx)(CircleAlert, { size: 14 }),
         message.error
       ] }) : null
     ] });
   }
 
   // src/components/EmptyState.tsx
-  var import_jsx_runtime8 = __toESM(require_jsx_runtime(), 1);
+  var import_jsx_runtime9 = __toESM(require_jsx_runtime(), 1);
   function EmptyState({
     setup,
     hasModels,
     hasAgents
   }) {
     const { send } = useStore();
-    const prompts = [
-      __("Summarize the latest activity in this site."),
-      __("Help me draft a new workflow or automation."),
-      __("Find the records I should review today.")
-    ];
-    return /* @__PURE__ */ (0, import_jsx_runtime8.jsxs)("div", { className: "faip-empty", children: [
-      /* @__PURE__ */ (0, import_jsx_runtime8.jsx)("div", { className: "faip-empty-mark", children: /* @__PURE__ */ (0, import_jsx_runtime8.jsx)(Bot, { size: 26 }) }),
-      setup ? /* @__PURE__ */ (0, import_jsx_runtime8.jsxs)(import_jsx_runtime8.Fragment, { children: [
-        /* @__PURE__ */ (0, import_jsx_runtime8.jsx)("h3", { children: __("Finish setup to start") }),
-        /* @__PURE__ */ (0, import_jsx_runtime8.jsx)("p", { children: __("The assistant needs a few things configured first:") }),
-        /* @__PURE__ */ (0, import_jsx_runtime8.jsxs)("ol", { className: "faip-empty-list", children: [
-          !hasModels ? /* @__PURE__ */ (0, import_jsx_runtime8.jsx)("li", { children: __("Create and enable an AI Model with your provider credentials.") }) : null,
-          !hasAgents ? /* @__PURE__ */ (0, import_jsx_runtime8.jsx)("li", { children: __("Enable an AI Agent after at least one model exists.") }) : null,
-          /* @__PURE__ */ (0, import_jsx_runtime8.jsx)("li", { children: __("Enable Server Scripts in your site config so the assistant can run code.") })
+    const prompts = [__("Search records"), __("Run a tool"), __("Analyze data")];
+    return /* @__PURE__ */ (0, import_jsx_runtime9.jsxs)("div", { className: "faip-empty", children: [
+      /* @__PURE__ */ (0, import_jsx_runtime9.jsx)("div", { className: "faip-empty-mark", children: /* @__PURE__ */ (0, import_jsx_runtime9.jsx)(Compass, { size: 26 }) }),
+      setup ? /* @__PURE__ */ (0, import_jsx_runtime9.jsxs)(import_jsx_runtime9.Fragment, { children: [
+        /* @__PURE__ */ (0, import_jsx_runtime9.jsx)("h3", { children: __("Finish setup to start") }),
+        /* @__PURE__ */ (0, import_jsx_runtime9.jsx)("p", { children: __("The workspace needs core AI configuration before it can run.") }),
+        /* @__PURE__ */ (0, import_jsx_runtime9.jsxs)("ol", { className: "faip-empty-list", children: [
+          !hasModels ? /* @__PURE__ */ (0, import_jsx_runtime9.jsx)("li", { children: __("Create and enable an AI Model.") }) : null,
+          !hasAgents ? /* @__PURE__ */ (0, import_jsx_runtime9.jsx)("li", { children: __("Enable at least one AI Agent.") }) : null,
+          /* @__PURE__ */ (0, import_jsx_runtime9.jsx)("li", { children: __("Enable Server Scripts so tool execution can run safely.") })
         ] })
-      ] }) : /* @__PURE__ */ (0, import_jsx_runtime8.jsxs)(import_jsx_runtime8.Fragment, { children: [
-        /* @__PURE__ */ (0, import_jsx_runtime8.jsx)("h3", { children: __("A workspace for data, workflows, and action") }),
-        /* @__PURE__ */ (0, import_jsx_runtime8.jsx)("p", { children: __("Search records, draft changes, inspect tool activity, and keep the whole AI flow in one place.") }),
-        /* @__PURE__ */ (0, import_jsx_runtime8.jsxs)("div", { className: "faip-empty-feature-grid", children: [
-          /* @__PURE__ */ (0, import_jsx_runtime8.jsxs)("div", { className: "faip-empty-feature", children: [
-            /* @__PURE__ */ (0, import_jsx_runtime8.jsx)(Database, { size: 16 }),
-            /* @__PURE__ */ (0, import_jsx_runtime8.jsx)("span", { children: __("Ask about live ERP data") })
+      ] }) : /* @__PURE__ */ (0, import_jsx_runtime9.jsxs)(import_jsx_runtime9.Fragment, { children: [
+        /* @__PURE__ */ (0, import_jsx_runtime9.jsx)("h3", { children: __("Start in the workspace") }),
+        /* @__PURE__ */ (0, import_jsx_runtime9.jsx)("p", { children: __("Use a prompt, then inspect tools, MCP activity, and execution details without leaving the transcript.") }),
+        /* @__PURE__ */ (0, import_jsx_runtime9.jsxs)("div", { className: "faip-empty-feature-grid", children: [
+          /* @__PURE__ */ (0, import_jsx_runtime9.jsxs)("div", { className: "faip-empty-feature", children: [
+            /* @__PURE__ */ (0, import_jsx_runtime9.jsx)(Database, { size: 16 }),
+            /* @__PURE__ */ (0, import_jsx_runtime9.jsx)("span", { children: __("Search live records") })
           ] }),
-          /* @__PURE__ */ (0, import_jsx_runtime8.jsxs)("div", { className: "faip-empty-feature", children: [
-            /* @__PURE__ */ (0, import_jsx_runtime8.jsx)(Hammer, { size: 16 }),
-            /* @__PURE__ */ (0, import_jsx_runtime8.jsx)("span", { children: __("Run guided tool actions") })
+          /* @__PURE__ */ (0, import_jsx_runtime9.jsxs)("div", { className: "faip-empty-feature", children: [
+            /* @__PURE__ */ (0, import_jsx_runtime9.jsx)(Hammer, { size: 16 }),
+            /* @__PURE__ */ (0, import_jsx_runtime9.jsx)("span", { children: __("Run guided actions") })
           ] }),
-          /* @__PURE__ */ (0, import_jsx_runtime8.jsxs)("div", { className: "faip-empty-feature", children: [
-            /* @__PURE__ */ (0, import_jsx_runtime8.jsx)(WandSparkles, { size: 16 }),
-            /* @__PURE__ */ (0, import_jsx_runtime8.jsx)("span", { children: __("Draft and iterate faster") })
+          /* @__PURE__ */ (0, import_jsx_runtime9.jsxs)("div", { className: "faip-empty-feature", children: [
+            /* @__PURE__ */ (0, import_jsx_runtime9.jsx)(Sparkles, { size: 16 }),
+            /* @__PURE__ */ (0, import_jsx_runtime9.jsx)("span", { children: __("Inspect execution details") })
           ] })
         ] }),
-        /* @__PURE__ */ (0, import_jsx_runtime8.jsx)("div", { className: "faip-empty-prompts", children: prompts.map((prompt) => /* @__PURE__ */ (0, import_jsx_runtime8.jsx)(
-          "button",
-          {
-            type: "button",
-            className: "faip-prompt-card",
-            onClick: () => void send(prompt),
-            children: prompt
-          },
-          prompt
-        )) })
+        /* @__PURE__ */ (0, import_jsx_runtime9.jsx)("div", { className: "faip-empty-prompts", children: prompts.map((prompt) => /* @__PURE__ */ (0, import_jsx_runtime9.jsx)("button", { type: "button", className: "faip-prompt-card", onClick: () => void send(prompt), children: prompt }, prompt)) })
       ] })
     ] });
   }
 
   // src/components/UserMessage.tsx
-  var import_jsx_runtime9 = __toESM(require_jsx_runtime(), 1);
+  var import_jsx_runtime10 = __toESM(require_jsx_runtime(), 1);
   function UserMessage({
     content,
     attachments
   }) {
-    return /* @__PURE__ */ (0, import_jsx_runtime9.jsx)("div", { className: "faip-user-wrap", children: /* @__PURE__ */ (0, import_jsx_runtime9.jsxs)("div", { className: "faip-user-message", children: [
-      attachments.length ? /* @__PURE__ */ (0, import_jsx_runtime9.jsx)("div", { className: "faip-user-attachments", children: attachments.map((attachment, index) => /* @__PURE__ */ (0, import_jsx_runtime9.jsx)(
+    return /* @__PURE__ */ (0, import_jsx_runtime10.jsx)("div", { className: "faip-user-wrap", children: /* @__PURE__ */ (0, import_jsx_runtime10.jsxs)("div", { className: "faip-user-message", children: [
+      attachments.length ? /* @__PURE__ */ (0, import_jsx_runtime10.jsx)("div", { className: "faip-user-attachments", children: attachments.map((attachment, index) => /* @__PURE__ */ (0, import_jsx_runtime10.jsx)(
         AttachmentChip,
         {
           fileName: attachment.file_name,
@@ -14517,17 +14658,17 @@ ${__("Error")}: ${error.message}`);
         },
         `${attachment.file_name}-${index}`
       )) }) : null,
-      /* @__PURE__ */ (0, import_jsx_runtime9.jsx)("div", { className: "faip-text-block", children: content })
+      /* @__PURE__ */ (0, import_jsx_runtime10.jsx)("div", { className: "faip-text-block", children: content })
     ] }) });
   }
 
   // src/components/MessageList.tsx
-  var import_jsx_runtime10 = __toESM(require_jsx_runtime(), 1);
+  var import_jsx_runtime11 = __toESM(require_jsx_runtime(), 1);
   function MessageList() {
-    const { messages, needsSetup, agents, models, scrollTick, forceScroll, clearForceScroll } = useStore();
-    const ref = (0, import_react8.useRef)(null);
-    const stickRef = (0, import_react8.useRef)(true);
-    (0, import_react8.useEffect)(() => {
+    const { transcript, needsSetup, agents, models, scrollTick, forceScroll, clearForceScroll } = useStore();
+    const ref = (0, import_react7.useRef)(null);
+    const stickRef = (0, import_react7.useRef)(true);
+    (0, import_react7.useEffect)(() => {
       const element = ref.current;
       if (!element) return;
       if (stickRef.current || forceScroll) {
@@ -14536,7 +14677,7 @@ ${__("Error")}: ${error.message}`);
         if (forceScroll) clearForceScroll();
       }
     }, [clearForceScroll, forceScroll, scrollTick]);
-    return /* @__PURE__ */ (0, import_jsx_runtime10.jsx)(
+    return /* @__PURE__ */ (0, import_jsx_runtime11.jsx)(
       "div",
       {
         ref,
@@ -14546,48 +14687,52 @@ ${__("Error")}: ${error.message}`);
           if (!element) return;
           stickRef.current = element.scrollHeight - element.scrollTop - element.clientHeight < 80;
         },
-        children: /* @__PURE__ */ (0, import_jsx_runtime10.jsxs)("div", { className: "faip-message-stack", children: [
-          !messages.length ? /* @__PURE__ */ (0, import_jsx_runtime10.jsx)(
-            EmptyState,
-            {
-              setup: needsSetup,
-              hasModels: models.length > 0,
-              hasAgents: agents.length > 0
-            }
-          ) : null,
-          messages.map(
-            (message) => message.role === "user" ? /* @__PURE__ */ (0, import_jsx_runtime10.jsxs)(import_react8.default.Fragment, { children: [
-              /* @__PURE__ */ (0, import_jsx_runtime10.jsx)(UserMessage, { content: message.content, attachments: message.attachments }),
-              message.interrupted ? /* @__PURE__ */ (0, import_jsx_runtime10.jsxs)("div", { className: "faip-inline-error", children: [
-                /* @__PURE__ */ (0, import_jsx_runtime10.jsx)(CircleAlert, { size: 14 }),
+        children: /* @__PURE__ */ (0, import_jsx_runtime11.jsxs)("div", { className: "faip-message-stack", children: [
+          !transcript.length ? /* @__PURE__ */ (0, import_jsx_runtime11.jsx)(EmptyState, { setup: needsSetup, hasModels: models.length > 0, hasAgents: agents.length > 0 }) : null,
+          transcript.map(
+            (message) => message.role === "user" ? /* @__PURE__ */ (0, import_jsx_runtime11.jsxs)(import_react7.default.Fragment, { children: [
+              /* @__PURE__ */ (0, import_jsx_runtime11.jsx)(UserMessage, { content: message.content, attachments: message.attachments }),
+              message.interrupted ? /* @__PURE__ */ (0, import_jsx_runtime11.jsxs)("div", { className: "faip-inline-error", children: [
+                /* @__PURE__ */ (0, import_jsx_runtime11.jsx)(CircleAlert, { size: 14 }),
                 __("Response interrupted")
               ] }) : null
-            ] }, message.id) : /* @__PURE__ */ (0, import_jsx_runtime10.jsx)(AssistantMessage, { message }, message.id)
+            ] }, message.id) : /* @__PURE__ */ (0, import_jsx_runtime11.jsx)(AssistantMessage, { message }, message.id)
           )
         ] })
       }
     );
   }
 
-  // src/components/SessionsMenu.tsx
-  var import_react9 = __toESM(require_react(), 1);
-  var import_jsx_runtime11 = __toESM(require_jsx_runtime(), 1);
-  function SessionsMenu() {
-    const { recentSessions, switchSession, searchSessions: searchSessions2 } = useStore();
-    const [open, setOpen] = (0, import_react9.useState)(false);
-    const [query, setQuery] = (0, import_react9.useState)("");
-    const [items, setItems] = (0, import_react9.useState)(recentSessions);
-    const ref = (0, import_react9.useRef)(null);
-    (0, import_react9.useEffect)(() => setItems(recentSessions), [recentSessions]);
-    (0, import_react9.useEffect)(() => {
-      function onClick(event) {
-        var _a;
-        if (!((_a = ref.current) == null ? void 0 : _a.contains(event.target))) setOpen(false);
-      }
-      document.addEventListener("mousedown", onClick);
-      return () => document.removeEventListener("mousedown", onClick);
-    }, []);
-    (0, import_react9.useEffect)(() => {
+  // src/components/PageSidebar.tsx
+  var import_react8 = __toESM(require_react(), 1);
+  var import_jsx_runtime12 = __toESM(require_jsx_runtime(), 1);
+  function bucketLabel(value) {
+    if (!value) return __("Earlier");
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) return __("Earlier");
+    const today = /* @__PURE__ */ new Date();
+    const current = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+    const target = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+    const diff = Math.round((current.getTime() - target.getTime()) / 864e5);
+    if (diff === 0) return __("Today");
+    if (diff === 1) return __("Yesterday");
+    return date.toLocaleDateString([], { month: "short", day: "numeric" });
+  }
+  function timeLabel(value) {
+    if (!value) return "";
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) return "";
+    return date.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
+  }
+  function PageSidebar({
+    onClose,
+    onNavigate
+  }) {
+    const { agents, selectedAgent, setAgent, history, currentSession, switchSession, newChat, searchSessions: searchSessions2 } = useStore();
+    const [query, setQuery] = (0, import_react8.useState)("");
+    const [items, setItems] = (0, import_react8.useState)(history);
+    (0, import_react8.useEffect)(() => setItems(history), [history]);
+    (0, import_react8.useEffect)(() => {
       let active = true;
       void searchSessions2(query).then((rows) => {
         if (active) setItems(rows);
@@ -14596,151 +14741,382 @@ ${__("Error")}: ${error.message}`);
         active = false;
       };
     }, [query, searchSessions2]);
-    return /* @__PURE__ */ (0, import_jsx_runtime11.jsxs)("div", { className: "faip-menu", ref, children: [
-      /* @__PURE__ */ (0, import_jsx_runtime11.jsxs)("button", { type: "button", className: "faip-secondary-button", onClick: () => setOpen((value) => !value), children: [
-        /* @__PURE__ */ (0, import_jsx_runtime11.jsx)(History, { size: 14 }),
-        /* @__PURE__ */ (0, import_jsx_runtime11.jsx)("span", { children: "Sessions" })
-      ] }),
-      open ? /* @__PURE__ */ (0, import_jsx_runtime11.jsxs)("div", { className: "faip-menu-popover", children: [
-        /* @__PURE__ */ (0, import_jsx_runtime11.jsxs)("div", { className: "faip-search", children: [
-          /* @__PURE__ */ (0, import_jsx_runtime11.jsx)(Search, { size: 14 }),
-          /* @__PURE__ */ (0, import_jsx_runtime11.jsx)("input", { value: query, onChange: (event) => setQuery(event.target.value), placeholder: "Search sessions" })
+    const groups = (0, import_react8.useMemo)(() => {
+      const output = /* @__PURE__ */ new Map();
+      for (const item of items) {
+        const label = bucketLabel(item.modified);
+        const list = output.get(label) || [];
+        list.push(item);
+        output.set(label, list);
+      }
+      return Array.from(output.entries());
+    }, [items]);
+    return /* @__PURE__ */ (0, import_jsx_runtime12.jsxs)("aside", { className: "faip-nav", children: [
+      /* @__PURE__ */ (0, import_jsx_runtime12.jsxs)("div", { className: "faip-nav-header", children: [
+        /* @__PURE__ */ (0, import_jsx_runtime12.jsx)("div", { className: "faip-header-mark", children: /* @__PURE__ */ (0, import_jsx_runtime12.jsx)(Bot, { size: 18 }) }),
+        /* @__PURE__ */ (0, import_jsx_runtime12.jsxs)("div", { className: "faip-nav-brand", children: [
+          /* @__PURE__ */ (0, import_jsx_runtime12.jsx)("div", { className: "faip-nav-title", children: "Frappe AI" }),
+          /* @__PURE__ */ (0, import_jsx_runtime12.jsx)("div", { className: "faip-nav-subtitle", children: __("Navigation") })
         ] }),
-        /* @__PURE__ */ (0, import_jsx_runtime11.jsx)("div", { className: "faip-menu-list", children: items.map((item) => /* @__PURE__ */ (0, import_jsx_runtime11.jsxs)(
+        /* @__PURE__ */ (0, import_jsx_runtime12.jsx)("button", { type: "button", className: "faip-icon-button faip-nav-close", onClick: onClose, "aria-label": "Close sidebar", children: /* @__PURE__ */ (0, import_jsx_runtime12.jsx)(X, { size: 16 }) })
+      ] }),
+      /* @__PURE__ */ (0, import_jsx_runtime12.jsxs)(
+        "button",
+        {
+          type: "button",
+          className: "faip-page-new-chat",
+          onClick: () => {
+            newChat();
+            onNavigate();
+          },
+          children: [
+            /* @__PURE__ */ (0, import_jsx_runtime12.jsx)(MessageSquarePlus, { size: 15 }),
+            __("New chat")
+          ]
+        }
+      ),
+      /* @__PURE__ */ (0, import_jsx_runtime12.jsxs)("div", { className: "faip-page-search", children: [
+        /* @__PURE__ */ (0, import_jsx_runtime12.jsx)(Search, { size: 14 }),
+        /* @__PURE__ */ (0, import_jsx_runtime12.jsx)("input", { value: query, onChange: (event) => setQuery(event.target.value), placeholder: __("Search sessions") })
+      ] }),
+      /* @__PURE__ */ (0, import_jsx_runtime12.jsxs)("div", { className: "faip-nav-section", children: [
+        /* @__PURE__ */ (0, import_jsx_runtime12.jsx)("div", { className: "faip-nav-section-title", children: __("Agents") }),
+        /* @__PURE__ */ (0, import_jsx_runtime12.jsx)("div", { className: "faip-nav-list", children: agents.map((agent) => /* @__PURE__ */ (0, import_jsx_runtime12.jsxs)(
           "button",
           {
             type: "button",
-            className: "faip-menu-item",
+            className: `faip-nav-item ${selectedAgent === agent.name ? "is-active" : ""}`,
             onClick: () => {
-              setOpen(false);
-              void switchSession(item.name);
+              setAgent(agent.name);
+              onNavigate();
             },
             children: [
-              /* @__PURE__ */ (0, import_jsx_runtime11.jsx)("span", { className: "faip-menu-item-title", children: item.title || item.name }),
-              /* @__PURE__ */ (0, import_jsx_runtime11.jsx)("small", { children: item.modified || "" })
+              /* @__PURE__ */ (0, import_jsx_runtime12.jsxs)("div", { className: "faip-nav-item-copy", children: [
+                /* @__PURE__ */ (0, import_jsx_runtime12.jsx)("div", { className: "faip-nav-item-title", children: agent.title }),
+                /* @__PURE__ */ (0, import_jsx_runtime12.jsx)("div", { className: "faip-nav-item-meta", children: agent.readiness.label })
+              ] }),
+              /* @__PURE__ */ (0, import_jsx_runtime12.jsx)(ChevronRight, { size: 14 })
             ]
           },
-          item.name
+          agent.name
         )) })
-      ] }) : null
-    ] });
-  }
-
-  // src/components/PanelHeader.tsx
-  var import_jsx_runtime12 = __toESM(require_jsx_runtime(), 1);
-  function PanelHeader({
-    fullscreen,
-    onClose,
-    onToggleFullscreen,
-    onNewChat,
-    mode = "panel"
-  }) {
-    return /* @__PURE__ */ (0, import_jsx_runtime12.jsxs)("div", { className: "faip-header", children: [
-      /* @__PURE__ */ (0, import_jsx_runtime12.jsxs)("div", { className: "faip-header-brand", children: [
-        /* @__PURE__ */ (0, import_jsx_runtime12.jsx)("div", { className: "faip-header-mark", children: /* @__PURE__ */ (0, import_jsx_runtime12.jsx)(Bot, { size: 18 }) }),
-        /* @__PURE__ */ (0, import_jsx_runtime12.jsxs)("div", { className: "faip-header-copy", children: [
-          /* @__PURE__ */ (0, import_jsx_runtime12.jsx)("div", { className: "faip-header-title", children: "Frappe AI" }),
-          /* @__PURE__ */ (0, import_jsx_runtime12.jsx)("div", { className: "faip-header-subtitle", children: mode === "page" ? __("Site workspace for agents, runs, and approvals") : __("AI workbench") })
-        ] })
       ] }),
-      /* @__PURE__ */ (0, import_jsx_runtime12.jsxs)("div", { className: "faip-header-actions", children: [
-        /* @__PURE__ */ (0, import_jsx_runtime12.jsxs)("div", { className: "faip-header-status", children: [
-          /* @__PURE__ */ (0, import_jsx_runtime12.jsxs)("span", { className: "faip-status-pill is-primary", children: [
-            /* @__PURE__ */ (0, import_jsx_runtime12.jsx)(Sparkles, { size: 12 }),
-            __("Live")
-          ] }),
-          /* @__PURE__ */ (0, import_jsx_runtime12.jsx)("span", { className: "faip-status-pill", children: mode === "page" ? __("Full page") : __("Slide-in panel") })
-        ] }),
-        /* @__PURE__ */ (0, import_jsx_runtime12.jsx)(SessionsMenu, {}),
-        /* @__PURE__ */ (0, import_jsx_runtime12.jsxs)("button", { type: "button", className: "faip-secondary-button", onClick: onNewChat, children: [
-          /* @__PURE__ */ (0, import_jsx_runtime12.jsx)(Plus, { size: 14 }),
-          __("New chat")
-        ] }),
-        mode === "panel" ? /* @__PURE__ */ (0, import_jsx_runtime12.jsxs)(import_jsx_runtime12.Fragment, { children: [
-          /* @__PURE__ */ (0, import_jsx_runtime12.jsx)("button", { type: "button", className: "faip-icon-button", onClick: onToggleFullscreen, children: fullscreen ? /* @__PURE__ */ (0, import_jsx_runtime12.jsx)(Minimize2, { size: 16 }) : /* @__PURE__ */ (0, import_jsx_runtime12.jsx)(Maximize2, { size: 16 }) }),
-          /* @__PURE__ */ (0, import_jsx_runtime12.jsx)("button", { type: "button", className: "faip-icon-button", onClick: onClose, children: /* @__PURE__ */ (0, import_jsx_runtime12.jsx)(PanelRightClose, { size: 16 }) })
-        ] }) : null
+      /* @__PURE__ */ (0, import_jsx_runtime12.jsxs)("div", { className: "faip-nav-section faip-nav-section-sessions", children: [
+        /* @__PURE__ */ (0, import_jsx_runtime12.jsx)("div", { className: "faip-nav-section-title", children: __("Sessions") }),
+        /* @__PURE__ */ (0, import_jsx_runtime12.jsx)("div", { className: "faip-nav-session-scroll", children: groups.map(([label, sessions]) => /* @__PURE__ */ (0, import_jsx_runtime12.jsxs)("div", { className: "faip-nav-group", children: [
+          /* @__PURE__ */ (0, import_jsx_runtime12.jsx)("div", { className: "faip-nav-group-label", children: label }),
+          /* @__PURE__ */ (0, import_jsx_runtime12.jsx)("div", { className: "faip-nav-list", children: sessions.map((item) => /* @__PURE__ */ (0, import_jsx_runtime12.jsxs)(
+            "button",
+            {
+              type: "button",
+              className: `faip-nav-item is-session ${item.name === (currentSession == null ? void 0 : currentSession.name) ? "is-active" : ""}`,
+              onClick: () => {
+                void switchSession(item.name);
+                onNavigate();
+              },
+              children: [
+                /* @__PURE__ */ (0, import_jsx_runtime12.jsxs)("div", { className: "faip-nav-item-copy", children: [
+                  /* @__PURE__ */ (0, import_jsx_runtime12.jsx)("div", { className: "faip-nav-item-title", children: item.title }),
+                  /* @__PURE__ */ (0, import_jsx_runtime12.jsx)("div", { className: "faip-nav-item-meta", children: timeLabel(item.modified) })
+                ] }),
+                /* @__PURE__ */ (0, import_jsx_runtime12.jsx)(ChevronRight, { size: 14 })
+              ]
+            },
+            item.name
+          )) })
+        ] }, label)) })
       ] })
     ] });
   }
 
-  // src/components/PanelRoot.tsx
+  // src/components/WorkspaceShell.tsx
   var import_jsx_runtime13 = __toESM(require_jsx_runtime(), 1);
-  function PanelRoot({
-    fullscreen,
-    onClose,
-    onToggleFullscreen,
-    mode = "panel"
+  function runStatusLabel(run, sending) {
+    if (sending) return __("Running");
+    if (!run) return __("Ready");
+    return run.status;
+  }
+  function WorkspaceShell({
+    variant,
+    panelControls
   }) {
-    const { loadInitial, restoreSession, newChat } = useStore();
-    const [composerHeight, setComposerHeight] = (0, import_react10.useState)(108);
+    var _a, _b;
+    const {
+      agentRecord,
+      currentSession,
+      currentRun,
+      inspector,
+      sending,
+      transcript,
+      openAgentInspector,
+      openMcpInspector,
+      openToolInspector,
+      openActivityInspector,
+      closeInspector
+    } = useStore();
+    const [sidebarOpen, setSidebarOpen] = (0, import_react9.useState)(variant === "standalone");
+    const [actionsOpen, setActionsOpen] = (0, import_react9.useState)(false);
+    const actionsRef = (0, import_react9.useRef)(null);
+    const latestExecution = (0, import_react9.useMemo)(
+      () => {
+        var _a2;
+        return ((_a2 = [...transcript].reverse().find((item) => item.role === "assistant" && item.executions.length)) == null ? void 0 : _a2.executions[0]) || null;
+      },
+      [transcript]
+    );
+    (0, import_react9.useEffect)(() => {
+      function onPointerDown(event) {
+        var _a2;
+        if (!((_a2 = actionsRef.current) == null ? void 0 : _a2.contains(event.target))) setActionsOpen(false);
+      }
+      document.addEventListener("mousedown", onPointerDown);
+      return () => document.removeEventListener("mousedown", onPointerDown);
+    }, []);
+    function handleOpenTools() {
+      setActionsOpen(false);
+      if (agentRecord == null ? void 0 : agentRecord.tools.summaries.length) openToolInspector(agentRecord.tools.summaries[0]);
+    }
+    function handleOpenMcps() {
+      setActionsOpen(false);
+      if (agentRecord == null ? void 0 : agentRecord.mcp_connections.length) openMcpInspector(agentRecord.mcp_connections[0]);
+    }
+    function handleOpenActivity() {
+      setActionsOpen(false);
+      openActivityInspector();
+    }
+    function dismissSidebarIfMobile() {
+      if (typeof window !== "undefined" && window.matchMedia("(max-width: 767px)").matches) {
+        setSidebarOpen(false);
+      }
+    }
+    return /* @__PURE__ */ (0, import_jsx_runtime13.jsxs)("div", { className: `faip-workspace-shell is-${variant} ${sidebarOpen ? "has-sidebar" : ""}`, children: [
+      /* @__PURE__ */ (0, import_jsx_runtime13.jsx)(
+        "div",
+        {
+          className: `faip-shell-backdrop is-sidebar ${sidebarOpen ? "is-visible" : ""}`,
+          onClick: () => setSidebarOpen(false)
+        }
+      ),
+      /* @__PURE__ */ (0, import_jsx_runtime13.jsx)(
+        "div",
+        {
+          className: `faip-shell-backdrop is-inspector ${inspector.open ? "is-visible" : ""}`,
+          onClick: closeInspector
+        }
+      ),
+      /* @__PURE__ */ (0, import_jsx_runtime13.jsx)(PageSidebar, { onClose: () => setSidebarOpen(false), onNavigate: dismissSidebarIfMobile }),
+      /* @__PURE__ */ (0, import_jsx_runtime13.jsxs)("div", { className: "faip-workspace-main", children: [
+        /* @__PURE__ */ (0, import_jsx_runtime13.jsxs)("header", { className: "faip-workspace-header", children: [
+          /* @__PURE__ */ (0, import_jsx_runtime13.jsxs)("div", { className: "faip-workspace-header-left", children: [
+            /* @__PURE__ */ (0, import_jsx_runtime13.jsx)(
+              "button",
+              {
+                type: "button",
+                className: "faip-icon-button faip-workspace-menu-button",
+                onClick: () => setSidebarOpen((value) => !value),
+                children: /* @__PURE__ */ (0, import_jsx_runtime13.jsx)(Menu, { size: 16 })
+              }
+            ),
+            /* @__PURE__ */ (0, import_jsx_runtime13.jsxs)("button", { type: "button", className: "faip-workspace-agent", onClick: openAgentInspector, children: [
+              /* @__PURE__ */ (0, import_jsx_runtime13.jsx)("div", { className: "faip-workspace-agent-title", title: (agentRecord == null ? void 0 : agentRecord.title) || __("Agent"), children: (agentRecord == null ? void 0 : agentRecord.title) || __("Agent") }),
+              /* @__PURE__ */ (0, import_jsx_runtime13.jsxs)("div", { className: "faip-workspace-agent-meta", title: ((_a = agentRecord == null ? void 0 : agentRecord.model) == null ? void 0 : _a.title) || __("Agent default"), children: [
+                (agentRecord == null ? void 0 : agentRecord.readiness.label) || __("Unavailable"),
+                " \xB7 ",
+                ((_b = agentRecord == null ? void 0 : agentRecord.model) == null ? void 0 : _b.title) || __("Agent default")
+              ] })
+            ] })
+          ] }),
+          /* @__PURE__ */ (0, import_jsx_runtime13.jsxs)("div", { className: "faip-workspace-header-right", ref: actionsRef, children: [
+            /* @__PURE__ */ (0, import_jsx_runtime13.jsx)("span", { className: "faip-status-pill faip-workspace-status", children: runStatusLabel(currentRun, sending) }),
+            /* @__PURE__ */ (0, import_jsx_runtime13.jsxs)(
+              "button",
+              {
+                type: "button",
+                className: "faip-secondary-button faip-header-action is-tools",
+                onClick: handleOpenTools,
+                disabled: !(agentRecord == null ? void 0 : agentRecord.tools.summaries.length),
+                children: [
+                  /* @__PURE__ */ (0, import_jsx_runtime13.jsx)(Wrench, { size: 14 }),
+                  __("Tools")
+                ]
+              }
+            ),
+            /* @__PURE__ */ (0, import_jsx_runtime13.jsxs)(
+              "button",
+              {
+                type: "button",
+                className: "faip-secondary-button faip-header-action is-mcp",
+                onClick: handleOpenMcps,
+                disabled: !(agentRecord == null ? void 0 : agentRecord.mcp_connections.length),
+                children: [
+                  /* @__PURE__ */ (0, import_jsx_runtime13.jsx)(Server, { size: 14 }),
+                  __("MCPs")
+                ]
+              }
+            ),
+            /* @__PURE__ */ (0, import_jsx_runtime13.jsxs)(
+              "button",
+              {
+                type: "button",
+                className: "faip-secondary-button faip-header-action is-activity",
+                onClick: handleOpenActivity,
+                children: [
+                  /* @__PURE__ */ (0, import_jsx_runtime13.jsx)(PanelsTopLeft, { size: 14 }),
+                  __("Activity")
+                ]
+              }
+            ),
+            /* @__PURE__ */ (0, import_jsx_runtime13.jsxs)("div", { className: `faip-overflow ${actionsOpen ? "is-open" : ""}`, children: [
+              /* @__PURE__ */ (0, import_jsx_runtime13.jsx)(
+                "button",
+                {
+                  type: "button",
+                  className: "faip-secondary-button faip-header-action faip-header-overflow-button",
+                  onClick: () => setActionsOpen((value) => !value),
+                  "aria-expanded": actionsOpen,
+                  "aria-label": __("More actions"),
+                  children: /* @__PURE__ */ (0, import_jsx_runtime13.jsx)(Ellipsis, { size: 14 })
+                }
+              ),
+              actionsOpen ? /* @__PURE__ */ (0, import_jsx_runtime13.jsxs)("div", { className: "faip-overflow-menu", children: [
+                /* @__PURE__ */ (0, import_jsx_runtime13.jsxs)("button", { type: "button", className: "faip-menu-item", onClick: handleOpenTools, disabled: !(agentRecord == null ? void 0 : agentRecord.tools.summaries.length), children: [
+                  /* @__PURE__ */ (0, import_jsx_runtime13.jsx)(Wrench, { size: 14 }),
+                  __("Tools")
+                ] }),
+                /* @__PURE__ */ (0, import_jsx_runtime13.jsxs)("button", { type: "button", className: "faip-menu-item", onClick: handleOpenMcps, disabled: !(agentRecord == null ? void 0 : agentRecord.mcp_connections.length), children: [
+                  /* @__PURE__ */ (0, import_jsx_runtime13.jsx)(Server, { size: 14 }),
+                  __("MCPs")
+                ] }),
+                /* @__PURE__ */ (0, import_jsx_runtime13.jsxs)("button", { type: "button", className: "faip-menu-item", onClick: handleOpenActivity, children: [
+                  /* @__PURE__ */ (0, import_jsx_runtime13.jsx)(PanelsTopLeft, { size: 14 }),
+                  __("Activity")
+                ] })
+              ] }) : null
+            ] }),
+            variant === "panel" && panelControls ? /* @__PURE__ */ (0, import_jsx_runtime13.jsxs)("div", { className: "faip-panel-controls", children: [
+              /* @__PURE__ */ (0, import_jsx_runtime13.jsx)("button", { type: "button", className: "faip-icon-button", onClick: panelControls.onToggleFullscreen, children: panelControls.fullscreen ? /* @__PURE__ */ (0, import_jsx_runtime13.jsx)(Minimize2, { size: 16 }) : /* @__PURE__ */ (0, import_jsx_runtime13.jsx)(Maximize2, { size: 16 }) }),
+              /* @__PURE__ */ (0, import_jsx_runtime13.jsx)("button", { type: "button", className: "faip-icon-button", onClick: panelControls.onClose, children: /* @__PURE__ */ (0, import_jsx_runtime13.jsx)(PanelRightClose, { size: 16 }) })
+            ] }) : null
+          ] })
+        ] }),
+        /* @__PURE__ */ (0, import_jsx_runtime13.jsx)("div", { className: "faip-workspace-context", children: /* @__PURE__ */ (0, import_jsx_runtime13.jsxs)("div", { children: [
+          /* @__PURE__ */ (0, import_jsx_runtime13.jsx)("div", { className: "faip-workspace-context-title", children: (currentSession == null ? void 0 : currentSession.title) || __("New chat") }),
+          /* @__PURE__ */ (0, import_jsx_runtime13.jsx)("div", { className: "faip-workspace-context-meta", children: latestExecution ? latestExecution.kind === "mcp_tool" ? __("Latest activity: {0} via {1}", [latestExecution.display_title, latestExecution.connection_name || __("MCP")]) : __("Latest activity: {0}", [latestExecution.display_title]) : __("Workspace transcript and execution details stay in sync here.") })
+        ] }) }),
+        /* @__PURE__ */ (0, import_jsx_runtime13.jsxs)("div", { className: "faip-workspace-content", children: [
+          /* @__PURE__ */ (0, import_jsx_runtime13.jsx)(MessageList, {}),
+          /* @__PURE__ */ (0, import_jsx_runtime13.jsx)(Composer, {})
+        ] })
+      ] }),
+      /* @__PURE__ */ (0, import_jsx_runtime13.jsx)(InspectorDrawer, {})
+    ] });
+  }
+
+  // src/components/PageRoot.tsx
+  var import_jsx_runtime14 = __toESM(require_jsx_runtime(), 1);
+  function PageRoot() {
+    const { loadInitial, restoreSession } = useStore();
+    const rootRef = (0, import_react10.useRef)(null);
     (0, import_react10.useEffect)(() => {
       void loadInitial();
     }, [loadInitial]);
     (0, import_react10.useEffect)(() => {
       void restoreSession();
     }, [restoreSession]);
-    return /* @__PURE__ */ (0, import_jsx_runtime13.jsxs)(
-      "div",
+    (0, import_react10.useEffect)(() => {
+      const root = rootRef.current;
+      if (!root) return;
+      const applyTheme = () => {
+        const theme = document.documentElement.getAttribute("data-theme") || "light";
+        root.setAttribute("data-theme", theme);
+      };
+      applyTheme();
+      const observer = new MutationObserver(applyTheme);
+      observer.observe(document.documentElement, { attributes: true, attributeFilter: ["data-theme"] });
+      return () => observer.disconnect();
+    }, []);
+    return /* @__PURE__ */ (0, import_jsx_runtime14.jsx)("div", { ref: rootRef, className: "faip-page", children: /* @__PURE__ */ (0, import_jsx_runtime14.jsx)(WorkspaceShell, { variant: "standalone" }) });
+  }
+
+  // src/components/PanelRoot.tsx
+  var import_react11 = __toESM(require_react(), 1);
+  var import_jsx_runtime15 = __toESM(require_jsx_runtime(), 1);
+  function PanelRoot({
+    fullscreen,
+    onClose,
+    onToggleFullscreen
+  }) {
+    const { loadInitial, restoreSession } = useStore();
+    (0, import_react11.useEffect)(() => {
+      void loadInitial();
+    }, [loadInitial]);
+    (0, import_react11.useEffect)(() => {
+      void restoreSession();
+    }, [restoreSession]);
+    return /* @__PURE__ */ (0, import_jsx_runtime15.jsx)(
+      WorkspaceShell,
       {
-        className: `faip-panel ${mode === "page" ? "is-page" : ""}`,
-        style: { ["--faip-composer-h"]: `${composerHeight}px` },
-        children: [
-          /* @__PURE__ */ (0, import_jsx_runtime13.jsx)("div", { className: "faip-panel-glow faip-panel-glow-a" }),
-          /* @__PURE__ */ (0, import_jsx_runtime13.jsx)("div", { className: "faip-panel-glow faip-panel-glow-b" }),
-          /* @__PURE__ */ (0, import_jsx_runtime13.jsx)(
-            PanelHeader,
-            {
-              fullscreen,
-              onClose,
-              onToggleFullscreen,
-              onNewChat: newChat,
-              mode
-            }
-          ),
-          /* @__PURE__ */ (0, import_jsx_runtime13.jsx)(MessageList, {}),
-          /* @__PURE__ */ (0, import_jsx_runtime13.jsx)(Composer, { onHeight: setComposerHeight })
-        ]
+        variant: "panel",
+        panelControls: {
+          fullscreen,
+          onClose,
+          onToggleFullscreen
+        }
       }
     );
   }
 
   // src/app.tsx
-  var import_jsx_runtime14 = __toESM(require_jsx_runtime(), 1);
+  var import_jsx_runtime16 = __toESM(require_jsx_runtime(), 1);
   function App({
-    fullscreen,
-    onClose,
-    onToggleFullscreen,
-    onSessionChange,
-    mode = "panel"
+    host,
+    variant = "panel",
+    panel
   }) {
-    return /* @__PURE__ */ (0, import_jsx_runtime14.jsx)(StoreProvider, { onSessionChange, children: /* @__PURE__ */ (0, import_jsx_runtime14.jsx)(
+    var _a;
+    return /* @__PURE__ */ (0, import_jsx_runtime16.jsx)(StoreProvider, { host, children: variant === "standalone" ? /* @__PURE__ */ (0, import_jsx_runtime16.jsx)(PageRoot, {}) : /* @__PURE__ */ (0, import_jsx_runtime16.jsx)(
       PanelRoot,
       {
-        fullscreen,
-        onClose,
-        onToggleFullscreen,
-        mode
+        fullscreen: (_a = panel == null ? void 0 : panel.fullscreen) != null ? _a : false,
+        onClose: (panel == null ? void 0 : panel.onClose) || (() => {
+        }),
+        onToggleFullscreen: (panel == null ? void 0 : panel.onToggleFullscreen) || (() => {
+        })
       }
     ) });
   }
 
-  // src/main.tsx
-  var import_jsx_runtime15 = __toESM(require_jsx_runtime(), 1);
+  // src/lib/panelState.ts
+  var KEY = "frappe-ai-panel-state";
+  function readPanelState() {
+    try {
+      return JSON.parse(localStorage.getItem(KEY) || "{}");
+    } catch {
+      return {};
+    }
+  }
+  function writePanelState(state) {
+    try {
+      localStorage.setItem(KEY, JSON.stringify(state));
+    } catch {
+    }
+  }
+
+  // src/hosts/deskPanel.tsx
+  var import_jsx_runtime17 = __toESM(require_jsx_runtime(), 1);
   var PANEL_WIDTH = 420;
   var MIN_WIDTH = 360;
   function DeskPanelHost() {
     var _a;
-    const saved = (0, import_react11.useMemo)(() => readPanelState(), []);
-    const [open, setOpen] = (0, import_react11.useState)(Boolean(saved.open));
-    const [fullscreen, setFullscreen] = (0, import_react11.useState)((_a = saved.fullscreen) != null ? _a : true);
-    const [width, setWidth] = (0, import_react11.useState)(saved.width || PANEL_WIDTH);
-    const [sessionName, setSessionName] = (0, import_react11.useState)(saved.session || null);
-    const shellRef = (0, import_react11.useRef)(null);
-    (0, import_react11.useEffect)(() => {
-      writePanelState({ open, fullscreen, width, session: sessionName });
-    }, [fullscreen, open, sessionName, width]);
-    (0, import_react11.useEffect)(() => {
+    const saved = (0, import_react12.useMemo)(() => readPanelState(), []);
+    const [open, setOpen] = (0, import_react12.useState)(Boolean(saved.open));
+    const [fullscreen, setFullscreen] = (0, import_react12.useState)((_a = saved.fullscreen) != null ? _a : true);
+    const [width, setWidth] = (0, import_react12.useState)(saved.width || PANEL_WIDTH);
+    const shellRef = (0, import_react12.useRef)(null);
+    (0, import_react12.useEffect)(() => {
+      writePanelState({ open, fullscreen, width, session: readPanelState().session || null });
+    }, [fullscreen, open, width]);
+    (0, import_react12.useEffect)(() => {
       const shell = shellRef.current;
       if (!shell) return;
       const applyTheme = () => {
@@ -14755,7 +15131,7 @@ ${__("Error")}: ${error.message}`);
       });
       return () => observer.disconnect();
     }, []);
-    (0, import_react11.useEffect)(() => {
+    (0, import_react12.useEffect)(() => {
       var _a2, _b;
       const api = {
         show: () => setOpen(true),
@@ -14784,7 +15160,7 @@ ${__("Error")}: ${error.message}`);
         return () => document.removeEventListener("keydown", onKeyDown);
       }
     }, []);
-    (0, import_react11.useEffect)(() => {
+    (0, import_react12.useEffect)(() => {
       const shell = shellRef.current;
       if (!shell) return;
       const handle = shell.querySelector(".faip-resize-handle");
@@ -14813,7 +15189,7 @@ ${__("Error")}: ${error.message}`);
       handle.addEventListener("mousedown", onDown);
       return () => handle.removeEventListener("mousedown", onDown);
     }, []);
-    return /* @__PURE__ */ (0, import_jsx_runtime15.jsxs)(
+    return /* @__PURE__ */ (0, import_jsx_runtime17.jsxs)(
       "div",
       {
         ref: shellRef,
@@ -14823,21 +15199,26 @@ ${__("Error")}: ${error.message}`);
           transform: open ? "translateX(0)" : "translateX(100%)"
         },
         children: [
-          /* @__PURE__ */ (0, import_jsx_runtime15.jsx)("div", { className: "faip-resize-handle" }),
-          /* @__PURE__ */ (0, import_jsx_runtime15.jsx)(
+          /* @__PURE__ */ (0, import_jsx_runtime17.jsx)("div", { className: "faip-resize-handle" }),
+          /* @__PURE__ */ (0, import_jsx_runtime17.jsx)(
             App,
             {
-              fullscreen,
-              onClose: () => setOpen(false),
-              onToggleFullscreen: () => setFullscreen((value) => !value),
-              onSessionChange: setSessionName
+              host: {
+                getInitialSession: () => readPanelState().session || null,
+                onSessionChange: (sessionName) => writePanelState({ open, fullscreen, width, session: sessionName })
+              },
+              panel: {
+                fullscreen,
+                onClose: () => setOpen(false),
+                onToggleFullscreen: () => setFullscreen((value) => !value)
+              }
             }
           )
         ]
       }
     );
   }
-  function mount() {
+  function mountDeskPanel() {
     const existing = document.getElementById("frappe-ai-root");
     const rootNode = existing || document.createElement("div");
     if (rootNode.__faipMounted) return;
@@ -14846,9 +15227,25 @@ ${__("Error")}: ${error.message}`);
     if (!existing) document.body.appendChild(rootNode);
     rootNode.__faipMounted = true;
     const root = (0, import_client2.createRoot)(rootNode);
-    root.render(/* @__PURE__ */ (0, import_jsx_runtime15.jsx)(DeskPanelHost, {}));
+    root.render(/* @__PURE__ */ (0, import_jsx_runtime17.jsx)(DeskPanelHost, {}));
   }
-  function mountPage(container) {
+
+  // src/hosts/frappePage.tsx
+  var import_client3 = __toESM(require_client(), 1);
+  var import_jsx_runtime18 = __toESM(require_jsx_runtime(), 1);
+  function currentSessionFromUrl() {
+    return new URL(window.location.href).searchParams.get("session");
+  }
+  function writeSessionToUrl(sessionName) {
+    const url = new URL(window.location.href);
+    if (sessionName) {
+      url.searchParams.set("session", sessionName);
+    } else {
+      url.searchParams.delete("session");
+    }
+    window.history.replaceState({}, "", url.toString());
+  }
+  function mountStandalonePage(container) {
     let target = container;
     const existingRoot = container.__faipPageRoot;
     if (!existingRoot && container.__faipPageMounted) {
@@ -14858,31 +15255,30 @@ ${__("Error")}: ${error.message}`);
       target = replacement;
     }
     target.__faipPageMounted = true;
-    const root = target.__faipPageRoot || (0, import_client2.createRoot)(target);
+    const root = target.__faipPageRoot || (0, import_client3.createRoot)(target);
     target.__faipPageRoot = root;
     root.render(
-      /* @__PURE__ */ (0, import_jsx_runtime15.jsx)("div", { className: "faip-root faip-page-host", children: /* @__PURE__ */ (0, import_jsx_runtime15.jsx)(
+      /* @__PURE__ */ (0, import_jsx_runtime18.jsx)("div", { className: "faip-root faip-page-host", children: /* @__PURE__ */ (0, import_jsx_runtime18.jsx)(
         App,
         {
-          fullscreen: true,
-          onClose: () => {
-          },
-          onToggleFullscreen: () => {
-          },
-          onSessionChange: () => {
-          },
-          mode: "page"
+          variant: "standalone",
+          host: {
+            getInitialSession: currentSessionFromUrl,
+            onSessionChange: writeSessionToUrl
+          }
         }
       ) })
     );
   }
+
+  // src/main.tsx
   if (typeof $ !== "undefined") {
-    $(document).on("app_ready", mount);
+    $(document).on("app_ready", mountDeskPanel);
   } else {
-    document.addEventListener("DOMContentLoaded", mount);
+    document.addEventListener("DOMContentLoaded", mountDeskPanel);
   }
   if (typeof frappe !== "undefined") {
     frappe.provide("frappe.frappe_ai");
-    frappe.frappe_ai.mountPage = mountPage;
+    frappe.frappe_ai.mountStandalonePage = mountStandalonePage;
   }
 })();
