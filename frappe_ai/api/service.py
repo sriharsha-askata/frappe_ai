@@ -192,9 +192,21 @@ def get_run_config(run: str, user: str) -> dict:
 	"""
 	_verify_service_secret()
 	original_user = frappe.session.user
+	original_local_user = getattr(frappe.local, "user", None)
+	original_ignore_permissions = getattr(frappe.flags, "ignore_permissions", False)
 	frappe.set_user(user)
+	# Some Frappe request paths consult local.user while others consult
+	# session.user. Keep both identities aligned for service callbacks.
+	frappe.local.user = user
+	# Whitelisted guest callbacks cannot reliably load owner-scoped documents even
+	# after set_user(). Ownership is checked explicitly below; ignore_permissions is
+	# limited to loading this already-bound run/session/agent graph.
+	frappe.flags.ignore_permissions = True
 	try:
-		run_doc = frappe.get_doc("AI Run", run)
+		run_row = frappe.db.get_value("AI Run", run, "*", as_dict=True)
+		if not run_row:
+			frappe.throw(_("Run {0} was not found.").format(run), frappe.DoesNotExistError)
+		run_doc = frappe.get_doc({"doctype": "AI Run", **run_row})
 		if run_doc.status != "Running" and run_doc.status != "Paused":
 			frappe.throw(_("Run {0} is not active (status: {1}).").format(run, run_doc.status))
 
@@ -237,6 +249,8 @@ def get_run_config(run: str, user: str) -> dict:
 		}
 	finally:
 		frappe.set_user(original_user)
+		frappe.local.user = original_local_user
+		frappe.flags.ignore_permissions = original_ignore_permissions
 
 
 def _model_call_config(model_doc) -> dict:

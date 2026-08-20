@@ -80,7 +80,9 @@ def dispatch_tool(tool: str, user: str, arguments: dict | None = None, run: str 
 		frappe.throw(_("Tool {0} is disabled.").format(tool), title=_("Tool Disabled"))
 
 	previous_user = frappe.session.user
+	previous_local_user = getattr(frappe.local, "user", None)
 	frappe.set_user(user)
+	frappe.local.user = user
 	try:
 		from frappe_ai.api.budgets import consume
 		consume(run, mutation=tool in {"create", "update", "delete", "run_action"}, records=_record_count(arguments or {}))
@@ -91,6 +93,7 @@ def dispatch_tool(tool: str, user: str, arguments: dict | None = None, run: str 
 		return {"error": _error_text(e)}
 	finally:
 		frappe.set_user(previous_user)
+		frappe.local.user = previous_local_user
 
 
 @frappe.whitelist(allow_guest=True)
@@ -107,7 +110,9 @@ def dispatch_plugin_tool(tool: str, user: str, arguments: dict | None = None, ru
 		frappe.throw(_("User {0} does not exist.").format(user), frappe.DoesNotExistError)
 
 	previous_user = frappe.session.user
+	previous_local_user = getattr(frappe.local, "user", None)
 	frappe.set_user(user)
+	frappe.local.user = user
 	try:
 		from frappe_assistant_core.core.tool_registry import get_tool_registry
 		from frappe_ai.api.budgets import consume
@@ -119,6 +124,7 @@ def dispatch_plugin_tool(tool: str, user: str, arguments: dict | None = None, ru
 		return {"error": _error_text(e)}
 	finally:
 		frappe.set_user(previous_user)
+		frappe.local.user = previous_local_user
 
 
 def _record_count(arguments: dict) -> int:
