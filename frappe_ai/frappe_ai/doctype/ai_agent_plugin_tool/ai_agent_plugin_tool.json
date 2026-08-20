@@ -1,0 +1,47 @@
+{
+ "actions": [],
+ "creation": "2026-08-19 00:00:00",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "fac_tool",
+  "requires_confirmation",
+  "enabled"
+ ],
+ "fields": [
+  {
+   "fieldname": "fac_tool",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "FAC Tool",
+   "options": "FAC Tool Configuration",
+   "reqd": 1
+  },
+  {
+   "default": "1",
+  "fieldname": "requires_confirmation",
+  "fieldtype": "Check",
+  "in_list_view": 1,
+  "label": "Requires Confirmation"
+ },
+ {
+  "default": "1",
+  "fieldname": "enabled",
+   "fieldtype": "Check",
+   "in_list_view": 1,
+   "label": "Enabled"
+  }
+ ],
+ "istable": 1,
+ "links": [],
+ "modified": "2026-08-19 00:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "Frappe AI",
+ "name": "AI Agent Plugin Tool",
+ "owner": "Administrator",
+ "permissions": [],
+ "row_format": "Dynamic",
+ "sort_field": "creation",
+ "sort_order": "DESC",
+ "states": []
+}

@@ -48,9 +48,8 @@ class TestAgentBuilder(unittest.TestCase):
 			result = builder._build_mcp_tools(connections)
 
 		self.assertEqual(result, [mock_mcp_tools.return_value])
-		mock_mcp_tools.assert_called_once_with(
-			command=connections[0]["command"],
-			env=connections[0]["environment_variables"],
-			transport="stdio",
-			include_tools=["extract_tender_documents"],
-		)
+		kwargs = mock_mcp_tools.call_args.kwargs
+		self.assertEqual(kwargs["transport"], "stdio")
+		self.assertEqual(kwargs["include_tools"], ["extract_tender_documents"])
+		self.assertEqual(kwargs["server_params"].command, connections[0]["command"])
+		self.assertEqual(kwargs["server_params"].env, connections[0]["environment_variables"])

@@ -32,6 +32,7 @@ from __future__ import annotations
 
 import hmac
 import json
+import shlex
 
 import requests
 
@@ -225,7 +226,7 @@ def get_run_config(run: str, user: str) -> dict:
 				),
 			},
 			"model": _model_call_config(model_doc),
-			"tools": _resolve_agent_tools(agent_doc),
+			"tools": _resolve_agent_plugin_tools(agent_doc, user),
 			"mcp_connections": _resolve_agent_mcp_connections(agent_doc),
 			"messages": session_doc.build_prompt_messages(),
 			"config_snapshot": json.loads(run_doc.config_snapshot) if run_doc.config_snapshot else {},
@@ -280,27 +281,41 @@ def _model_call_config(model_doc) -> dict:
 	}
 
 
-def _resolve_agent_tools(agent_doc) -> list[dict]:
-	"""Resolve an agent's bound tools to their JSON Schemas. Missing tools are logged
-	and skipped, disabled tools are skipped — same as `flow`'s `_resolve_tools`
-	(`002-feature-mapping.md` §2.6), except the result is schemas for Agno to hold,
-	not callables to run — execution stays in Frappe via `frappe_ai.api.dispatch`."""
+def _resolve_agent_plugin_tools(agent_doc, user: str) -> list[dict]:
+	"""Resolve direct local bindings from Assistant Core's authoritative registry.
+
+	The legacy AI Tool and AI FAC Tool tables are intentionally not consulted here.
+	A binding is exposed only when the registry says the tool is enabled and
+	accessible for the acting user; this prevents disabled or role-restricted tools
+	from leaking into the model schema.
+	"""
+	try:
+		from frappe_assistant_core.core.tool_registry import get_tool_registry
+	except ImportError:
+		return []
+
+	available = {
+		item.get("name"): item
+		for item in get_tool_registry().get_available_tools(user=user)
+		if item.get("name")
+	}
 	resolved: list[dict] = []
-	for row in agent_doc.tools:
-		try:
-			tool_doc = frappe.get_doc("AI Tool", row.tool)
-		except frappe.DoesNotExistError:
-			frappe.log_error(title=f"AI Agent {agent_doc.name!r}: tool {row.tool!r} not found, skipping")
+	for row in getattr(agent_doc, "plugin_tools", []) or []:
+		if not row.enabled or not row.fac_tool:
 			continue
-		if not tool_doc.enabled:
+		tool_name = row.fac_tool
+		item = available.get(tool_name)
+		if not item:
 			continue
-		runtime_tool = tool_doc.to_tool()
 		resolved.append(
 			{
-				"name": runtime_tool.name,
-				"description": runtime_tool.description,
-				"parameters": runtime_tool.parameters,
-				"requires_confirmation": bool(runtime_tool.requires_confirmation),
+				"name": tool_name,
+				"description": item.get("description", ""),
+				"parameters": item.get("inputSchema") or item.get("parameters") or {},
+				"requires_confirmation": bool(row.requires_confirmation),
+				"source": "fac",
+				"category": item.get("category"),
+				"source_app": item.get("source_app"),
 			}
 		)
 	return resolved
@@ -318,18 +333,26 @@ def _resolve_agent_mcp_connections(agent_doc) -> list[dict]:
 			continue
 		if not doc.enabled:
 			continue
-		resolved.append(
-			{
-				"name": doc.name,
-				"connection_type": doc.connection_type,
-				"command": doc.command,
-				"endpoint_url": doc.endpoint_url,
-				"environment_variables": json.loads(doc.environment_variables) if doc.environment_variables else {},
-				"include_tools": json.loads(row.include_tools) if getattr(row, "include_tools", None) else None,
-				"is_connected": bool(doc.is_connected),
-				"status_message": doc.status_message,
-			}
-		)
+		command_parts = shlex.split(doc.command or "")
+		stored_args = json.loads(doc.command_args) if getattr(doc, "command_args", None) else None
+
+		connection_dict = {
+			"name": doc.name,
+			"connection_type": doc.connection_type,
+			"command": command_parts[0] if command_parts else doc.command,
+			"command_args": stored_args if stored_args is not None else command_parts[1:],
+			"endpoint_url": doc.endpoint_url,
+			"environment_variables": json.loads(doc.environment_variables) if doc.environment_variables else {},
+			"include_tools": json.loads(row.include_tools) if getattr(row, "include_tools", None) else None,
+			"is_connected": bool(doc.is_connected),
+			"status_message": doc.status_message,
+		}
+
+		if doc.connection_type == "streamable-http":
+			connection_dict["api_key"] = doc.get("api_key")
+			connection_dict["api_secret"] = doc.get_password("api_secret") if doc.get("api_secret") else None
+
+		resolved.append(connection_dict)
 	return resolved
 
 

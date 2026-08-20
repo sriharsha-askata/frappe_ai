@@ -48,7 +48,7 @@ _ERROR_LIMIT = 500
 
 
 @frappe.whitelist(allow_guest=True)
-def dispatch_tool(tool: str, user: str, arguments: dict | None = None) -> dict:
+def dispatch_tool(tool: str, user: str, arguments: dict | None = None, run: str | None = None) -> dict:
 	"""Execute one `AI Tool` call on behalf of `user`, enforcing that user's permissions.
 
 	Args:
@@ -79,13 +79,54 @@ def dispatch_tool(tool: str, user: str, arguments: dict | None = None) -> dict:
 	if not tool_doc.enabled:
 		frappe.throw(_("Tool {0} is disabled.").format(tool), title=_("Tool Disabled"))
 
+	previous_user = frappe.session.user
 	frappe.set_user(user)
 	try:
+		from frappe_ai.api.budgets import consume
+		consume(run, mutation=tool in {"create", "update", "delete", "run_action"}, records=_record_count(arguments or {}))
 		runtime_tool = tool_doc.to_tool()
 		result = runtime_tool(**(arguments or {}))
 		return {"result": result}
 	except Exception as e:
 		return {"error": _error_text(e)}
+	finally:
+		frappe.set_user(previous_user)
+
+
+@frappe.whitelist(allow_guest=True)
+def dispatch_plugin_tool(tool: str, user: str, arguments: dict | None = None, run: str | None = None) -> dict:
+	"""Execute a local Assistant Core tool under the run's acting user.
+
+	This is deliberately separate from ``dispatch_tool`` while existing sites are
+	migrated. It never falls back to AI Tool: registry availability, FAC
+	configuration, role access, and the tool's own permission checks are all
+	authoritative.
+	"""
+	_verify_service_secret()
+	if not frappe.db.exists("User", user):
+		frappe.throw(_("User {0} does not exist.").format(user), frappe.DoesNotExistError)
+
+	previous_user = frappe.session.user
+	frappe.set_user(user)
+	try:
+		from frappe_assistant_core.core.tool_registry import get_tool_registry
+		from frappe_ai.api.budgets import consume
+
+		consume(run, mutation=tool in {"create_document", "update_document", "delete_document", "run_workflow"}, records=_record_count(arguments or {}))
+		result = get_tool_registry().execute_tool(tool, arguments or {})
+		return {"result": result}
+	except Exception as e:
+		return {"error": _error_text(e)}
+	finally:
+		frappe.set_user(previous_user)
+
+
+def _record_count(arguments: dict) -> int:
+	for key in ("records", "documents", "values"):
+		value = arguments.get(key)
+		if isinstance(value, list):
+			return max(len(value), 1)
+	return 1
 
 
 def _error_text(e: Exception) -> str:

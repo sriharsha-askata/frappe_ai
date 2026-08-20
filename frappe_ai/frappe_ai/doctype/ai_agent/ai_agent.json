@@ -5,7 +5,7 @@
  "creation": "2026-08-06 00:00:00",
  "doctype": "DocType",
  "engine": "InnoDB",
- "field_order": [
+  "field_order": [
   "title",
   "enabled",
   "is_system_generated",
@@ -13,6 +13,10 @@
   "model",
   "agent_type",
   "max_iterations",
+  "max_tool_calls",
+  "max_mutations",
+  "max_records_per_call",
+  "max_runtime_seconds",
   "section_break_generation",
   "temperature",
   "top_p",
@@ -26,7 +30,9 @@
   "section_break_knowledge",
   "knowledge_bases",
   "section_break_mcp",
-  "mcp_connections"
+  "mcp_connections",
+  "section_break_plugin_tools",
+  "plugin_tools"
  ],
  "fields": [
   {
@@ -82,6 +88,34 @@
    "non_negative": 1
   },
   {
+   "default": "50",
+   "fieldname": "max_tool_calls",
+   "fieldtype": "Int",
+   "label": "Max Tool Calls",
+   "non_negative": 1
+  },
+  {
+   "default": "20",
+   "fieldname": "max_mutations",
+   "fieldtype": "Int",
+   "label": "Max Mutations",
+   "non_negative": 1
+  },
+  {
+   "default": "100",
+   "fieldname": "max_records_per_call",
+   "fieldtype": "Int",
+   "label": "Max Records Per Call",
+   "non_negative": 1
+  },
+  {
+   "default": "600",
+   "fieldname": "max_runtime_seconds",
+   "fieldtype": "Int",
+   "label": "Max Runtime Seconds",
+   "non_negative": 1
+  },
+  {
    "collapsible": 1,
    "fieldname": "section_break_generation",
    "fieldtype": "Section Break",
@@ -134,11 +168,11 @@
    "label": "Tools"
   },
   {
-   "description": "AI Tools this agent can call. Defaults to the three primitives (describe, read, execute) on creation.",
+   "description": "Deprecated compatibility field. Runtime tools come from plugin_tools or MCP connections.",
    "fieldname": "tools",
-   "fieldtype": "Table MultiSelect",
+   "fieldtype": "Table",
    "label": "Tools",
-   "options": "AI Agent Tool"
+   "options": "AI Agent Tool Config"
   },
   {
    "fieldname": "section_break_knowledge",
@@ -163,6 +197,18 @@
    "fieldtype": "Table MultiSelect",
    "label": "MCP Connections",
    "options": "AI Agent MCP Connection"
+  },
+  {
+   "fieldname": "section_break_plugin_tools",
+   "fieldtype": "Section Break",
+   "label": "Plugin Tools"
+  },
+  {
+   "description": "Assistant Core plugin tools available to this agent via direct linkage (no MCP required).",
+   "fieldname": "plugin_tools",
+   "fieldtype": "Table MultiSelect",
+   "label": "Plugin Tools",
+   "options": "AI Agent Plugin Tool"
   }
  ],
  "index_web_pages_for_search": 1,

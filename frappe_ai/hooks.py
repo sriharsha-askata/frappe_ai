@@ -40,6 +40,13 @@ def _frappe_ai_panel_asset(filename: str) -> str:
 app_include_js = [_frappe_ai_panel_asset("frappe_ai_panel.js")]
 app_include_css = [_frappe_ai_panel_asset("frappe_ai_panel.css")]
 
+assistant_tools = [
+	"frappe_ai.assistant_tools.native.ExecuteTool",
+	"frappe_ai.assistant_tools.native.RunActionTool",
+	"frappe_ai.assistant_tools.native.SearchKnowledgeTool",
+	"frappe_ai.assistant_tools.native.UpdateMemoryTool",
+]
+
 # include js, css files in header of web template
 # web_include_css = "/assets/frappe_ai/css/frappe_ai.css"
 # web_include_js = "/assets/frappe_ai/js/frappe_ai.js"
@@ -180,7 +187,11 @@ scheduler_events = {
 # Upserts the 10 builtin tools as system-generated AI Tool rows on every migrate.
 # Phase 7's sync_builtin_assistant will also call this (see AI Model.after_insert's
 # ImportError guard); it runs independently here so builtins exist before Phase 7 lands.
-after_migrate = ["frappe_ai.tools.builtins.sync_builtin_tools"]
+after_migrate = [
+	"frappe_ai.tools.builtins.sync_builtin_tools",
+	"frappe_ai.api.fac_tools.sync_fac_tools",
+	"frappe_ai.api.migration.migrate_ai_tools",
+]
 
 extend_bootinfo = "frappe_ai.boot.boot_session"
 

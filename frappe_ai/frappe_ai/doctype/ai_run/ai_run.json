@@ -21,6 +21,7 @@
   "tool_calls",
   "questions",
   "usage",
+  "budget_usage",
   "config_snapshot",
   "section_break_error",
   "error",
@@ -145,6 +146,12 @@
    "fieldtype": "JSON",
    "hidden": 1,
    "label": "Token Usage",
+   "read_only": 1
+  },
+  {
+   "fieldname": "budget_usage",
+   "fieldtype": "JSON",
+   "label": "Budget Usage",
    "read_only": 1
   },
   {

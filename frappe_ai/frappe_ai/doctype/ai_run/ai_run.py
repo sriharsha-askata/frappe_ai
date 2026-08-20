@@ -38,7 +38,7 @@ import frappe
 from frappe import _
 from frappe.model.document import Document
 
-JSON_FIELDS = ("tool_calls", "questions", "usage", "config_snapshot")
+JSON_FIELDS = ("tool_calls", "questions", "usage", "config_snapshot", "budget_usage")
 
 
 class AIRun(Document):

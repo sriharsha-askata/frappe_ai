@@ -26,7 +26,6 @@ from frappe.model.document import Document
 
 from frappe_ai.utils.system_generated import block_delete, block_rename, validate_immutable
 
-DEFAULT_TOOL_SLUGS = ("describe", "read", "execute")
 DEFAULT_MAX_ITERATIONS = 10
 KNOWLEDGE_SEARCH_SLUG = "search_knowledge"
 
@@ -46,7 +45,8 @@ class AIAgent(Document):
 		from frappe_ai.frappe_ai.doctype.ai_agent_mcp_connection.ai_agent_mcp_connection import (
 			AIAgentMCPConnection,
 		)
-		from frappe_ai.frappe_ai.doctype.ai_agent_tool.ai_agent_tool import AIAgentTool
+		from frappe_ai.frappe_ai.doctype.ai_agent_plugin_tool.ai_agent_plugin_tool import AIAgentPluginTool
+		from frappe_ai.frappe_ai.doctype.ai_agent_tool_config.ai_agent_tool_config import AIAgentToolConfig
 
 		agent_type: DF.Literal["Agent", "Team"]
 		enabled: DF.Check
@@ -55,25 +55,43 @@ class AIAgent(Document):
 		knowledge_bases: DF.TableMultiSelect[AIAgentKnowledgeBase]
 		markdown: DF.Check
 		max_iterations: DF.Int
+		max_tool_calls: DF.Int
+		max_mutations: DF.Int
+		max_records_per_call: DF.Int
+		max_runtime_seconds: DF.Int
 		mcp_connections: DF.TableMultiSelect[AIAgentMCPConnection]
 		model: DF.Link
+		plugin_tools: DF.TableMultiSelect[AIAgentPluginTool]
 		reasoning: DF.Check
 		temperature: DF.Float
 		title: DF.Data
-		tools: DF.TableMultiSelect[AIAgentTool]
+		tools: DF.Table[AIAgentToolConfig]
 		top_p: DF.Float
 	# end: auto-generated types
-
-	def before_insert(self):
-		if not self.tools:
-			for slug in DEFAULT_TOOL_SLUGS:
-				if frappe.db.exists("AI Tool", slug):
-					self.append("tools", {"tool": slug})
 
 	def validate(self):
 		self._validate_max_iterations()
 		self._ensure_knowledge_search_tool()
+		self._populate_mcp_tools()
 		validate_immutable(self)
+
+	def _populate_mcp_tools(self):
+		for row in getattr(self, "mcp_connections", []) or []:
+			if not row.mcp_connection:
+				continue
+			mcp_doc = frappe.get_doc("AI MCP Connection", row.mcp_connection)
+			tools = []
+			tool_names = []
+			for tool in getattr(mcp_doc, "tools", []) or []:
+				tools.append({
+					"tool_name": tool.tool_name,
+					"description": tool.description or "",
+					"available": tool.available
+				})
+				tool_names.append(tool.tool_name)
+			row.available_tools = tools if tools else None
+			row.tools_list = ", ".join(tool_names) if tool_names else ""
+
 
 	def on_trash(self):
 		block_delete(self, always=True)
@@ -86,24 +104,30 @@ class AIAgent(Document):
 			frappe.throw(_("Max Iterations must be at least 1."), title=_("Invalid Max Iterations"))
 
 	def _ensure_knowledge_search_tool(self):
-		"""A bound knowledge base is inert without the search tool. Keep them consistent
-		so any agent with knowledge bases can actually query them, however it was created."""
 		if not self.knowledge_bases:
 			return
-		if any(row.tool == KNOWLEDGE_SEARCH_SLUG for row in self.tools):
+		if any(row.tool_name == KNOWLEDGE_SEARCH_SLUG for row in self.tools):
 			return
-		if frappe.db.exists("AI Tool", KNOWLEDGE_SEARCH_SLUG):
-			self.append("tools", {"tool": KNOWLEDGE_SEARCH_SLUG})
+		self.append("tools", {
+			"tool_name": KNOWLEDGE_SEARCH_SLUG,
+			"source": "manual",
+			"description": "Search configured knowledge bases.",
+			"enabled": 1,
+		})
 
 	def _snapshot(self, *, model: str | None = None) -> dict[str, Any]:
-		"""Plain-dict config snapshot stored on every `AI Run.config_snapshot`."""
 		return {
 			"title": self.title,
 			"model": model or self.model,
 			"instructions": self.instructions,
-			"tools": [row.tool for row in self.tools],
+			"tools": [],
 			"mcp_connections": [row.mcp_connection for row in getattr(self, "mcp_connections", [])],
+			"plugin_tools": [row.fac_tool for row in getattr(self, "plugin_tools", [])],
 			"max_iterations": self.max_iterations or DEFAULT_MAX_ITERATIONS,
+			"max_tool_calls": getattr(self, "max_tool_calls", None) or 50,
+			"max_mutations": getattr(self, "max_mutations", None) or 20,
+			"max_records_per_call": getattr(self, "max_records_per_call", None) or 100,
+			"max_runtime_seconds": getattr(self, "max_runtime_seconds", None) or 600,
 			"temperature": self.temperature,
 			"top_p": self.top_p,
 			"reasoning": bool(self.reasoning),

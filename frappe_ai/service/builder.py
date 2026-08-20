@@ -133,6 +133,7 @@ class AgentBuilder:
 		tools = [
 			self._build_tool(
 				t,
+				run=run,
 				user=user,
 				approved_call_ids=approved_call_ids,
 				auto_approve=bool(agent_cfg.get("auto_approve")),
@@ -197,6 +198,7 @@ class AgentBuilder:
 		self,
 		tool_cfg: dict[str, Any],
 		*,
+		run: str,
 		user: str,
 		approved_call_ids: frozenset[str],
 		auto_approve: bool,
@@ -221,7 +223,8 @@ class AgentBuilder:
 			if requires_confirmation and not auto_approve and call_id not in approved_call_ids:
 				raise PendingConfirmation(tool_call_id=call_id or "", name=name, arguments=kwargs)
 
-			response = await self.frappe_client.dispatch_tool(name, user, kwargs)
+			dispatch = self.frappe_client.dispatch_plugin_tool if tool_cfg.get("source") == "fac" else self.frappe_client.dispatch_tool
+			response = await dispatch(name, user, kwargs, run)
 			if "error" in response:
 				return {"error": response["error"]}
 			return response.get("result")
@@ -254,16 +257,44 @@ class AgentBuilder:
 			try:
 				env = connection.get("environment_variables") or {}
 				include_tools = connection.get("include_tools") or None
-				if connection.get("connection_type") == "stdio":
+				connection_type = connection.get("connection_type")
+
+				if connection_type == "stdio":
+					from mcp import StdioServerParameters
+
 					tools.append(
 						MCPTools(
-							command=connection.get("command"),
-							env=env,
 							transport="stdio",
+							server_params=StdioServerParameters(
+								command=connection.get("command"),
+								args=connection.get("command_args") or [],
+								env=env,
+							),
 							include_tools=include_tools,
 						)
 					)
+				elif connection_type == "streamable-http":
+					from agno.tools.mcp.params import StreamableHTTPClientParams
+
+					# Build auth headers for streamable-http transport
+					headers = {}
+					api_key = connection.get("api_key")
+					api_secret = connection.get("api_secret")
+					if api_key and api_secret:
+						headers["Authorization"] = f"token {api_key}:{api_secret}"
+
+					tools.append(
+						MCPTools(
+							transport="streamable-http",
+							server_params=StreamableHTTPClientParams(
+								url=connection.get("endpoint_url"), headers=headers
+							),
+							include_tools=include_tools,
+							timeout_seconds=300,
+						)
+					)
 				else:
+					# Default to SSE for backward compatibility
 					tools.append(
 						MCPTools(
 							url=connection.get("endpoint_url"),

@@ -35,6 +35,7 @@ from frappe_ai.service.config import ServiceSettings
 GET_SERVICE_CONFIG_METHOD = "frappe_ai.api.service.get_service_config"
 GET_RUN_CONFIG_METHOD = "frappe_ai.api.service.get_run_config"
 DISPATCH_TOOL_METHOD = "frappe_ai.api.dispatch.dispatch_tool"
+DISPATCH_PLUGIN_TOOL_METHOD = "frappe_ai.api.dispatch.dispatch_plugin_tool"
 PERSIST_RUN_RESULT_METHOD = "frappe_ai.api.api.persist_run_result"
 FAIL_RUN_METHOD = "frappe_ai.api.api.fail_run"
 DEFAULT_REQUEST_TIMEOUT_SECONDS = 15.0
@@ -116,7 +117,7 @@ class FrappeClient:
 		"""
 		return await self._get_json(GET_RUN_CONFIG_METHOD, params={"run": run, "user": user})
 
-	async def dispatch_tool(self, tool: str, user: str, arguments: dict[str, Any] | None = None) -> dict[str, Any]:
+	async def dispatch_tool(self, tool: str, user: str, arguments: dict[str, Any] | None = None, run: str | None = None) -> dict[str, Any]:
 		"""Execute one Frappe-touching tool call as `user` (ADR 0003).
 
 		Args:
@@ -135,7 +136,15 @@ class FrappeClient:
 		"""
 		return await self._post_json(
 			DISPATCH_TOOL_METHOD,
-			json={"tool": tool, "user": user, "arguments": arguments or {}},
+			json={"tool": tool, "user": user, "arguments": arguments or {}, "run": run},
+			timeout=TOOL_DISPATCH_TIMEOUT_SECONDS,
+		)
+
+	async def dispatch_plugin_tool(self, tool: str, user: str, arguments: dict[str, Any] | None = None, run: str | None = None) -> dict[str, Any]:
+		"""Execute a same-site Assistant Core tool through its registry."""
+		return await self._post_json(
+			DISPATCH_PLUGIN_TOOL_METHOD,
+			json={"tool": tool, "user": user, "arguments": arguments or {}, "run": run},
 			timeout=TOOL_DISPATCH_TIMEOUT_SECONDS,
 		)
 
