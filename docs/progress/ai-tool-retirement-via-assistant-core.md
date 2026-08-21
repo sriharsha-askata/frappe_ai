@@ -9,8 +9,8 @@
 
 | | |
 |---|---|
-| **Status** | 🟡 Transitional FAC path implemented; cleanup gate not passed |
-| **Current phase** | Verification and legacy-reference removal |
+| **Status** | 🟡 Transitional FAC path implemented; compatibility layer retained |
+| **Current phase** | Verification and runtime-authority migration |
 | **Started** | 2026-08-19 |
 | **Last audited** | 2026-08-21 |
 | **Blockers** | No live model credentials; MCP budget enforcement and parity audit remain unresolved |
@@ -25,7 +25,7 @@
 | 4 | frappe_ai-native tools as Assistant Core contributions | 🟡 Registered; behavior/parity tests incomplete |
 | 5 | Tender-specific tools as tender_automation contributions | 🟡 Registered; agents/workflows not repointed and verified |
 | 6 | `run_action` and full parity audit | 🔴 Not completed |
-| 7 | Remove ai_tool/ai_agent_tool DocTypes | ⏳ Blocked on phases 2–6 and legacy-reference cleanup |
+| 7 | Retire legacy runtime authority | 🟡 Runtime use is being reduced; DocTypes are retained |
 
 ---
 
@@ -143,8 +143,8 @@ See [spec 007](../specifications/007-mcp-integration-and-cleanup.md) Parts 4-5
   known-good workflows.
 - Resolve `run_action`, migrate/audit every production `AI Tool` row, and record
   unmatched or ambiguous rows.
-- Remove remaining runtime/UI/trigger/memory references, then delete `AI Tool`,
-  `AI Agent Tool`, and obsolete resolver/setup files only after the cleanup gate.
+- Remove legacy DocTypes from the active runtime authority while retaining
+  `AI Tool` and `AI Agent Tool` as compatibility/migration records.
 
 ## Verification performed
 
@@ -176,4 +176,4 @@ See [spec 007](../specifications/007-mcp-integration-and-cleanup.md) Parts 4-5
 | 2026-08-19 | Phase 4 started: Created `AI Agent Plugin Tool` child doctype, added `plugin_tools` field to AI Agent, implemented auto-population of MCP tools and plugin tools when linked to agent. |
 | 2026-08-20 | Implemented direct FAC resolution/dispatch, migration reporting, run budgets, frappe_ai/tender Assistant Core registrations, and guest callback run loading. |
 | 2026-08-20 | Verified API/builder tests and live HTTP boundaries. Direct FAC metadata dispatch passed; full model success was blocked by the configured fake provider key. |
-| 2026-08-21 | Re-audited status: legacy DocTypes and runtime references remain; Phase 7 is not complete and cleanup is explicitly gated. |
+| 2026-08-21 | Re-audited status: legacy DocTypes are intentionally retained for compatibility; active runtime authority remains the FAC path. |

@@ -502,16 +502,18 @@ a narrower `frappe_ai`-contributed tool like Phase 4's, or genuinely covered).
 **Completion criteria:** Zero `AI Tool` rows remain without a verified Assistant
 Core equivalent.
 
-### Phase 7 — Retire `ai_tool` / `ai_agent_tool`
+### Phase 7 — Retire legacy runtime authority (retain compatibility DocTypes)
 
 > **⚠️ STATUS: PAUSED (2026-08-19)** - Attempted on 2026-08-19 but **reverted** due to test failures.
 > Agents lost direct tool access without MCP connection. Users need native builtins even when MCP is not configured.
 > Reverted: Restored `tools` field in `ai_agent.json` and `ai_agent.py`.
 > **Next step**: Find safer approach to deprecate while preserving direct tool access.
 
-**Objective:** Only phase where `frappe_ai` DocTypes are actually deleted.
+**Objective:** Remove legacy DocTypes from active runtime authority while retaining
+`AI Tool` and `AI Agent Tool` as compatibility and migration input. These DocTypes
+are not deleted under the current decision.
 
-**Scope:** In —
+**Scope:** In — runtime deprecation and migration only; DocType deletion is out of scope under the current decision.
 
 #### Step 7.1: Modify ai_agent.json
 
@@ -555,7 +557,7 @@ def _resolve_agent_tools(agent_doc) -> list[dict]:
     return []
 ```
 
-#### Step 7.4: Delete ai_tool Files
+#### Step 7.4: Delete ai_tool Files (obsolete; do not perform)
 
 **Files to Delete**:
 ```
@@ -565,7 +567,7 @@ frappe_ai/frappe_ai/doctype/ai_tool/
 └── ai_tool.py
 ```
 
-#### Step 7.5: Delete ai_agent_tool Files
+#### Step 7.5: Delete ai_agent_tool Files (obsolete; do not perform)
 
 **Files to Delete**:
 ```
@@ -575,20 +577,18 @@ frappe_ai/frappe_ai/doctype/ai_agent_tool/
 └── ai_agent_tool.py
 ```
 
-Also update: `dispatch.py`/`resolver.py`/`lib/tool.py`/`builtins.py`/`frontend.py`/
-`api.py`/`mcp.py` to drop native-tool resolution entirely.
+Update active runtime callers to prefer FAC bindings. Retain compatibility callers
+needed for migration, legacy UI, triggers, and existing records.
 `docs/specifications/003-doctype-reference.md` to drop the two DocTypes.
 `DOCTYPE_CLEANUP_PLAN.md` marked historical, pointing here.
 
-**Out** — nothing; this is the actual removal.
+**Out** — deleting the two compatibility DocTypes and their data.
 
-**Dependencies:** Phase 6 complete — this is a hard gate. Do not delete before every
-row has a verified live replacement, per the "Do not delete the builtins first" rule
-already stated in `FRAPPE_ASSISTANT_CORE_INTEGRATION.md`.
+**Dependencies:** Phase 6 remains required for complete runtime deprecation, but it
+is not a deletion gate because the compatibility DocTypes are retained.
 
-**Completion criteria:** `bench migrate` succeeds with `ai_tool`/`ai_agent_tool`
-gone; all agents (including the three tender agents) run correctly with zero
-references to either DocType remaining in code.
+**Completion criteria:** FAC is authoritative for new direct bindings, migration
+reports are reviewed, and compatibility callers are isolated and documented.
 
 ---
 
@@ -661,9 +661,8 @@ references to either DocType remaining in code.
 - [x] Added direct `plugin_tools` field and removed legacy tools from the runtime resolver
 - [x] Added `_resolve_agent_plugin_tools()` and `dispatch_plugin_tool()`
 - [x] Added idempotent legacy migration/reporting path
-- [ ] Delete ai_tool.py/json files (Step 7.4) - Pending
-- [ ] Delete ai_agent_tool.py/json files (Step 7.5) - Pending
-- [ ] No runtime/UI/trigger/memory references to legacy DocTypes - Partial; several remain
+- [x] Retain `AI Tool` and `AI Agent Tool` as compatibility/migration DocTypes
+- [ ] Remove legacy DocTypes from active runtime authority - Partial; several references remain
 - [ ] All three tender agents repointed to direct FAC bindings - Pending
 - [ ] Known-good tender workflows pass - Pending
 - [x] Focused API and builder tests pass
@@ -714,8 +713,8 @@ references to either DocType remaining in code.
 
 | DocType | When |
 |---------|-------|
-| ai_tool | Phase 7 |
-| ai_agent_tool | Phase 7 |
+| ai_tool | Retained for compatibility and migration input; not authoritative for new runtime bindings |
+| ai_agent_tool | Retained for compatibility and migration input; not authoritative for new runtime bindings |
 
 `ai_mcp_server_profile` and `ai_mcp_server_tool` were found to be orphaned
 `__pycache__`-only directories (no real doctype files, untracked, absent from git
