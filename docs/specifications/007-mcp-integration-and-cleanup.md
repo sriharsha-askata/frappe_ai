@@ -665,7 +665,10 @@ reports are reviewed, and compatibility callers are isolated and documented.
 - [x] Retain `AI Tool` and `AI Agent Tool` as compatibility/migration DocTypes
 - [ ] Remove legacy DocTypes from active runtime authority - Partial; several references remain
 - [x] All three tender agents repointed to direct FAC bindings; MCP fallback retained during migration
-- [ ] Known-good tender workflows pass - Pending; required before Tender MCP removal
+- [ ] Spec Review workflow passes through direct FAC - Pending; required before Tender MCP removal
+- [ ] Historical Match workflow passes through direct FAC - Pending; required before Tender MCP removal
+- [ ] SAP Match workflow passes through direct FAC - Pending; required before Tender MCP removal
+- [ ] Tender MCP connection removed after workflow verification - Pending
 - [x] Focused API and builder tests pass
 - [ ] Full successful LLM/FAC tool-call E2E pass - Blocked by fake model credentials
 

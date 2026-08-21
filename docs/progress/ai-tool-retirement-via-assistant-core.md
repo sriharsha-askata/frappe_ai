@@ -10,7 +10,7 @@
 | | |
 |---|---|
 | **Status** | 🟡 Tender migration is Priority 1 |
-| **Current phase** | Migrate tender tools to direct FAC bindings |
+| **Current phase** | Verify direct tender workflows before MCP removal |
 | **Started** | 2026-08-19 |
 | **Last audited** | 2026-08-21 |
 | **Blockers** | Known-good tender workflow verification; no live model credentials for LLM-driven workflow tests |
@@ -156,9 +156,9 @@ See [spec 007](../specifications/007-mcp-integration-and-cleanup.md) Parts 4-5
   comparison; keep hardened `safe_exec` until approved.
 - Make `search_knowledge` and `update_memory` agent-scoped rather than the current
   generic wrappers, and add behavior-equivalence tests.
-- Register all ten local tender capabilities as FAC tools; repoint the three tender
-  agents through direct FAC bindings while retaining MCP fallback; then run known-good
-  workflows before removing the Tender MCP configuration.
+- Run known-good Spec Review, Historical Match, and SAP workflows through direct FAC
+  bindings while retaining MCP fallback; remove the Tender MCP configuration only
+  after those workflows pass.
 - Resolve `run_action`, migrate/audit every production `AI Tool` row, and record
   unmatched or ambiguous rows.
 - Remove legacy DocTypes from the active runtime authority while retaining
