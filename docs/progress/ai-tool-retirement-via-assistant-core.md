@@ -179,6 +179,11 @@ See [spec 007](../specifications/007-mcp-integration-and-cleanup.md) Parts 4-5
 - Direct run configuration exposes FAC tools and filters duplicate MCP names.
 - Tender migration was rerun successfully with no duplicate agent bindings.
 - Tender FAC wrapper and orchestration tests pass: 12 tests total.
+- The full tender suite currently has one unrelated failure in existing SAP match-row
+  selection behavior: `test_only_last_sap_sales_data_match_row_remains_selected`.
+- Full `bench migrate` could not run because Redis Queue was unavailable; the changed
+  `AI Agent Plugin Tool` DocType was reloaded directly and verified to link to
+  `FAC Tool Configuration`.
 - Disposable E2E agent/session/run records were removed after testing.
 
 ## Remaining blockers
@@ -204,3 +209,4 @@ See [spec 007](../specifications/007-mcp-integration-and-cleanup.md) Parts 4-5
 | 2026-08-21 | Re-audited status: legacy DocTypes are intentionally retained for compatibility; active runtime authority remains the FAC path. |
 | 2026-08-21 | Tender migration made Priority 1: all ten local tender capabilities will be registered once as FAC tools, with MCP retained only as a migration fallback. |
 | 2026-08-21 | Registered all ten tender FAC tools, migrated all three tender agents to direct FAC bindings on `tact.local`, retained MCP fallback, and verified idempotent rerun. |
+| 2026-08-21 | Focused migration/orchestration tests passed; full tender suite recorded one unrelated SAP selection failure, and full bench migrate remains pending Redis availability. |
