@@ -107,6 +107,7 @@ def service_health() -> dict:
 	settings = frappe.get_cached_doc("AI Settings")
 	base_url = settings.service_base_url
 	if not base_url:
+		plugin_tools = _resolve_agent_plugin_tools(agent_doc, user)
 		return {
 			"success": False,
 			"message": _("AI Settings.service_base_url is not configured."),
@@ -238,8 +239,10 @@ def get_run_config(run: str, user: str) -> dict:
 				),
 			},
 			"model": _model_call_config(model_doc),
-			"tools": _resolve_agent_plugin_tools(agent_doc, user),
-			"mcp_connections": _resolve_agent_mcp_connections(agent_doc),
+			"tools": plugin_tools,
+			"mcp_connections": _resolve_agent_mcp_connections(
+				agent_doc, direct_tool_names={tool["name"] for tool in plugin_tools}
+			),
 			"messages": session_doc.build_prompt_messages(),
 			"config_snapshot": json.loads(run_doc.config_snapshot) if run_doc.config_snapshot else {},
 			# Pending confirmations from the prior segment, `[{key, name, arguments,
@@ -335,7 +338,8 @@ def _resolve_agent_plugin_tools(agent_doc, user: str) -> list[dict]:
 	return resolved
 
 
-def _resolve_agent_mcp_connections(agent_doc) -> list[dict]:
+def _resolve_agent_mcp_connections(agent_doc, direct_tool_names: set[str] | None = None) -> list[dict]:
+	direct_tool_names = direct_tool_names or set()
 	resolved: list[dict] = []
 	for row in getattr(agent_doc, "mcp_connections", []) or []:
 		try:
@@ -366,6 +370,12 @@ def _resolve_agent_mcp_connections(agent_doc) -> list[dict]:
 			connection_dict["api_key"] = doc.get("api_key")
 			connection_dict["api_secret"] = doc.get_password("api_secret") if doc.get("api_secret") else None
 
+		include_tools = connection_dict["include_tools"]
+		if isinstance(include_tools, list):
+			include_tools = [tool for tool in include_tools if tool not in direct_tool_names]
+			if not include_tools:
+				continue
+			connection_dict["include_tools"] = include_tools
 		resolved.append(connection_dict)
 	return resolved
 

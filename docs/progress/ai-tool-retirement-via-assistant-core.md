@@ -9,11 +9,11 @@
 
 | | |
 |---|---|
-| **Status** | 🟡 Transitional FAC path implemented; compatibility layer retained |
-| **Current phase** | Verification and runtime-authority migration |
+| **Status** | 🟡 Tender migration is Priority 1 |
+| **Current phase** | Migrate tender tools to direct FAC bindings |
 | **Started** | 2026-08-19 |
 | **Last audited** | 2026-08-21 |
-| **Blockers** | No live model credentials; MCP budget enforcement and parity audit remain unresolved |
+| **Blockers** | Known-good tender workflow verification; no live model credentials for LLM-driven workflow tests |
 
 ### Phase summary
 
@@ -23,7 +23,7 @@
 | 2 | Mutating builtins via Assistant Core | 🟡 Direct path exists; MCP budget coverage unresolved |
 | 3 | `execute` sandbox parity | 🔴 Not completed; wrapper exists, comparison/tests do not |
 | 4 | frappe_ai-native tools as Assistant Core contributions | 🟡 Registered; behavior/parity tests incomplete |
-| 5 | Tender-specific tools as tender_automation contributions | 🟡 Registered; agents/workflows not repointed and verified |
+| 5 | Tender-specific tools as tender_automation contributions | 🟡 Direct migration complete on tact.local; workflow verification pending |
 | 6 | `run_action` and full parity audit | 🔴 Not completed |
 | 7 | Retire legacy runtime authority | 🟡 Runtime use is being reduced; DocTypes are retained |
 
@@ -107,6 +107,24 @@
 - Budgets are counted by the Frappe dispatch endpoints, but the independent remote
   MCP transport still bypasses those counters.
 
+## Priority 1 — Tender migration
+
+The tender tools are local application code. They will be registered once as
+Assistant Core `BaseTool` implementations and selected per agent through
+`AI Agent Plugin Tool` bindings. No plugin implementation is created per agent.
+
+The migration target is all ten local tender capabilities:
+
+- Seven Frappe-side context, persistence, and failure tools.
+- Three tools currently exposed by the local Tender MCP server:
+  `extract_tender_documents`, `match_historical_enquiries`, and
+  `search_sap_sales_data`.
+
+The existing Tender MCP connection remains available as a fallback during
+migration. Direct FAC tools take precedence, and duplicate MCP names are filtered
+from a run when the direct FAC tool is available. MCP is removed only after all
+three tender workflows pass through direct FAC execution.
+
 ## Updated (2026-08-19)
 
 - **2026-08-19** — Fixed `MCPTools(headers=...)` bug in `frappe_ai/service/builder.py`. 
@@ -138,9 +156,9 @@ See [spec 007](../specifications/007-mcp-integration-and-cleanup.md) Parts 4-5
   comparison; keep hardened `safe_exec` until approved.
 - Make `search_knowledge` and `update_memory` agent-scoped rather than the current
   generic wrappers, and add behavior-equivalence tests.
-- Replace the tender wrapper set with the exact seven mapped business tools,
-  including `mark_tender_stage_failed`; repoint the three tender agents and run
-  known-good workflows.
+- Register all ten local tender capabilities as FAC tools; repoint the three tender
+  agents through direct FAC bindings while retaining MCP fallback; then run known-good
+  workflows before removing the Tender MCP configuration.
 - Resolve `run_action`, migrate/audit every production `AI Tool` row, and record
   unmatched or ambiguous rows.
 - Remove legacy DocTypes from the active runtime authority while retaining
@@ -155,6 +173,12 @@ See [spec 007](../specifications/007-mcp-integration-and-cleanup.md) Parts 4-5
   401, so successful LLM-generated tool selection remains unverified.
 - Direct HTTP `dispatch_plugin_tool(get_doctype_info, Administrator)` returned a
   successful Assistant Core result.
+- All ten tender tools are registered in Assistant Core on `tact.local`.
+- All three tender agents have the expected direct FAC bindings; the existing
+  Tender MCP bindings remain intact as fallback.
+- Direct run configuration exposes FAC tools and filters duplicate MCP names.
+- Tender migration was rerun successfully with no duplicate agent bindings.
+- Tender FAC wrapper and orchestration tests pass: 12 tests total.
 - Disposable E2E agent/session/run records were removed after testing.
 
 ## Remaining blockers
@@ -162,7 +186,8 @@ See [spec 007](../specifications/007-mcp-integration-and-cleanup.md) Parts 4-5
 - A real model credential is required to prove streamed success, FAC tool-call
   selection, and confirmation pause/resume through the LLM.
 - Remote MCP execution still needs a budget-enforcement design and implementation.
-- The live tender agents and all production legacy rows still need migration audit.
+- The three tender workflows still need known-good end-to-end execution through
+  direct FAC tools before the Tender MCP connection can be removed.
 
 ## Change Log
 
@@ -177,3 +202,5 @@ See [spec 007](../specifications/007-mcp-integration-and-cleanup.md) Parts 4-5
 | 2026-08-20 | Implemented direct FAC resolution/dispatch, migration reporting, run budgets, frappe_ai/tender Assistant Core registrations, and guest callback run loading. |
 | 2026-08-20 | Verified API/builder tests and live HTTP boundaries. Direct FAC metadata dispatch passed; full model success was blocked by the configured fake provider key. |
 | 2026-08-21 | Re-audited status: legacy DocTypes are intentionally retained for compatibility; active runtime authority remains the FAC path. |
+| 2026-08-21 | Tender migration made Priority 1: all ten local tender capabilities will be registered once as FAC tools, with MCP retained only as a migration fallback. |
+| 2026-08-21 | Registered all ten tender FAC tools, migrated all three tender agents to direct FAC bindings on `tact.local`, retained MCP fallback, and verified idempotent rerun. |

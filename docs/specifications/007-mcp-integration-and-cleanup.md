@@ -447,31 +447,32 @@ and dispatches correctly through direct linkage, producing the same result the
 native `AI Tool` row produces today; `requires_confirmation = 1` on a
 `plugin_tools` row correctly triggers `PendingConfirmation`.
 
-### Phase 5 — Tender-specific tools as `tender_automation` Assistant Core contributions
+### Phase 5 — Tender-specific tools as `tender_automation` Assistant Core contributions (Priority 1)
 
-**Objective:** Give the 7 tender-specific tools a real home in `tender_automation`,
+**Objective:** Give all 10 local tender capabilities a real home in `tender_automation`,
 not in `frappe_ai` or `frappe_assistant_core` — they are that app's business logic
 — reachable via direct plugin linkage (preferred, same-site) rather than only MCP.
 
 **Scope:** In — `tender_automation`'s own `assistant_tools/` package and
-`hooks.py` entry for: `mark_tender_stage_failed`, `persist_sap_match_result`,
+`hooks.py` entries for: `mark_tender_stage_failed`, `persist_sap_match_result`,
 `load_design_search_context`, `persist_historical_match_result`,
 `load_historical_match_context`, `persist_spec_review_result`,
-`load_spec_review_context`. Out — changing tender_automation's core matching logic;
-this is a transport change (`AI Tool`/`dispatch.py` → Assistant Core direct
-linkage, per Phase 4's schema), not a rewrite.
+`load_spec_review_context`, `extract_tender_documents`,
+`match_historical_enquiries`, and `search_sap_sales_data`. Out — changing
+tender_automation's core matching logic; this is a transport change from the
+existing Frappe/MCP paths to Assistant Core direct linkage, not a rewrite.
 
 **Deliverables:**
 - `apps/tender_automation/tender_automation/assistant_tools/` — one `BaseTool` per
-  tool, each calling into the existing implementation the current `AI Tool: code`
-  or `import_path` row points at (do not duplicate business logic; wrap it)
-- `tender_automation/hooks.py` `assistant_tools` entries for all 7
+  local tender capability, preserving the existing Frappe-side or local MCP
+  implementation behavior (do not duplicate business logic; wrap or move it)
+- `tender_automation/hooks.py` `assistant_tools` entries for all 10
 - The three live agents (`Tender SAP Match Agent`, `Tender Historical Match Agent`,
   `Tender Spec Review Agent`) re-pointed from `AI Agent Tool` rows to
   `AI Agent.plugin_tools` rows (Phase 4's schema) — MCP is available as a fallback
-  if a given deployment needs it, but direct linkage is the default since
-  `tender_automation` runs on the same site — verified against a real tender run,
-  not just a smoke test, since this is production-adjacent workflow
+  during migration. Direct linkage is the default since `tender_automation` runs
+  on the same site; duplicate MCP names are filtered when direct FAC tools are
+  available. Remove the Tender MCP binding only after real tender workflows pass.
 
 **Dependencies:** Phase 2 (mutation parity) and Phase 4 (the `AI Agent Plugin Tool`
 schema these agents will be re-pointed onto), since several of these tools write
@@ -618,7 +619,7 @@ reports are reviewed, and compatibility callers are isolated and documented.
 | Task | Type | Description |
 |------|------|-------------|
 | 4.1 | Code | `frappe_ai/assistant_tools/` — `search_knowledge`, `update_memory`, (`execute`) |
-| 5.1 | Code | `tender_automation/assistant_tools/` — 7 tender tools |
+| 5.1 | Code | `tender_automation/assistant_tools/` — 10 local tender tools |
 | 5.2 | Migration | Re-point 3 live tender agents; verify against known-good run |
 
 ### Wave 4: Final audit & removal (Phases 6-7)
@@ -663,8 +664,8 @@ reports are reviewed, and compatibility callers are isolated and documented.
 - [x] Added idempotent legacy migration/reporting path
 - [x] Retain `AI Tool` and `AI Agent Tool` as compatibility/migration DocTypes
 - [ ] Remove legacy DocTypes from active runtime authority - Partial; several references remain
-- [ ] All three tender agents repointed to direct FAC bindings - Pending
-- [ ] Known-good tender workflows pass - Pending
+- [x] All three tender agents repointed to direct FAC bindings; MCP fallback retained during migration
+- [ ] Known-good tender workflows pass - Pending; required before Tender MCP removal
 - [x] Focused API and builder tests pass
 - [ ] Full successful LLM/FAC tool-call E2E pass - Blocked by fake model credentials
 
