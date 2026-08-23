@@ -12,16 +12,51 @@ from unittest.mock import patch
 import httpx
 from agno.models.message import Message
 from agno.tools.function import Function
+from openai import OpenAI
 
 from frappe_ai.lib.model import (
 	PROVIDER_ENDPOINT_DEFAULTS,
 	create_openai_compatible_model,
 	normalize_provider_error,
+	normalize_transport_model_id,
 	resolve_model_config,
 )
 
 
 class TestOpenAICompatibleTransport(unittest.TestCase):
+	def test_gemini_embedding_id_is_normalized_only_for_transport(self):
+		self.assertEqual(
+			normalize_transport_model_id("gemini", "gemini/gemini-embedding-001"),
+			"gemini-embedding-001",
+		)
+		self.assertEqual(normalize_transport_model_id("openai", "openai/text-embedding-3-small"), "openai/text-embedding-3-small")
+
+	def test_embedding_transport_uses_embeddings_endpoint(self):
+		seen_paths: list[str] = []
+
+		def handler(request: httpx.Request) -> httpx.Response:
+			seen_paths.append(str(request.url))
+			return httpx.Response(
+				200,
+				json={
+					"object": "list",
+					"data": [{"object": "embedding", "index": 0, "embedding": [0.1, 0.2]}],
+					"model": "gemini-embedding-001",
+				},
+			)
+
+		client = httpx.Client(transport=httpx.MockTransport(handler))
+		openai_client = OpenAI(
+			api_key="test-key",
+			base_url=PROVIDER_ENDPOINT_DEFAULTS["gemini"],
+			http_client=client,
+		)
+		result = openai_client.embeddings.create(model="gemini-embedding-001", input=["hello"])
+
+		self.assertEqual(result.data[0].embedding, [0.1, 0.2])
+		self.assertTrue(seen_paths[0].endswith("/embeddings"))
+		client.close()
+
 	def test_tool_calls_round_trip_through_shared_transport(self):
 		requests: list[dict] = []
 

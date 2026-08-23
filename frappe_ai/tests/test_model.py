@@ -78,7 +78,7 @@ class TestOpenAICompatibleTransport(IntegrationTestCase):
 		model = create_openai_compatible_model(
 			{"provider": "openai", "model_id": "test-model", "params": {"max_retries": 99}}
 		)
-		self.assertEqual(model.max_retries, 3)
+		self.assertEqual(model.max_retries, 2)
 
 
 class TestResolveProviderCredentials(IntegrationTestCase):

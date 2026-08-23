@@ -11,11 +11,15 @@ from frappe.model.document import Document
 
 from frappe_ai.lib.model import (
 	ModelConfigurationError,
-	create_openai_compatible_model,
 	is_known_provider,
-	normalize_provider_error,
 	resolve_model_config,
 	to_litellm_provider,
+)
+from frappe_ai.frappe_ai.doctype.ai_model.connection_test import (
+	CHAT_CHECKS,
+	EMBEDDING_CHECKS,
+	blocked_suite,
+	run_capability_suite,
 )
 
 # Bare model id — no `provider/` prefix. The provider slug is identity/endpoint
@@ -25,6 +29,7 @@ MODEL_ID_PATTERN = re.compile(r"^[A-Za-z0-9][A-Za-z0-9_\-:.\/]*$")
 RESERVED_PARAM_KEYS = frozenset(
 	{"model", "api_key", "api_base", "base_url", "messages", "stream", "tools", "tool_choice"}
 )
+MODEL_TYPES = frozenset({"Chat", "Embedding"})
 
 
 class AIModel(Document):
@@ -42,6 +47,7 @@ class AIModel(Document):
 		enabled: DF.Check
 		is_default: DF.Check
 		model_id: DF.Data
+		model_type: DF.Literal["Chat", "Embedding"]
 		params: DF.JSON | None
 		provider: DF.Link | None
 		title: DF.Data
@@ -50,6 +56,7 @@ class AIModel(Document):
 	def validate(self):
 		self._normalize()
 		self._validate_model_id()
+		self._validate_model_type()
 		self._validate_base_url()
 		self._validate_params()
 		self._enforce_single_default()
@@ -94,6 +101,13 @@ class AIModel(Document):
 				title=_("Invalid Model ID"),
 			)
 
+	def _validate_model_type(self):
+		if (self.model_type or "Chat") not in MODEL_TYPES:
+			frappe.throw(
+				_("Model Type must be either Chat or Embedding."),
+				title=_("Invalid Model Type"),
+			)
+
 	def _validate_base_url(self):
 		if not self.base_url:
 			return
@@ -122,20 +136,21 @@ class AIModel(Document):
 
 	@frappe.whitelist()
 	def test_connection(self):
+		"""Run a fresh capability suite for this saved model configuration.
+
+		This is intentionally configuration-time only. Runtime agent execution is
+		constructed by ``AgentBuilder`` and never calls this method.
+		"""
 		self.check_permission("write")
+		check_names = EMBEDDING_CHECKS if (self.model_type or "Chat") == "Embedding" else CHAT_CHECKS
 		try:
 			model_config = resolve_model_config(self)
-			model = create_openai_compatible_model(model_config, timeout=15, max_retries=0)
-			from agno.models.message import Message
-
-			model.response(messages=[Message(role="user", content="ping")])
 		except ModelConfigurationError as e:
-			frappe.throw(str(e), title=_("Invalid Model Configuration"))
+			return blocked_suite(check_names, e, provider=self.provider, model_id=self.model_id)
 		except Exception as e:
-			error = normalize_provider_error(e, provider=self.provider, model_id=self.model_id)
-			frappe.throw(error.message, title=_(error.title))
+			return blocked_suite(check_names, e, provider=self.provider, model_id=self.model_id)
 
-		return {"ok": True, "message": _("Connection OK")}
+		return run_capability_suite(model_config)
 
 
 @frappe.whitelist()

@@ -24,6 +24,24 @@ class TestAgentBuilder(unittest.TestCase):
 
 		self.assertEqual(context.exception.code, "provider_error")
 
+	def test_runtime_model_build_does_not_run_configuration_test_suite(self):
+		builder = AgentBuilder(frappe_client=None)  # type: ignore[arg-type]
+
+		with patch("frappe_ai.frappe_ai.doctype.ai_model.connection_test.run_capability_suite") as suite:
+			with patch("frappe_ai.service.builder.create_openai_compatible_model"):
+				builder._build_model(
+					{
+						"transport": "openai_compatible",
+						"provider": "openai",
+						"model_id": "runtime-model",
+						"api_key": "test",
+						"base_url": "https://example.com/v1",
+						"params": {},
+					}
+				)
+
+			suite.assert_not_called()
+
 	def test_openai_compatible_model_preserves_system_role(self):
 		builder = AgentBuilder(frappe_client=None)  # type: ignore[arg-type]
 

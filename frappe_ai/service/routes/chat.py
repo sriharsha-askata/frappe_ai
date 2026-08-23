@@ -126,7 +126,7 @@ async def stream_chat(
 		)
 		pending: list[PendingConfirmation] = []
 		final_output: RunOutput | None = None
-		run_error: str | None = None
+		run_error: Any | None = None
 
 		async for event in agent.arun(input=messages, stream=True, stream_events=True, yield_run_output=True):
 			if isinstance(event, RunOutput):
@@ -140,7 +140,7 @@ async def stream_chat(
 				# RunStartedEvent -> ModelRequestStartedEvent -> RunErrorEvent, no
 				# RunOutput), so this can't be detected via final_output.status
 				# alone the way a mid-run error might be.
-				run_error = event.content or "Model call failed."
+				run_error = event
 				continue
 			if isinstance(event, RunContentEvent) and event.content:
 				yield _frame("text", {"content": event.content})
@@ -175,7 +175,7 @@ async def stream_chat(
 			# run-ending failure: fail_run, not persist_run_result.
 			await frappe_client.fail_run(run, error.message)
 			persisted = True
-			yield _frame("error", {"message": error.message, "code": error.code})
+			yield _frame("error", _error_payload(error))
 			return
 
 		result = _build_result(final_output, pending, approved_results=approved_results)
@@ -208,6 +208,14 @@ async def stream_chat(
 		payload = {"message": error_message}
 		if error_code:
 			payload["code"] = error_code
+		else:
+			payload = _error_payload(
+				normalize_provider_error(
+					e,
+					provider=(model_config or {}).get("provider"),
+					model_id=(model_config or {}).get("model_id"),
+				)
+			)
 		yield _frame("error", payload)
 	except GeneratorExit:
 		# Client disconnected mid-stream. No `done` was ever produced — fail the run
@@ -233,7 +241,28 @@ async def stream_chat(
 				await frappe_client.fail_run(run, error_message)
 			except FrappeClientError:
 				pass
-		yield _frame("error", {"message": error_message})
+		normalized = normalize_provider_error(
+			e,
+			provider=(model_config or {}).get("provider"),
+			model_id=(model_config or {}).get("model_id"),
+		)
+		yield _frame("error", _error_payload(normalized))
+
+
+def _error_payload(error) -> dict[str, Any]:
+	"""Keep normalized codes and Agno/provider diagnostics on the SSE wire."""
+	payload = {
+		"message": error.message,
+		"code": error.code,
+		"status_code": error.status_code,
+		"retryable": error.retryable,
+	}
+	if error.diagnostics:
+		payload["diagnostics"] = error.diagnostics
+		for field_name in ("error_type", "error_id", "additional_data", "request_id", "body"):
+			if field_name in error.diagnostics:
+				payload[field_name] = error.diagnostics[field_name]
+	return payload
 
 
 def _frame(event: str, payload: dict[str, Any]) -> bytes:

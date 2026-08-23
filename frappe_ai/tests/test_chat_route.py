@@ -37,7 +37,12 @@ class TestStreamChatProviderAndConfirmation(unittest.IsolatedAsyncioTestCase):
 	async def test_provider_failure_is_normalized_in_sse_and_persistence(self):
 		class FailingAgent:
 			async def arun(self, **_kwargs):
-				yield RunErrorEvent(content="rate limit exceeded")
+				yield RunErrorEvent(
+					content="rate limit exceeded",
+					error_type="RateLimitError",
+					error_id="err_123",
+					additional_data={"provider_request_id": "req_456"},
+				)
 
 		builder = SimpleNamespace(build=AsyncMock(return_value=(FailingAgent(), _config())))
 		client = _client()
@@ -48,6 +53,9 @@ class TestStreamChatProviderAndConfirmation(unittest.IsolatedAsyncioTestCase):
 		error = json.loads(frames[-1].split(b"data: ", 1)[1])
 		self.assertEqual(error["code"], "rate_limit")
 		self.assertIn("rate limit exceeded", error["message"])
+		self.assertEqual(error["error_type"], "RateLimitError")
+		self.assertEqual(error["error_id"], "err_123")
+		self.assertEqual(error["additional_data"], {"provider_request_id": "req_456"})
 		client.fail_run.assert_awaited_once_with("RUN-1", error["message"])
 
 	async def test_confirmation_deny_persists_terminal_result_without_model_call(self):

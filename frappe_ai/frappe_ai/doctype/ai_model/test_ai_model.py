@@ -1,8 +1,9 @@
 # Copyright (c) 2026, Frappe Technologies and Contributors
 # See license.txt
 
+from types import SimpleNamespace
 from typing import Any
-from unittest.mock import Mock, patch
+from unittest.mock import patch
 
 import frappe
 from frappe.tests import IntegrationTestCase
@@ -27,7 +28,13 @@ class TestAIModelValidation(IntegrationTestCase):
 		doc = frappe.get_doc(_model()).insert()
 
 		self.assertEqual(doc.model_id, "gpt-4o-mini")
+		self.assertEqual(doc.model_type, "Chat")
 		self.assertTrue(doc.enabled)
+
+	def test_embedding_model_type_is_explicit(self):
+		doc = frappe.get_doc(_model(model_type="Embedding", model_id="text-embedding-3-small")).insert()
+
+		self.assertEqual(doc.model_type, "Embedding")
 
 	def test_normalize_strips_whitespace(self):
 		doc = frappe.get_doc(
@@ -255,68 +262,142 @@ class TestAIModelConnection(IntegrationTestCase):
 			}
 		).insert()
 
+	def _embedding_connection_model(self):
+		if not frappe.db.exists("AI Provider", "gemini"):
+			frappe.get_doc({"doctype": "AI Provider", "provider": "gemini"}).insert()
+		frappe.db.set_value("AI Provider", "gemini", "enabled", 1)
+		return frappe.get_doc(
+			{
+				"doctype": "AI Model",
+				"title": "Embedding Connection Model",
+				"provider": "gemini",
+				"model_id": "gemini/gemini-embedding-001",
+				"model_type": "Embedding",
+				"api_key": "test-key",
+				"base_url": "https://provider.example/v1",
+			}
+		).insert()
+
 	def test_connection_uses_shared_transport(self):
 		doc = self._connection_model()
-		fake_model = Mock()
+		fake_model = _FakeChatModel()
 
 		with patch(
-			"frappe_ai.frappe_ai.doctype.ai_model.ai_model.create_openai_compatible_model",
+			"frappe_ai.frappe_ai.doctype.ai_model.connection_test.create_openai_compatible_model",
 			return_value=fake_model,
 		) as factory:
 			result = doc.test_connection()
 
 		self.assertTrue(result["ok"])
+		self.assertEqual(
+			[check["name"] for check in result["checks"]],
+			["chat", "streaming", "tool_declaration", "tool_call", "structured_output", "large_input"],
+		)
 		factory.assert_called_once()
 		self.assertEqual(factory.call_args.kwargs["timeout"], 15)
 		self.assertEqual(factory.call_args.kwargs["max_retries"], 0)
-		fake_model.response.assert_called_once()
+		self.assertEqual(len(fake_model.requests), 6)
+		self.assertEqual(fake_model.synthetic_invocations, 1)
 
-	def test_connection_normalizes_rate_limit(self):
+		# Explicit invocations never reuse a prior result or model instance.
+		with patch(
+			"frappe_ai.frappe_ai.doctype.ai_model.connection_test.create_openai_compatible_model",
+			return_value=_FakeChatModel(),
+		) as second_factory:
+			second = doc.test_connection()
+		self.assertTrue(second["ok"])
+		second_factory.assert_called_once()
+
+	def test_embedding_connection_uses_embeddings_endpoint_and_normalizes_gemini_id(self):
+		doc = self._embedding_connection_model()
+		client = _FakeEmbeddingClient()
+
+		with patch(
+			"frappe_ai.frappe_ai.doctype.ai_model.connection_test.create_openai_compatible_client",
+			return_value=client,
+		) as factory:
+			result = doc.test_connection()
+
+		self.assertTrue(result["ok"])
+		self.assertEqual([check["name"] for check in result["checks"]], ["embedding_single", "embedding_batch", "embedding_dimensions"])
+		factory.assert_called_once()
+		self.assertEqual(factory.call_args.kwargs["timeout"], 15)
+		self.assertEqual(factory.call_args.kwargs["max_retries"], 0)
+		self.assertEqual(client.requests[0], {"model": "gemini-embedding-001", "input": ["frappe ai single embedding probe"]})
+		self.assertEqual(client.requests[1], {"model": "gemini-embedding-001", "input": ["frappe ai embedding probe one", "frappe ai embedding probe two"]})
+
+	def test_connection_returns_normalized_failure_and_blocks_dependents(self):
 		doc = self._connection_model()
-		fake_model = Mock()
 		error = type("RateLimit", (Exception,), {"status_code": 429, "message": "too many requests"})()
-
-		def raise_rate_limit(*_args, **_kwargs):
-			raise error
-
-		fake_model.response.side_effect = raise_rate_limit
+		fake_model = _FakeChatModel(error=error)
 
 		with patch(
-			"frappe_ai.frappe_ai.doctype.ai_model.ai_model.create_openai_compatible_model",
+			"frappe_ai.frappe_ai.doctype.ai_model.connection_test.create_openai_compatible_model",
 			return_value=fake_model,
 		):
-			with self.assertRaisesRegex(frappe.ValidationError, "rate limit exceeded"):
-				doc.test_connection()
+			result = doc.test_connection()
 
-	def test_connection_normalizes_invalid_model(self):
+		self.assertFalse(result["ok"])
+		checks = {check["name"]: check for check in result["checks"]}
+		self.assertEqual(checks["chat"]["status"], "failed")
+		self.assertEqual(checks["chat"]["code"], "rate_limit")
+		for name in ("streaming", "tool_declaration", "tool_call", "structured_output", "large_input"):
+			self.assertEqual(checks[name]["status"], "blocked")
+
+	def test_optional_capability_failures_are_warnings(self):
 		doc = self._connection_model()
-		fake_model = Mock()
-		error = type("NotFound", (Exception,), {"status_code": 404, "message": "model not found"})()
-
-		def raise_not_found(*_args, **_kwargs):
-			raise error
-
-		fake_model.response.side_effect = raise_not_found
+		fake_model = _FakeChatModel(
+			structured_error=RuntimeError("response_format is not supported"),
+			large_error=RuntimeError("context length exceeded"),
+		)
 
 		with patch(
-			"frappe_ai.frappe_ai.doctype.ai_model.ai_model.create_openai_compatible_model",
+			"frappe_ai.frappe_ai.doctype.ai_model.connection_test.create_openai_compatible_model",
 			return_value=fake_model,
 		):
-			with self.assertRaisesRegex(frappe.ValidationError, "was not found"):
-				doc.test_connection()
+			result = doc.test_connection()
 
-	def test_connection_normalizes_connection_failure(self):
-		doc = self._connection_model()
-		fake_model = Mock()
+		self.assertTrue(result["ok"])
+		checks = {check["name"]: check for check in result["checks"]}
+		self.assertEqual(checks["structured_output"]["status"], "warning")
+		self.assertEqual(checks["large_input"]["status"], "warning")
+		self.assertEqual(len(result["warnings"]), 2)
 
-		def raise_connection_failure(*_args, **_kwargs):
-			raise ConnectionError("network unavailable")
 
-		fake_model.response.side_effect = raise_connection_failure
+class _FakeChatModel:
+	def __init__(self, error=None, structured_error=None, large_error=None):
+		self.error = error
+		self.structured_error = structured_error
+		self.large_error = large_error
+		self.requests = []
+		self.synthetic_invocations = 0
 
-		with patch(
-			"frappe_ai.frappe_ai.doctype.ai_model.ai_model.create_openai_compatible_model",
-			return_value=fake_model,
-		):
-			with self.assertRaisesRegex(frappe.ValidationError, "Could not connect"):
-				doc.test_connection()
+	def response(self, *, messages, response_format=None, tools=None, tool_choice=None):
+		self.requests.append({"messages": messages, "response_format": response_format, "tools": tools, "tool_choice": tool_choice})
+		if self.error:
+			raise self.error
+		if response_format and self.structured_error:
+			raise self.structured_error
+		if self.large_error and any(len(str(getattr(message, "content", ""))) > 1000 for message in messages):
+			raise self.large_error
+		if tools and tool_choice != "none":
+			self.synthetic_invocations += 1
+			tools[0].entrypoint()
+		return SimpleNamespace(content='{"answer":"OK"}' if response_format else "OK")
+
+	def response_stream(self, *, messages):
+		self.requests.append({"messages": messages, "stream": True})
+		if self.error:
+			raise self.error
+		return iter([SimpleNamespace(content="OK")])
+
+
+class _FakeEmbeddingClient:
+	def __init__(self):
+		self.requests = []
+		self.embeddings = self
+
+	def create(self, *, model, input):
+		self.requests.append({"model": model, "input": input})
+		count = len(input) if isinstance(input, list) else 1
+		return SimpleNamespace(data=[SimpleNamespace(embedding=[0.1, 0.2, 0.3]) for _ in range(count)])

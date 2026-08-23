@@ -29,7 +29,7 @@ from typing import Any
 import frappe
 from frappe import _
 
-from frappe_ai.lib.model import resolve_provider_credentials
+from frappe_ai.lib.model import normalize_transport_model_id, resolve_provider_credentials
 
 BATCH_SIZE = 96  # smallest common provider batch limit (Cohere)
 EMBED_TIMEOUT = 120
@@ -68,6 +68,11 @@ def _model_config(model: str) -> dict[str, Any]:
 	doc = frappe.get_doc("AI Model", model)
 	if not doc.enabled:
 		frappe.throw(_("AI Model {0} is disabled.").format(model), title=_("Model Disabled"))
+	if (doc.get("model_type") or "Chat") != "Embedding":
+		frappe.throw(
+			_("AI Model {0} is a Chat model. Select Model Type = Embedding for knowledge indexing.").format(model),
+			title=_("Invalid Embedding Model"),
+		)
 	if not doc.provider:
 		frappe.throw(
 			_("AI Model {0} has no Provider slug set.").format(model),
@@ -77,9 +82,9 @@ def _model_config(model: str) -> dict[str, Any]:
 	provider_creds = resolve_provider_credentials(doc.provider)
 	return {
 		"provider": doc.provider,
-		"model": doc.model_id,
-		"api_key": doc.get_password("api_key", raise_exception=False) or provider_creds.get("api_key") or "",
-		"base_url": doc.base_url or provider_creds.get("base_url"),
+		"model": normalize_transport_model_id(doc.provider, doc.model_id),
+		"api_key": provider_creds.get("api_key") or doc.get_password("api_key", raise_exception=False) or "",
+		"base_url": provider_creds.get("base_url") or doc.base_url,
 	}
 
 
@@ -131,4 +136,6 @@ def _call_openai_compatible(
 # patching e.g. `frappe_ai.knowledge.embedder._call_openai_compatible` is honoured.
 EMBEDDING_CALLERS: dict[str, str] = {
 	"openai": "_call_openai_compatible",
+	"gemini": "_call_openai_compatible",
+	"google": "_call_openai_compatible",
 }

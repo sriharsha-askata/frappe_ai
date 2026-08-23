@@ -17,15 +17,16 @@ frappe.ui.form.on("AI Model", {
 				return;
 			}
 
-			frappe.dom.freeze(__("Testing connection…"));
+			frappe.dom.freeze(__("Running model capability tests…"));
 			try {
 				const r = await frm.call("test_connection");
-				if (r && r.message && r.message.ok) {
-					frappe.show_alert({
-						message: r.message.message || __("Connection OK"),
-						indicator: "green",
-					});
-				}
+				show_connection_results(r && r.message ? r.message : {});
+			} catch (error) {
+				frappe.msgprint({
+					title: __("Capability Test Failed"),
+					message: escape_html(error && error.message ? error.message : __("The capability test could not be completed.")),
+					indicator: "red",
+				});
 			} finally {
 				frappe.dom.unfreeze();
 			}
@@ -36,6 +37,36 @@ frappe.ui.form.on("AI Model", {
 		load_provider_models(frm);
 	},
 });
+
+function show_connection_results(result) {
+	const checks = Array.isArray(result.checks) ? result.checks : [];
+	const rows = checks
+		.map((check) => {
+			const status = String(check.status || "unknown");
+			const detail = check.code ? `${check.code}: ${check.message || ""}` : check.message || "";
+			return `<tr><td><span class="ai-model-test-status ai-model-test-${escape_html(status)}">${escape_html(status)}</span></td><td>${escape_html(check.name || "check")}</td><td>${escape_html(detail)}</td></tr>`;
+		})
+		.join("");
+	const warnings = Array.isArray(result.warnings) && result.warnings.length
+		? `<p><strong>${__("Warnings")}</strong></p><ul>${result.warnings.map((warning) => `<li>${escape_html(warning)}</li>`).join("")}</ul>`
+		: "";
+	const passed = result.ok === true;
+	frappe.msgprint({
+		title: passed ? __("Model Capability Tests Passed") : __("Model Capability Tests Need Attention"),
+		message: `<table class="table table-bordered"><thead><tr><th>${__("Status")}</th><th>${__("Check")}</th><th>${__("Details")}</th></tr></thead><tbody>${rows}</tbody></table>${warnings}`,
+		indicator: passed ? "green" : "orange",
+	});
+}
+
+function escape_html(value) {
+	return String(value == null ? "" : value).replace(/[&<>"']/g, (character) => ({
+		"&": "&amp;",
+		"<": "&lt;",
+		">": "&gt;",
+		'"': "&quot;",
+		"'": "&#39;",
+	}[character]));
+}
 
 function load_provider_models(frm) {
 	const field = frm.fields_dict.model_id;

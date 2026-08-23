@@ -12,6 +12,7 @@
   "section_break_config",
   "provider",
   "model_id",
+  "model_type",
   "context_window",
   "api_key",
   "base_url",
@@ -56,6 +57,16 @@
    "fieldtype": "Autocomplete",
    "in_list_view": 1,
    "label": "Model ID",
+   "reqd": 1
+  },
+  {
+   "default": "Chat",
+   "description": "Chat models use chat completions. Select Embedding only for models that expose an embeddings endpoint.",
+   "fieldname": "model_type",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "label": "Model Type",
+   "options": "Chat\nEmbedding",
    "reqd": 1
   },
   {
