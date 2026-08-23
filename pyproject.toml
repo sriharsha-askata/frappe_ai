@@ -9,11 +9,13 @@ readme = "README.md"
 dynamic = ["version"]
 dependencies = [
     # "frappe~=15.0.0" # Installed and managed by bench.
-    # Provider-name validation and model-id suggestions only — same pin as
-    # apps/flow/pyproject.toml. Chat calls still go through Agno's native
-    # per-provider classes; see docs/decisions/0013-litellm-for-provider-ux-agno-still-executes.md.
+    # Provider-name validation and model-id suggestions only — chat execution
+    # uses the shared OpenAI-compatible transport below.
     "litellm>=1.83.0,<1.83.8",
     "agno>=2.8,<3",
+    # Explicit transport dependency. Agno's OpenAI-compatible model delegates
+    # chat completions, streaming, tools, and structured output to this SDK.
+    "openai>=1.0,<2",
     "RestrictedPython>=8.4,<9",
     "pydantic>=2.11,<3",
     "fastapi>=0.115,<1",

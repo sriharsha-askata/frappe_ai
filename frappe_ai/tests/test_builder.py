@@ -8,17 +8,29 @@ from unittest.mock import patch
 
 from agno.models.message import Message
 
-from frappe_ai.service.builder import AgentBuilder
+from frappe_ai.service.builder import AgentBuildError, AgentBuilder
 
 
 class TestAgentBuilder(unittest.TestCase):
+	def test_model_configuration_failure_has_normalized_code(self):
+		builder = AgentBuilder(frappe_client=None)  # type: ignore[arg-type]
+
+		with patch(
+			"frappe_ai.service.builder.create_openai_compatible_model",
+			side_effect=ValueError("invalid model parameters"),
+		):
+			with self.assertRaises(AgentBuildError) as context:
+				builder._build_model({"provider": "google", "model_id": "bad-model", "params": {}})
+
+		self.assertEqual(context.exception.code, "provider_error")
+
 	def test_openai_compatible_model_preserves_system_role(self):
 		builder = AgentBuilder(frappe_client=None)  # type: ignore[arg-type]
 
 		model = builder._build_model(
 			{
-				"class_module": "agno.models.openai.chat",
-				"class_name": "OpenAIChat",
+				"transport": "openai_compatible",
+				"provider": "openai",
 				"model_id": "custom-model",
 				"api_key": "test",
 				"base_url": "https://example.com/v1",

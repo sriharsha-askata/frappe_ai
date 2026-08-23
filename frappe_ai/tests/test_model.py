@@ -6,9 +6,11 @@ from frappe.tests import IntegrationTestCase
 
 from frappe_ai.lib.model import (
 	LITELLM_PROVIDER_ALIASES,
-	PROVIDER_MODEL_CLASSES,
-	get_model_class,
+	PROVIDER_ENDPOINT_DEFAULTS,
+	create_openai_compatible_model,
+	get_provider_endpoint,
 	is_known_provider,
+	normalize_provider_error,
 	resolve_provider_credentials,
 	to_litellm_provider,
 )
@@ -38,25 +40,45 @@ class TestToLitellmProvider(IntegrationTestCase):
 				self.assertIn(litellm_slug, known)
 
 
-class TestGetModelClass(IntegrationTestCase):
-	def test_resolves_openai_class(self):
-		# openai's own SDK is a transitive dependency already present in this bench,
-		# so this import succeeds without any provider-specific SDK install.
-		cls = get_model_class("openai")
-		self.assertEqual(cls.__name__, "OpenAIChat")
+class TestOpenAICompatibleTransport(IntegrationTestCase):
+	def test_all_providers_use_one_openai_transport(self):
+		for provider in ("openai", "google", "groq"):
+			with self.subTest(provider=provider):
+				model = create_openai_compatible_model(
+					{
+						"provider": provider,
+						"model_id": "test-model",
+						"api_key": "test-key",
+						"base_url": get_provider_endpoint(provider),
+						"params": {},
+					}
+				)
+				self.assertEqual(model.__class__.__name__, "OpenAIChat")
+				self.assertEqual(model.provider, provider)
 
-	def test_unknown_provider_key_error(self):
-		with self.assertRaises(KeyError):
-			get_model_class("not-a-real-provider")
+	def test_google_transport_does_not_require_native_google_sdk(self):
+		# Creating the transport must not import google.genai. The compatibility
+		# endpoint is passed to the OpenAI SDK instead.
+		import sys
 
-	def test_every_mapped_provider_has_a_resolvable_module(self):
-		# Module existence only — not import — so this doesn't depend on optional
-		# per-provider SDKs (anthropic, google-genai, ...) being installed.
-		import importlib.util
+		self.assertNotIn("google.genai", sys.modules)
+		model = create_openai_compatible_model(
+			{
+				"provider": "google",
+				"model_id": "gemini-2.5-flash",
+				"api_key": "gemini-key",
+				"base_url": get_provider_endpoint("google"),
+				"params": {"extra_body": {"thinking_config": {"thinking_budget": 0}}},
+			}
+		)
+		self.assertEqual(model.base_url, PROVIDER_ENDPOINT_DEFAULTS["google"])
+		self.assertEqual(model.extra_body["thinking_config"]["thinking_budget"], 0)
 
-		for slug, (module_path, _class_name) in PROVIDER_MODEL_CLASSES.items():
-			with self.subTest(slug=slug):
-				self.assertIsNotNone(importlib.util.find_spec(module_path))
+	def test_retries_are_bounded(self):
+		model = create_openai_compatible_model(
+			{"provider": "openai", "model_id": "test-model", "params": {"max_retries": 99}}
+		)
+		self.assertEqual(model.max_retries, 3)
 
 
 class TestResolveProviderCredentials(IntegrationTestCase):
@@ -88,7 +110,7 @@ class TestResolveProviderCredentials(IntegrationTestCase):
 		# A distinct slug from the others in this file — "groq"/"mistral"/"cohere" are
 		# real-world slugs someone may have already configured with real credentials
 		# (e.g. for live-testing) outside this test's rollback-scoped transaction.
-		# Not "fireworks" — that's Agno's/PROVIDER_MODEL_CLASSES's own slug spelling;
+		# Not "fireworks" — that is the app's stored slug spelling;
 		# litellm's provider_list (which AIProvider._validate_provider_known now
 		# validates against, ADR 0013) calls the same provider "fireworks_ai".
 		frappe.get_doc(
@@ -101,3 +123,21 @@ class TestResolveProviderCredentials(IntegrationTestCase):
 		).insert()
 		creds = resolve_provider_credentials("cerebras")
 		self.assertEqual(creds["extra_params"], {"api_version": "v1"})
+
+	def test_provider_endpoint_default_is_used(self):
+		self.assertEqual(get_provider_endpoint("google"), PROVIDER_ENDPOINT_DEFAULTS["google"])
+		self.assertEqual(get_provider_endpoint("google", "https://proxy.example/v1"), "https://proxy.example/v1")
+
+
+class TestNormalizedProviderError(IntegrationTestCase):
+	def test_rate_limit_is_retryable(self):
+		error = type("RateLimit", (), {"status_code": 429, "message": "too many requests"})()
+		result = normalize_provider_error(error, provider="google", model_id="gemini-2.5-flash")
+		self.assertEqual(result.code, "rate_limit")
+		self.assertTrue(result.retryable)
+
+	def test_invalid_model_is_not_retryable(self):
+		error = type("NotFound", (), {"status_code": 404, "message": "model not found"})()
+		result = normalize_provider_error(error, provider="google", model_id="bad-model")
+		self.assertEqual(result.code, "invalid_model")
+		self.assertFalse(result.retryable)

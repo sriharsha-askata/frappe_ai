@@ -59,6 +59,8 @@ documented explicitly for custom clients. See the
 | [0010](decisions/0010-service-bootstrap-via-env-vars.md) | ~~FastAPI service bootstraps via environment variables~~ — **Superseded by 0011** | Env-var secret required a manual export step `bench start` didn't automate; caused a real boot failure |
 | [0011](decisions/0011-service-secret-in-site-config.md) | Service secret lives in `site_config.json`, not a DB field + env var | `bench start` boots the service unattended; one source of truth instead of two kept in sync by hand |
 | [0012](decisions/0012-embeddings-direct-provider-sdk.md) | Embeddings via direct provider SDK calls, not litellm or Agno | No `agno.embedder` exists; extends ADR 0009's reasoning to the one call type it didn't originally cover |
+| [0013](decisions/0013-litellm-for-provider-ux-agno-still-executes.md) | ~~litellm for provider/model UX only; Agno still executes chat~~ — **Superseded by 0014** | Historical provider/model UX decision; LiteLLM remains UX-only |
+| [0014](decisions/0014-openai-compatible-chat-transport.md) | One OpenAI-compatible transport for all chat execution | Removes provider SDK coupling while preserving Agno orchestration, tools, confirmations, structured output, and streaming |
 
 ---
 

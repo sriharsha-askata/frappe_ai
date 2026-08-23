@@ -102,16 +102,14 @@ class TestGetServiceConfigAuth(IntegrationTestCase):
 
 
 class TestModelCallConfig(IntegrationTestCase):
-	"""`_model_call_config`'s two-state credential split (ADR 0013) — a linked
-	Provider supplies the class + credentials outright; unlinked falls back to the
-	model's own fields against the OpenAI-compatible Agno class. No merge either way."""
+	"""Credential precedence and provider identity for the shared transport."""
 
 	def tearDown(self):
 		frappe.db.rollback()
 
-	def test_linked_provider_supplies_class_and_credentials(self):
-		# "openrouter" — its Agno class needs no separate provider SDK install
-		# (OpenAI-wire-compatible under the hood), unlike e.g. "groq".
+	def test_linked_provider_supplies_identity_and_credentials(self):
+			# OpenRouter uses the shared OpenAI-compatible transport and needs no
+			# provider-specific SDK.
 		if not frappe.db.exists("AI Provider", "openrouter"):
 			frappe.get_doc(
 				{
@@ -135,11 +133,12 @@ class TestModelCallConfig(IntegrationTestCase):
 
 		config = _model_call_config(model_doc)
 
-		self.assertEqual(config["class_name"], "OpenRouter")
+		self.assertEqual(config["transport"], "openai_compatible")
+		self.assertEqual(config["provider"], "openrouter")
 		self.assertEqual(config["api_key"], "sk-from-provider")
 		self.assertEqual(config["base_url"], "https://provider.example.com")
 
-	def test_unlinked_model_uses_own_fields_and_openai_class(self):
+	def test_unlinked_model_uses_own_fields_and_shared_transport(self):
 		model_doc = frappe.get_doc(
 			{
 				"doctype": "AI Model",
@@ -152,7 +151,8 @@ class TestModelCallConfig(IntegrationTestCase):
 
 		config = _model_call_config(model_doc)
 
-		self.assertEqual(config["class_name"], "OpenAIChat")
+		self.assertEqual(config["transport"], "openai_compatible")
+		self.assertIsNone(config["provider"])
 		self.assertEqual(config["api_key"], "sk-on-model")
 		self.assertEqual(config["base_url"], "https://model.example.com")
 
@@ -165,7 +165,8 @@ class TestModelCallConfig(IntegrationTestCase):
 
 		config = _model_call_config(model_doc)
 
-		self.assertEqual(config["class_name"], "OpenAIChat")
+		self.assertEqual(config["transport"], "openai_compatible")
+		self.assertIsNone(config["provider"])
 		self.assertIsNone(config["api_key"])
 		self.assertFalse(config["base_url"])
 

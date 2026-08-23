@@ -2,6 +2,7 @@
 # See license.txt
 
 from typing import Any
+from unittest.mock import Mock, patch
 
 import frappe
 from frappe.tests import IntegrationTestCase
@@ -206,7 +207,7 @@ class TestGetProviderModels(IntegrationTestCase):
 		self.assertEqual(get_provider_models(""), [])
 
 	def test_aliased_provider_slug_returns_suggestions(self):
-		# "fireworks" is Agno's/PROVIDER_MODEL_CLASSES's own spelling; litellm's
+			# "fireworks" is the app's stored spelling; litellm's
 		# models_by_provider keys on "fireworks_ai" instead (LITELLM_PROVIDER_ALIASES).
 		from frappe_ai.frappe_ai.doctype.ai_model.ai_model import get_provider_models
 
@@ -237,3 +238,85 @@ class TestContextWindow(IntegrationTestCase):
 		doc.model_id = "claude-sonnet-4-6"
 		doc.save()
 		self.assertEqual(doc.context_window, 128000)
+
+
+class TestAIModelConnection(IntegrationTestCase):
+	def tearDown(self):
+		frappe.db.rollback()
+
+	def _connection_model(self):
+		return frappe.get_doc(
+			{
+				"doctype": "AI Model",
+				"title": "Connection Transport Model",
+				"model_id": "gemini-2.5-flash",
+				"api_key": "test-key",
+				"base_url": "https://provider.example/v1",
+			}
+		).insert()
+
+	def test_connection_uses_shared_transport(self):
+		doc = self._connection_model()
+		fake_model = Mock()
+
+		with patch(
+			"frappe_ai.frappe_ai.doctype.ai_model.ai_model.create_openai_compatible_model",
+			return_value=fake_model,
+		) as factory:
+			result = doc.test_connection()
+
+		self.assertTrue(result["ok"])
+		factory.assert_called_once()
+		self.assertEqual(factory.call_args.kwargs["timeout"], 15)
+		self.assertEqual(factory.call_args.kwargs["max_retries"], 0)
+		fake_model.response.assert_called_once()
+
+	def test_connection_normalizes_rate_limit(self):
+		doc = self._connection_model()
+		fake_model = Mock()
+		error = type("RateLimit", (Exception,), {"status_code": 429, "message": "too many requests"})()
+
+		def raise_rate_limit(*_args, **_kwargs):
+			raise error
+
+		fake_model.response.side_effect = raise_rate_limit
+
+		with patch(
+			"frappe_ai.frappe_ai.doctype.ai_model.ai_model.create_openai_compatible_model",
+			return_value=fake_model,
+		):
+			with self.assertRaisesRegex(frappe.ValidationError, "rate limit exceeded"):
+				doc.test_connection()
+
+	def test_connection_normalizes_invalid_model(self):
+		doc = self._connection_model()
+		fake_model = Mock()
+		error = type("NotFound", (Exception,), {"status_code": 404, "message": "model not found"})()
+
+		def raise_not_found(*_args, **_kwargs):
+			raise error
+
+		fake_model.response.side_effect = raise_not_found
+
+		with patch(
+			"frappe_ai.frappe_ai.doctype.ai_model.ai_model.create_openai_compatible_model",
+			return_value=fake_model,
+		):
+			with self.assertRaisesRegex(frappe.ValidationError, "was not found"):
+				doc.test_connection()
+
+	def test_connection_normalizes_connection_failure(self):
+		doc = self._connection_model()
+		fake_model = Mock()
+
+		def raise_connection_failure(*_args, **_kwargs):
+			raise ConnectionError("network unavailable")
+
+		fake_model.response.side_effect = raise_connection_failure
+
+		with patch(
+			"frappe_ai.frappe_ai.doctype.ai_model.ai_model.create_openai_compatible_model",
+			return_value=fake_model,
+		):
+			with self.assertRaisesRegex(frappe.ValidationError, "Could not connect"):
+				doc.test_connection()

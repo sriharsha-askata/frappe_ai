@@ -9,8 +9,9 @@ not use litellm (ADR 0009) and Agno's model classes expose chat completions only
 embeddings call (confirmed: no `agno.embedder` package in the installed version) — see
 [ADR 0012](../../docs/decisions/0012-embeddings-direct-provider-sdk.md) for the full
 reasoning. Each provider's own SDK is called directly instead, keyed off `AI Model.provider`
-through `EMBEDDING_CALLERS`, a smaller sibling of `frappe_ai.lib.model.PROVIDER_MODEL_CLASSES`
-containing only providers with a real embeddings API and an installed SDK.
+through `EMBEDDING_CALLERS`, a small registry separate from the chat transport's
+provider endpoint defaults, containing only providers with a real embeddings API
+and an installed SDK.
 
 Credentials resolve provider-then-model (`frappe_ai.lib.model.resolve_provider_credentials`
 as the base, `AI Model`'s own `api_key`/`base_url` as an override) — this is now

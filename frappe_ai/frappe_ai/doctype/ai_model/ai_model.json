@@ -51,7 +51,7 @@
    "options": "AI Provider"
   },
   {
-   "description": "Bare model identifier for the resolved Agno provider class, e.g. <code>claude-sonnet-4-6</code>, <code>gpt-4.1</code>, <code>llama3.1</code>. No <code>provider/</code> prefix — the Agno class comes from the Provider above.",
+   "description": "Bare model identifier for the OpenAI-compatible transport, e.g. <code>gemini-2.5-flash</code>, <code>gpt-4.1</code>, <code>llama3.1</code>. No <code>provider/</code> prefix — provider identity and endpoint come from the Provider above.",
    "fieldname": "model_id",
    "fieldtype": "Autocomplete",
    "in_list_view": 1,

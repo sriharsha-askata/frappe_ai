@@ -40,7 +40,7 @@ import frappe
 from frappe import _
 from frappe.utils import cint
 
-from frappe_ai.lib.model import get_model_class
+from frappe_ai.lib.model import ModelConfigurationError, resolve_model_config
 from frappe_ai.service.auth import DEFAULT_TTL_SECONDS, mint_run_token
 
 SERVICE_HEALTH_TIMEOUT = 5
@@ -176,8 +176,7 @@ def get_run_config(run: str, user: str) -> dict:
 		dict: `{
 			"agent": {"name", "instructions", "max_iterations", "temperature",
 				"top_p", "reasoning", "markdown"},
-			"model": {"class_module", "class_name", "model_id", "api_key",
-				"base_url", "params"},
+			"model": {"provider", "transport", "model_id", "api_key", "base_url", "params"},
 			"tools": [{"name", "description", "parameters", "requires_confirmation"}, ...],
 			"mcp_connections": [...],
 			"messages": [...],  # this session's full prompt, from AISession.build_prompt_messages()
@@ -257,45 +256,11 @@ def get_run_config(run: str, user: str) -> dict:
 
 
 def _model_call_config(model_doc) -> dict:
-	"""Resolve an `AI Model` doc into what `AgentBuilder` needs to instantiate the
-	Agno model class — a hard two-state split on whether `provider` (`Link → AI
-	Provider`) is set, per ADR 0013.
-
-	Linked: the Agno class and all credentials/extra params come from the linked `AI
-	Provider` doc alone — this model's own `api_key`/`base_url` fields are not read.
-
-	Unlinked: no provider slug to resolve an Agno class from, so this model's own
-	`api_key`/`base_url` are used directly against `agno.models.openai.OpenAIChat` —
-	the same "any OpenAI-wire-compatible endpoint via `base_url`" pattern proven live
-	against Groq in Phase 3, now the automatic behaviour for an unlinked model instead
-	of requiring `provider="openai"` to be typed in.
-	"""
-	if model_doc.provider:
-		provider_doc = frappe.get_doc("AI Provider", model_doc.provider)
-		model_class = get_model_class(provider_doc.provider)
-		api_key = provider_doc.get_password("api_key", raise_exception=False)
-		base_url = provider_doc.base_url
-		extra_params = json.loads(provider_doc.extra_params) if provider_doc.extra_params else {}
-	else:
-		from agno.models.openai import OpenAIChat
-
-		model_class = OpenAIChat
-		api_key = model_doc.get_password("api_key", raise_exception=False)
-		base_url = model_doc.base_url
-		extra_params = {}
-
-	return {
-		"provider": model_doc.provider,
-		"class_module": model_class.__module__,
-		"class_name": model_class.__name__,
-		"model_id": model_doc.model_id,
-		"api_key": api_key,
-		"base_url": base_url,
-		"params": {
-			**extra_params,
-			**(json.loads(model_doc.params) if model_doc.params else {}),
-		},
-	}
+	"""Resolve an ``AI Model`` into the shared OpenAI-compatible transport config."""
+	try:
+		return resolve_model_config(model_doc)
+	except ModelConfigurationError as exc:
+		frappe.throw(str(exc), title=_("Invalid Model Configuration"))
 
 
 def _resolve_agent_plugin_tools(agent_doc, user: str) -> list[dict]:

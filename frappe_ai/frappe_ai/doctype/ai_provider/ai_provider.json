@@ -42,7 +42,7 @@
    "label": "API Key"
   },
   {
-   "description": "Optional. Override the provider's default endpoint, e.g. a proxy or self-hosted gateway.",
+   "description": "Optional. Override the provider's OpenAI-compatible endpoint. If empty, a standard endpoint is used when known (for example Google's Gemini compatibility endpoint).",
    "fieldname": "base_url",
    "fieldtype": "Data",
    "label": "Base URL"
@@ -54,7 +54,7 @@
    "label": "Extra Parameters"
   },
   {
-   "description": "Optional JSON object of provider-specific kwargs merged into every call (e.g. <code>{\"api_version\": \"2024-02-01\"}</code> for Azure). A model's own params take precedence.",
+   "description": "Optional JSON object of OpenAI-compatible request parameters merged into every call. Use <code>extra_body</code> for provider-specific fields such as Gemini settings. A model's own params take precedence.",
    "fieldname": "extra_params",
    "fieldtype": "JSON",
    "label": "Extra Params"

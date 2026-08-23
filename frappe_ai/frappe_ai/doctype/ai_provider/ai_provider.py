@@ -8,7 +8,9 @@ import frappe
 from frappe import _
 from frappe.model.document import Document
 
-# Keys the resolved Agno model class derives itself or that have dedicated fields — not
+from frappe_ai.lib.model import is_known_provider
+
+# Keys the shared transport derives itself or that have dedicated fields — not
 # allowed in extra_params.
 RESERVED_PARAM_KEYS = frozenset(
 	{"model", "api_key", "api_base", "base_url", "messages", "stream", "tools", "tool_choice"}
@@ -51,17 +53,10 @@ class AIProvider(Document):
 			self.api_key = self.api_key.strip()
 
 	def _validate_provider_known(self):
-		try:
-			import litellm
-		except ImportError:
-			return
-		from frappe_ai.lib.model import to_litellm_provider
-
-		known = {p.value for p in litellm.provider_list}
-		if to_litellm_provider(self.provider) not in known:
+		if not is_known_provider(self.provider):
 			frappe.throw(
 				_(
-					"Unknown provider {0}. It must be a LiteLLM provider name (e.g. openai, anthropic, openrouter, gemini)."
+					"Unknown provider {0}. It must be a supported provider identity (e.g. openai, anthropic, openrouter, gemini)."
 				).format(frappe.bold(self.provider)),
 				title=_("Invalid Provider"),
 			)

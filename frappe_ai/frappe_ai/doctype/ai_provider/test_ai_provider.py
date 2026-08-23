@@ -45,10 +45,10 @@ class TestAIProviderValidation(IntegrationTestCase):
 			doc.insert()
 
 	def test_aliased_provider_slug_accepted(self):
-		# "fireworks" is Agno's/PROVIDER_MODEL_CLASSES's own spelling for a provider
+		# "fireworks" is the app's stored spelling for a provider
 		# litellm calls "fireworks_ai" — _validate_provider_known must translate via
 		# LITELLM_PROVIDER_ALIASES before checking litellm.provider_list, so the
-		# stored value stays "fireworks" (what get_model_class/is_known_provider need).
+		# stored value stays "fireworks" (what the shared transport metadata uses).
 		doc = frappe.get_doc(_provider(provider="fireworks")).insert()
 		self.assertEqual(doc.provider, "fireworks")
 

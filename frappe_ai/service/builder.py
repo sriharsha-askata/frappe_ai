@@ -44,6 +44,7 @@ from typing import Any
 from agno.agent import Agent
 from agno.tools.function import Function
 
+from frappe_ai.lib.model import ModelConfigurationError, create_openai_compatible_model, normalize_provider_error
 from frappe_ai.service.frappe_client import FrappeClient, FrappeClientError
 
 logger = logging.getLogger("frappe_ai.service.builder")
@@ -51,6 +52,10 @@ logger = logging.getLogger("frappe_ai.service.builder")
 
 class AgentBuildError(Exception):
 	"""Raised when a run's config can't be turned into a runnable Agent."""
+
+	def __init__(self, message: str, *, code: str | None = None):
+		super().__init__(message)
+		self.code = code
 
 
 #: Prefix `PendingConfirmation.__str__` starts with. Agno's `Function.aexecute` catches
@@ -162,37 +167,15 @@ class AgentBuilder:
 		return agent, config
 
 	def _build_model(self, model_cfg: dict[str, Any]):
-		"""Instantiate the Agno model class the same way `AIModel.test_connection()`
-		does on the Frappe side (Phase 1) — provider-then-model credential precedence."""
 		try:
-			module = __import__(model_cfg["class_module"], fromlist=[model_cfg["class_name"]])
-			model_cls = getattr(module, model_cfg["class_name"])
-		except (ImportError, AttributeError, KeyError, TypeError) as e:
-			raise AgentBuildError(f"Could not resolve Agno model class: {e}") from e
-
-		kwargs: dict[str, Any] = {"id": model_cfg["model_id"]}
-		if model_cfg.get("api_key"):
-			kwargs["api_key"] = model_cfg["api_key"]
-		if model_cfg.get("base_url"):
-			kwargs["base_url"] = model_cfg["base_url"]
-		if (
-			model_cfg["class_module"].startswith("agno.models.openai")
-			and model_cfg["class_name"] == "OpenAIChat"
-			and "role_map" not in (model_cfg.get("params") or {})
-		):
-			kwargs["role_map"] = {
-				"system": "system",
-				"user": "user",
-				"assistant": "assistant",
-				"tool": "tool",
-				"model": "assistant",
-			}
-		kwargs.update(model_cfg.get("params") or {})
-
-		try:
-			return model_cls(**kwargs)
-		except Exception as e:
-			raise AgentBuildError(f"Could not instantiate model {model_cfg.get('class_name')}: {e}") from e
+			return create_openai_compatible_model(model_cfg)
+		except (ModelConfigurationError, KeyError, TypeError, ValueError) as e:
+			error = normalize_provider_error(
+				e,
+				provider=model_cfg.get("provider"),
+				model_id=model_cfg.get("model_id"),
+			)
+			raise AgentBuildError(error.message, code=error.code) from e
 
 	def _build_tool(
 		self,

@@ -9,10 +9,17 @@ import frappe
 from frappe import _
 from frappe.model.document import Document
 
-from frappe_ai.lib.model import get_model_class, is_known_provider
+from frappe_ai.lib.model import (
+	ModelConfigurationError,
+	create_openai_compatible_model,
+	is_known_provider,
+	normalize_provider_error,
+	resolve_model_config,
+	to_litellm_provider,
+)
 
-# Bare model id — no `provider/` prefix. The Agno model class comes from the linked
-# Provider's slug, not from the id string. See ADR 0009.
+# Bare model id — no `provider/` prefix. The provider slug is identity/endpoint
+# metadata; execution always uses the shared OpenAI-compatible transport.
 MODEL_ID_PATTERN = re.compile(r"^[A-Za-z0-9][A-Za-z0-9_\-:.\/]*$")
 
 RESERVED_PARAM_KEYS = frozenset(
@@ -116,54 +123,31 @@ class AIModel(Document):
 	@frappe.whitelist()
 	def test_connection(self):
 		self.check_permission("write")
-
-		# Two-state credential split, mirroring `_model_call_config` (api/service.py):
-		# a linked Provider supplies the class + credentials outright; unlinked falls
-		# back to this model's own fields against the OpenAI-compatible Agno class.
-		if self.provider:
-			provider_doc = frappe.get_doc("AI Provider", self.provider)
-			try:
-				model_cls = get_model_class(provider_doc.provider)
-			except ImportError as e:
-				frappe.throw(str(e), title=_("Missing Dependency"))
-			api_key = provider_doc.get_password("api_key", raise_exception=False) or None
-			base_url = provider_doc.base_url
-		else:
-			from agno.models.openai import OpenAIChat as model_cls
-
-			api_key = self.get_password("api_key", raise_exception=False) or None
-			base_url = self.base_url
-
-		kwargs = {"id": self.model_id, "api_key": api_key, "timeout": 15}
-		if base_url:
-			kwargs["base_url"] = base_url
-
 		try:
+			model_config = resolve_model_config(self)
+			model = create_openai_compatible_model(model_config, timeout=15, max_retries=0)
 			from agno.models.message import Message
 
-			model = model_cls(**kwargs)
 			model.response(messages=[Message(role="user", content="ping")])
+		except ModelConfigurationError as e:
+			frappe.throw(str(e), title=_("Invalid Model Configuration"))
 		except Exception as e:
-			frappe.throw(str(e)[:500] or type(e).__name__, title=_(type(e).__name__))
+			error = normalize_provider_error(e, provider=self.provider, model_id=self.model_id)
+			frappe.throw(error.message, title=_(error.title))
 
 		return {"ok": True, "message": _("Connection OK")}
 
 
 @frappe.whitelist()
 def get_provider_models(provider: str | None = None) -> list[str]:
-	"""Model-id suggestions for `provider` (an `AI Provider` docname, an Agno/
-	`PROVIDER_MODEL_CLASSES` slug). Hints only — `AI Model.model_id` accepts free
-	text regardless (see ai_model.js). Two-factor filter: litellm must know the
-	provider's model list (keyed by litellm's own spelling — see
-	`to_litellm_provider` for the handful of slugs where Agno and litellm disagree),
-	and frappe_ai/Agno must actually be able to run that provider slug
-	(`is_known_provider`) — a provider litellm recognizes but Agno has no model class
-	for yields no suggestions."""
+	"""Return LiteLLM model-id suggestions for a provider identity.
+
+	Suggestions are UX-only; execution always uses the shared OpenAI-compatible
+	transport and accepts a manually entered model id as well.
+	"""
 	if not provider or not is_known_provider(provider):
 		return []
 
 	import litellm
-
-	from frappe_ai.lib.model import to_litellm_provider
 
 	return sorted(litellm.models_by_provider.get(to_litellm_provider(provider.strip().lower()), set()))

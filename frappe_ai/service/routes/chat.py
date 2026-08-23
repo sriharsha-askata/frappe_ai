@@ -41,6 +41,7 @@ from agno.run.agent import (
 	ToolCallStartedEvent,
 )
 
+from frappe_ai.lib.model import normalize_provider_error
 from frappe_ai.service.builder import PENDING_CONFIRMATION_MARKER, AgentBuilder, AgentBuildError, PendingConfirmation
 from frappe_ai.service.frappe_client import FrappeClient, FrappeClientError
 
@@ -77,8 +78,10 @@ async def stream_chat(
 	approved_ids, denied = _split_answers(answers)
 
 	persisted = False
+	model_config: dict[str, Any] | None = None
 	try:
 		agent, config = await builder.build(run, user, approved_call_ids=approved_ids)
+		model_config = config.get("model") or {}
 		questions_by_id = {q["key"]: q for q in (config.get("questions") or [])}
 
 		if denied:
@@ -160,14 +163,19 @@ async def stream_chat(
 			run_error = final_output.content or "Model call failed."
 
 		if run_error is not None:
-			logger.error("Run %s failed in provider/model execution: %s", run, run_error)
+			error = normalize_provider_error(
+				run_error,
+				provider=config["model"].get("provider"),
+				model_id=config["model"].get("model_id"),
+			)
+			logger.error("Run %s failed in provider/model execution: %s", run, error.message)
 			# Agno reports model/run failures via a RunErrorEvent (and/or
 			# RunOutput.status) rather than raising out of arun(), so this isn't
 			# caught by the except clauses below. Treat it the same as any other
 			# run-ending failure: fail_run, not persist_run_result.
-			await frappe_client.fail_run(run, str(run_error))
+			await frappe_client.fail_run(run, error.message)
 			persisted = True
-			yield _frame("error", {"message": str(run_error)})
+			yield _frame("error", {"message": error.message, "code": error.code})
 			return
 
 		result = _build_result(final_output, pending, approved_results=approved_results)
@@ -184,12 +192,23 @@ async def stream_chat(
 
 	except (AgentBuildError, FrappeClientError) as e:
 		logger.exception("Chat stream failed for run %s", run)
+		error_message = str(e)
+		error_code = getattr(e, "code", None)
 		if not persisted:
 			try:
-				await frappe_client.fail_run(run, str(e))
+				if model_config is not None:
+					error_message = normalize_provider_error(
+						e,
+						provider=model_config.get("provider"),
+						model_id=model_config.get("model_id"),
+					).message
+				await frappe_client.fail_run(run, error_message)
 			except FrappeClientError:
 				pass
-		yield _frame("error", {"message": str(e)})
+		payload = {"message": error_message}
+		if error_code:
+			payload["code"] = error_code
+		yield _frame("error", payload)
 	except GeneratorExit:
 		# Client disconnected mid-stream. No `done` was ever produced — fail the run
 		# rather than leave it Running (001-architecture.md §9). Best-effort: the
@@ -202,12 +221,19 @@ async def stream_chat(
 		raise
 	except Exception as e:
 		logger.exception("Unexpected error in chat stream for run %s", run)
+		error_message = str(e)
 		if not persisted:
 			try:
-				await frappe_client.fail_run(run, str(e))
+				if model_config is not None:
+					error_message = normalize_provider_error(
+						e,
+						provider=model_config.get("provider"),
+						model_id=model_config.get("model_id"),
+					).message
+				await frappe_client.fail_run(run, error_message)
 			except FrappeClientError:
 				pass
-		yield _frame("error", {"message": str(e)})
+		yield _frame("error", {"message": error_message})
 
 
 def _frame(event: str, payload: dict[str, Any]) -> bytes:
