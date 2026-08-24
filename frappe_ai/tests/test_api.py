@@ -21,6 +21,8 @@ import frappe
 from frappe.tests import IntegrationTestCase
 
 from frappe_ai.api import api, dispatch, frontend
+from frappe_ai.assistant_tools.native import SearchKnowledgeTool, UpdateMemoryTool
+from frappe_ai.frappe_ai.doctype.ai_run.ai_run import create_run
 from frappe_ai.tools.builtins import sync_builtin_tools
 
 TEST_SECRET = "test-service-secret-for-dispatch-tests"
@@ -140,6 +142,118 @@ class TestDispatchToolActingUserScoping(IntegrationTestCase):
 				tool="read", user="Administrator", arguments={"doctype": "Not A Real DocType"}
 			)
 		self.assertIn("error", result)
+
+
+class TestDispatchPluginToolScope(IntegrationTestCase):
+	"""Direct FAC context-sensitive tools must use the persisted run scope."""
+
+	def setUp(self):
+		self._original_secret = frappe.conf.get("frappe_ai_service_secret")
+		frappe.conf.frappe_ai_service_secret = TEST_SECRET
+
+	def tearDown(self):
+		if self._original_secret is None:
+			frappe.conf.pop("frappe_ai_service_secret", None)
+		else:
+			frappe.conf.frappe_ai_service_secret = self._original_secret
+		frappe.set_user("Administrator")
+		frappe.db.rollback()
+
+	def _run_with_knowledge_scope(self) -> tuple[str, str]:
+		if not frappe.db.exists("AI Provider", "openai"):
+			frappe.get_doc({"doctype": "AI Provider", "provider": "openai"}).insert(ignore_permissions=True)
+		if not frappe.db.exists("AI Model", "FAC Scoped Model"):
+			frappe.get_doc(
+				{
+					"doctype": "AI Model",
+					"title": "FAC Scoped Model",
+					"provider": "openai",
+					"model_id": "gpt-4o-mini",
+				}
+			).insert(ignore_permissions=True)
+		agent = "FAC Scoped Agent"
+		if not frappe.db.exists("AI Agent", agent):
+			with patch("frappe_ai.frappe_ai.doctype.ai_agent.ai_agent.AIAgent._ensure_knowledge_search_tool"):
+				frappe.get_doc(
+					{
+						"doctype": "AI Agent",
+						"title": agent,
+						"model": "FAC Scoped Model",
+						"instructions": "Use scoped tools.",
+					}
+				).insert(ignore_permissions=True)
+		with patch(
+			"frappe_ai.frappe_ai.doctype.ai_settings.ai_settings.require_embedding_model"
+		):
+			knowledge_base = frappe.get_doc(
+				{
+					"doctype": "AI Knowledge Base",
+					"title": "FAC Scoped Knowledge",
+					"description": "Only this knowledge base is in scope.",
+				}
+			).insert(ignore_permissions=True)
+		agent_doc = frappe.get_doc("AI Agent", agent)
+		agent_doc.append("knowledge_bases", {"knowledge_base": knowledge_base.name})
+		with patch("frappe_ai.frappe_ai.doctype.ai_agent.ai_agent.AIAgent._ensure_knowledge_search_tool"):
+			agent_doc.save(ignore_permissions=True)
+		session = frappe.get_doc(
+			{"doctype": "AI Session", "agent": agent, "source": "Manual", "title": "FAC Scope Session"}
+		).insert(ignore_permissions=True)
+		run = create_run(source="Manual", input="scope", session=session.name, config_snapshot={})
+		return run.name, knowledge_base.name
+
+	def test_search_knowledge_uses_agent_knowledge_bases_not_model_arguments(self):
+		run, knowledge_base = self._run_with_knowledge_scope()
+
+		class Registry:
+			def execute_tool(self, _name, arguments):
+				return SearchKnowledgeTool().execute(arguments)
+
+		with (
+			patch("frappe_ai.api.dispatch._verify_service_secret"),
+			patch("frappe_ai.api.budgets.consume"),
+			patch("frappe_assistant_core.core.tool_registry.get_tool_registry", return_value=Registry()),
+			patch("frappe_ai.knowledge.retriever.retrieve", return_value=[]) as retrieve,
+		):
+			result = dispatch.dispatch_plugin_tool(
+				tool="search_knowledge",
+				user="Administrator",
+				arguments={"query": "hello", "__frappe_ai_knowledge_bases": ["attacker-kb"]},
+				run=run,
+			)
+
+		self.assertIn("result", result)
+		retrieve.assert_called_once_with("hello", kbs=[knowledge_base])
+
+	def test_update_memory_uses_run_agent_not_model_arguments(self):
+		run, _knowledge_base = self._run_with_knowledge_scope()
+
+		class Registry:
+			def execute_tool(self, _name, arguments):
+				return UpdateMemoryTool().execute(arguments)
+
+		with (
+			patch("frappe_ai.api.dispatch._verify_service_secret"),
+			patch("frappe_ai.api.budgets.consume"),
+			patch("frappe_assistant_core.core.tool_registry.get_tool_registry", return_value=Registry()),
+			patch("frappe_ai.memory.memory.save_memory", return_value={"memory_id": "MEM-1"}) as save_memory,
+		):
+			result = dispatch.dispatch_plugin_tool(
+				tool="update_memory",
+				user="Administrator",
+				arguments={"content": "fact", "scope": "agent", "agent": "attacker-agent"},
+				run=run,
+			)
+
+		self.assertIn("result", result)
+		save_memory.assert_called_once_with(
+			"FAC Scoped Agent",
+			content="fact",
+			scope="agent",
+			memory_id=None,
+			keywords=None,
+			source_run=run,
+		)
 
 
 class TestGetAgentTools(IntegrationTestCase):

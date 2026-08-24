@@ -35,20 +35,23 @@ Flow of control:
 1. Browser calls `frappe_ai.api.start_run` on Frappe (`:8000`).
 2. Frappe creates the `AI Session`/`AI Run`, persists the user message, and mints a token.
 3. Frappe returns `{run, session, token, stream_url}`.
-4. Browser opens `EventSource`-style POST against `stream_url` with `Bearer <token>`.
+4. Browser opens a `fetch`-based POST against `stream_url` with `Bearer <token>`; this
+   preserves SSE framing while allowing the request body used by resume.
 5. FastAPI verifies the token, builds the agent, and streams events.
 6. On completion, FastAPI posts the result back to Frappe for persistence.
 
 ### Token properties
 
-- HMAC over `(run, session, user, expiry)` signed with `AI Settings.service_secret`.
+- HMAC over `(run, session, user, expiry)` signed with the shared
+  `frappe_ai_service_secret` in `site_config.json` (see ADR 0011).
 - **Bound to a single run** — cannot be replayed against another run or user.
 - Short TTL (default 300s), covering stream setup only, not stream duration.
 - Verified locally by FastAPI, then confirmed against Frappe (run still `Running`).
 
 ### Wire format
 
-Deliberately **identical to `flow`'s**, so the Vue panel port is mechanical:
+Deliberately compatible with `flow`'s event shapes, while the current React client parses
+the stream through its fetch-based transport adapter:
 
 | Event | Payload |
 |---|---|

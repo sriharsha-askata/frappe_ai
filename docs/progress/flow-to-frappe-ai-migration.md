@@ -9,26 +9,26 @@
 
 | | |
 |---|---|
-| **Status** | ✅ Phase 5 verified — triggers, memory, and MCP all confirmed |
-| **Current phase** | Phase 5 (Triggers, Memory & MCP) — ✅ verified |
-| **Next phase** | Phase 5 verification + documentation reconciliation, then Phase 6 |
+| **Status** | 🟨 Core parity runtime is implemented; Assistant Core/FAC migration and reconciliation are active |
+| **Current phase** | Phase 6 frontend reconciliation plus Assistant Core/FAC migration |
+| **Next phase** | Verify the three tender workflows, complete the legacy-tool audit, finish page-shell parity, then production hardening |
 | **Started** | 2026-08-05 |
 | **Target** | not set |
-| **Blockers** | No Phase 5-specific blocker remains. On 2026-08-10 the focused trigger and memory tests passed against `tact.local`, the MCP import path was repaired by installing `mcp<2`, and a real stdio MCP server was verified through both `check_connection()` and `check_all_mcp_connections()`. General environment instability still exists in this sandbox — some later DB-backed reruns intermittently failed during Frappe test boot with `MySQLdb.OperationalError: (2004, "Can't create TCP/IP socket (1)")` — but that no longer blocks Phase 5 completion. |
+| **Blockers** | No single global blocker. Tender workflow verification still needs a valid model credential; remote MCP mutation calls bypass the local budget counters; full bench migration remains dependent on Redis availability in this environment. MariaDB, Bench web, FastAPI, workers, and scheduler were verified healthy on 2026-08-21; database tests must run with host-level service access because the restricted sandbox cannot access the host database socket. |
 
 ### Phase summary
 
 | Phase | Name | Status | Notes |
 |---|---|---|---|
 | 0 | Planning & Documentation | ✅ Complete | Specs + ADRs written (11 as of Phase 2; ADR 0010 added mid-Phase-2, superseded by ADR 0011) |
-| 1 | Foundation & Configuration | ✅ Complete | `AI Provider`/`AI Model`/`AI Settings` + `safe_exec`/`conditions`/`system_generated`; no litellm (ADR 0009) |
+| 1 | Foundation & Configuration | ✅ Complete | `AI Provider`/`AI Model`/`AI Settings` + `safe_exec`/`conditions`/`system_generated`; Agno-only chat execution, with litellm now limited to provider/model UX (ADR 0013) |
 | 2 | FastAPI Service Skeleton | ✅ Complete | Hand-built FastAPI (not AgentOS); HMAC run-token primitive; shared-secret service auth via `X-Frappe-AI-Service-Secret` (not `Authorization`); secret bootstraps from `site_config.json` (ADR 0011, supersedes ADR 0010's env-var design) |
-| 3 | Agents, Tools & Run Loop | ✅ Complete | 8 new DocTypes; `AgentBuilder` + `dispatch.py` + SSE `chat.py`; confirmation pause/resume built without Agno's native (stateful) HITL; `search_knowledge`/`update_memory` fail-closed pending Phase 4/5; live-verified through a real provider error, not yet through a real successful completion (no API key available) |
-| 4 | Knowledge / RAG | ✅ Complete | 3 new DocTypes; `knowledge/` package (extract/chunker/embedder/store/attachment_store/retriever/ingest/knowledge); ADR 0012 (embeddings, no litellm/Agno) |
+| 3 | Agents, Tools & Run Loop | ✅ Complete | AgentBuilder + Frappe dispatch + SSE chat; live successful completion and confirmation pause/resume verified with an OpenAI-compatible provider |
+| 4 | Knowledge / RAG | ✅ Complete | Knowledge pipeline and three knowledge DocTypes; embeddings use direct provider SDK callers (ADR 0012), not litellm or Agno |
 | 5 | Triggers, Memory & MCP | ✅ Complete | Verified on 2026-08-10: trigger tests passed, memory tests passed, MCP import path fixed with `mcp<2`, and a real stdio MCP server returned `Connected (1 tools)` through both `check_connection()` and `check_all_mcp_connections()` |
-| 6 | Frontend Panel | ⬜ Not started | |
-| 7 | Parity Complete & Reconciliation | ⬜ Not started | |
-| **8** | **Production Hardening** | ⬜ Not started | **Hard gate before production traffic** |
+| 6 | Frontend Panel | 🟨 In progress | React/esbuild panel and `/app/frappe-ai` page runtime exist; dedicated page layout and full host-surface parity remain |
+| 7 | Parity Complete & Reconciliation | 🟨 In progress | Assistant Core/FAC migration, tender workflow verification, legacy-tool audit, and final documentation reconciliation remain |
+| **8** | **Production Hardening** | 🟨 Partially implemented | Direct Frappe/FAC budget accounting exists; heartbeats, rate limits, retries, and observability remain. **Hard gate before production traffic** |
 
 Legend: ⬜ not started · 🟡 in progress · ✅ complete · 🔴 blocked
 
@@ -36,8 +36,10 @@ Legend: ⬜ not started · 🟡 in progress · ✅ complete · 🔴 blocked
 
 ## ⚠️ Parity ≠ Production Ready
 
-**Phases 1–7 deliver feature parity with `flow`. They do not deliver a production-deployable
-system.** This is a deliberate sequencing choice, not an oversight.
+**The parity plan is separate from production readiness.** Core runtime phases 1–5 are
+implemented, while frontend/FAC reconciliation remains. Neither the completed phases nor
+the eventual parity milestone authorizes production traffic. This is a deliberate
+sequencing choice, not an oversight.
 
 A production-readiness review (2026-08-05) identified gaps that were triaged into Phase 8.
 Two matter enough to state here:
@@ -45,9 +47,9 @@ Two matter enough to state here:
 - **No SSE heartbeats** until 8.1 — streams die behind any reverse proxy with an idle
   timeout shorter than a long reasoning step. Works on localhost; fails in most real
   deployments.
-- **No execution budgets or mutation limits** until 8.1 — `create(doctype, records)` accepts
-  an unbounded list, and a trigger with `auto_approve = 1` has no human check. See
-  [ADR 0008](../decisions/0008-execution-budgets.md).
+- **No complete budget coverage** until 8.1 — direct Frappe/FAC dispatch enforces the
+  configured limits, but remote MCP calls bypass them; a trigger with `auto_approve = 1`
+  still has no human check. See [ADR 0008](../decisions/0008-execution-budgets.md).
 
 **Consequences for how Phases 1–7 may be used:**
 
@@ -75,7 +77,7 @@ frontend source. To be uninstalled after parity ([ADR 0005](../decisions/0005-gr
 | Package | Status |
 |---|---|
 | `lancedb` | ✅ 0.36.0 installed |
-| `litellm` | ✅ 1.83.7 installed, but **not a `frappe_ai` dependency** — see [ADR 0009](../decisions/0009-no-litellm-agno-native-models.md) |
+| `litellm` | ✅ 1.83.7 declared for provider validation/model suggestions only; chat and embedding calls do not use it — see [ADR 0013](../decisions/0013-litellm-for-provider-ux-agno-still-executes.md) |
 | `openai` | ✅ 2.30.0 installed |
 | `pydantic` | ✅ 2.11.7 installed |
 | `agno` | ✅ 2.8.7 installed — added in Phase 1 (`test_connection()` needs it for real) |
@@ -103,8 +105,8 @@ migration plan for `frappe_ai`.
 - [x] Environment audit (installed vs. missing dependencies)
 - [x] `docs/specifications/001-architecture.md`
 - [x] `docs/specifications/002-feature-mapping.md` — ~115 feature rows
-- [x] `docs/specifications/003-doctype-reference.md` — all 18 DocTypes, fields verified
-      against `flow`'s JSON
+- [x] `docs/specifications/003-doctype-reference.md` — the original 18 parity DocTypes,
+      plus the four current migration/FAC metadata DocTypes, verified against the shipped JSON
 - [x] ADR 0001 — Agno + FastAPI over Frappe-native
 - [x] ADR 0002 — LanceDB as the vector store
 - [x] ADR 0003 — Tools execute inside Frappe
@@ -157,7 +159,8 @@ migration plan for `frappe_ai`.
 ### Completed
 
 - [x] `pyproject.toml` — added `agno>=2.8,<3`, `RestrictedPython>=8.4,<9`, `pydantic>=2.11,<3`.
-      **No `litellm`**, per [ADR 0009](../decisions/0009-no-litellm-agno-native-models.md).
+      Chat execution remains Agno-native; `litellm` is declared only for provider/model
+      UX and validation, per [ADR 0013](../decisions/0013-litellm-for-provider-ux-agno-still-executes.md).
       `fastapi`/`uvicorn`/`lancedb`/`croniter`/`jinja2`/`requests`/`beautifulsoup4`/`lxml`/
       `openpyxl`/`chardet`/`python-docx`/`pdfplumber`/`rapidocr`/`onnxruntime` intentionally
       deferred — not needed for this phase's code to run; scoped to the phase that first
@@ -172,19 +175,18 @@ migration plan for `frappe_ai`.
       importing `frappe_ai.utils.safe_exec.safe_exec`** (the hardened namespace) instead
       of flow's `frappe.utils.safe_exec.safe_exec` (the broad one) — this is ADR 0006's
       actual fix, not carried forward from flow
-- [x] DocType `AI Provider` + controller — direct port of `Flow Provider`, redesigned per
-      [ADR 0009](../decisions/0009-no-litellm-agno-native-models.md): `provider` validated
-      against a fixed Agno provider-slug map (`frappe_ai/lib/model.py:PROVIDER_MODEL_CLASSES`,
-      21 slugs) instead of `litellm.provider_list`
+- [x] DocType `AI Provider` + controller — direct port of `Flow Provider`, with chat
+      execution still resolved through the fixed Agno provider-slug map
+      (`frappe_ai/lib/model.py:PROVIDER_MODEL_CLASSES`, 21 slugs). Provider-name validation
+      uses litellm's registry through the aliases documented in ADR 0013.
 - [x] DocType `AI Model` + controller, `test_connection()`, `get_provider_models()` — direct
       port of `Flow Model`, redesigned per ADR 0009: `model_id` is now a **bare** id (no
       `provider/` prefix composition); `context_window` is plain user-editable `Int`, no
       auto-detection (dropped `_resolve_context_window`/`_detect_context_window`, no Agno
       equivalent to `litellm.get_model_info`); `test_connection()` instantiates the resolved
       Agno model class and issues its own minimal `.response()` call instead of one generic
-      `litellm.completion()`; `get_provider_models()` kept as a whitelisted no-op (no
-      `litellm.models_by_provider` equivalent) — the Autocomplete field stays free-text
-      regardless via `ignore_validation` in `ai_model.js`. `after_insert` →
+      `litellm.completion()`; `get_provider_models()` uses litellm's model registry as a
+      UX-only helper, filtered to providers that Agno can execute. `after_insert` →
       `sync_builtin_assistant` guarded with `try/except ImportError` (Phase 7)
 - [x] DocType `AI Settings` (Single) + controller, `_guard_model_change`,
       `_sync_embedding_dimension` — ported from `Flow Knowledge Settings`, extended with the
@@ -670,7 +672,7 @@ Setup for a new deployment: `bench --site <site> set-config frappe_ai_service_se
 
 ---
 
-## Phase 4 — Knowledge / RAG 🟡
+## Phase 4 — Knowledge / RAG ✅
 
 **Objective:** Ingestion and retrieval at parity, on LanceDB.
 
@@ -824,7 +826,7 @@ Depends on: 4a (writes `AI Knowledge Chunk` rows), 4b (extraction/chunking), 4c/
 
 ---
 
-## Phase 5 — Triggers, Memory & MCP 🟡
+## Phase 5 — Triggers, Memory & MCP ✅
 
 **Objective:** Unattended automation and the remaining capabilities.
 
@@ -1000,7 +1002,7 @@ panel while owning its own page-specific composition and styling.
 
 ---
 
-## Phase 8 — Production Hardening ⬜
+## Phase 8 — Production Hardening 🟨
 
 **Objective:** Make the parity-complete system safe to deploy.
 **Dependencies:** Phases 1–7.
@@ -1009,23 +1011,25 @@ panel while owning its own page-specific composition and styling.
 Derived from the production-readiness review of 2026-08-05. Full triage — including what was
 rejected and why — is in the approved plan; the accepted items are below.
 
-### 8.1 — Safety critical ⬜
+### 8.1 — Safety critical 🟨
 
 | # | Item | Detail |
 |---|---|---|
 | A1 | **SSE heartbeats** | `event: ping` every 15s when idle; client treats as liveness only. Without this, streams die behind proxies. |
-| A2 | **Execution budgets** | `max_tool_calls` (50), `max_mutations` (20), `max_records_per_call` (100), `max_runtime_seconds` (600) on `AI Agent`. → [ADR 0008](../decisions/0008-execution-budgets.md) |
-| A3 | **Mutation limits** | Part of A2; `max_records_per_call` enforced **inside each builtin** as well as at dispatch. |
+| A2 | **Execution budgets** | Implemented for direct Frappe/FAC dispatch: `max_tool_calls` (50), `max_mutations` (20), `max_records_per_call` (100), `max_runtime_seconds` (600) on `AI Agent`. Remote MCP calls still bypass the counters. → [ADR 0008](../decisions/0008-execution-budgets.md) |
+| A3 | **Mutation limits** | `max_records_per_call` is enforced by the direct dispatch boundary. Per-tool enforcement for remote MCP remains unresolved. |
 | A6 | **Rate limiting** | Per-user and per-agent limits on run starts and tool dispatch via Frappe's Redis cache. Trigger runs get a tighter bucket than interactive chat. |
 | A7 | **LLM retry policy** | Bounded exponential backoff + jitter on 429/5xx/timeout, 3 attempts. Retries counted in `AI Run.usage`. 401/400/content-filter fail immediately. |
 
 **Tasks**
 
-- [ ] `AI Agent` — add the four budget fields
-- [ ] `AI Run` — add `budget_usage` (JSON), `trace_id` (Data, indexed)
+- [x] `AI Agent` — add the four budget fields
+- [x] `AI Run` — add `budget_usage` (JSON)
+- [ ] `AI Run` — add `trace_id` (Data, indexed)
 - [ ] `AI Settings` — add `heartbeat_interval`, `rate_limit_per_user`, `rate_limit_per_agent`, `llm_max_retries`
 - [ ] Heartbeat emission in the SSE generator; `ping` handling in the Vue client
-- [ ] Budget enforcement in `api/dispatch.py` (authoritative) **and** in each mutating builtin
+- [x] Budget enforcement in `api/dispatch.py` and direct FAC dispatch
+- [ ] Extend equivalent accounting to remote MCP calls
 - [ ] Rate limiting in `api/api.py` and `api/dispatch.py`
 - [ ] Retry wrapper around LLM calls in the service
 
@@ -1033,8 +1037,9 @@ rejected and why — is in the approved plan; the accepted items are below.
 
 - [ ] A stream held idle through a long reasoning step survives a proxy with a 30s idle timeout
 - [ ] An agent asked to create 500 records is stopped at `max_records_per_call`; run fails with a budget error; `budget_usage` is accurate
-- [ ] A paused-then-resumed run **continues** accumulating counters rather than resetting
-- [ ] Budgets hold even when dispatch is called directly, bypassing the service
+- [x] A paused-then-resumed run **continues** accumulating counters rather than resetting
+- [x] Direct Frappe/FAC dispatch enforces budgets even when bypassing the service
+- [ ] Remote MCP dispatch enforces the same budgets
 - [ ] Exceeding the per-user rate returns a clear error, not a stack trace
 - [ ] A mocked 429 retries and succeeds; a mocked 401 fails immediately
 
@@ -1071,10 +1076,9 @@ metrics (the natural place to revisit hybrid-vs-vector empirically) · prompt A/
 hallucination metrics · tool success analytics · queue-based execution · pluggable vector
 store abstraction.
 
-**Mid-session model switching** — `AI Session.model` is documented (§8 of
-[003-doctype-reference.md](../specifications/003-doctype-reference.md)) as overridable but
-`_resolve_session` in `api.py` silently drops the override for existing sessions; only
-session-creation-time overrides actually work today. Planned fix, not yet implemented:
+**Mid-session model switching** — implemented and verified on 2026-08-07. A supplied model
+updates an existing session when no run is `Running` or `Paused`; disabled models and
+model-permission failures are rejected. See
 [004-session-model-switching.md](../specifications/004-session-model-switching.md).
 
 ### Explicitly rejected (do not re-litigate without new evidence)
@@ -1099,6 +1103,7 @@ session-creation-time overrides actually work today. Planned fix, not yet implem
 
 | Date | Change |
 |---|---|
+| 2026-08-21 | **Environment and API verification:** host-level checks confirmed MariaDB active on `127.0.0.1:3306`, Frappe web on `:8000`, FastAPI on `:8001`, and Bench workers/scheduler running. `frappe_ai.tests.test_api` passed **34/34** with host-level database access. Earlier socket failures were restricted-sandbox access failures, not a MariaDB outage. |
 | 2026-08-07 | **Added `is_default` to `AI Model`.** New `Check` field enforces at most one default at a time via `_enforce_single_default()` in `validate`. New `get_default_model()` helper in `lib/model.py` returns the enabled default (or `None`). 5 new tests in `test_ai_model.py`, all passing. No regressions. |
 | 2026-08-05 | Phase 0 complete. Specs + ADRs 0001–0006 written. |
 | 2026-08-05 | **Reversed the vector-store decision** — ChromaDB → LanceDB. Preserves hybrid search and BM25 memory recall; retrieval pipeline now ports rather than being rewritten. ADR 0002 rewritten. |

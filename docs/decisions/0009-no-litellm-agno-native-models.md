@@ -146,8 +146,9 @@ in sync with Agno's own supported-provider list regardless.
   module.
 - `AI Model.model_id` accepts a bare model id with no `provider/` prefix
   requirement.
-- `pyproject.toml` declares no `litellm` dependency; `frappe_ai/lib/model.py`
-  contains no `import litellm`.
+- `pyproject.toml` declares `litellm` only for provider validation and model-id
+  suggestions; chat execution still contains no `import litellm` and routes through
+  Agno's native provider classes.
 - `test_connection()` succeeds against at least one real provider once `agno`
   is installed (Phase 2 or later, per whichever phase first declares it).
 

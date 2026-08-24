@@ -1,151 +1,133 @@
 {
- "actions": [],
- "creation": "2026-08-05 00:00:00",
- "doctype": "DocType",
- "engine": "InnoDB",
- "field_order": [
-  "embedding_model",
-  "embedding_dimension",
-  "column_break_search",
-  "search_type",
-  "section_break_chunking",
-  "chunk_size",
-  "column_break_chunking",
-  "chunk_overlap",
-  "section_break_service",
-  "service_base_url",
-  "column_break_service",
-  "request_timeout",
-  "stream_timeout",
-  "section_break_status",
-  "lancedb_path",
-  "service_status"
- ],
- "fields": [
-  {
-   "description": "AI Model used to embed chunks and queries. Its Model ID must be an embedding model, e.g. <code>openai/text-embedding-3-small</code>.",
-   "fieldname": "embedding_model",
-   "fieldtype": "Link",
-   "label": "Embedding Model",
-   "options": "AI Model"
-  },
-  {
-   "description": "Vector width of the embedding model. Detected automatically when the embedding model is saved.",
-   "fieldname": "embedding_dimension",
-   "fieldtype": "Int",
-   "label": "Embedding Dimension",
-   "read_only": 1
-  },
-  {
-   "fieldname": "column_break_search",
-   "fieldtype": "Column Break"
-  },
-  {
-   "default": "Hybrid",
-   "description": "Hybrid fuses vector similarity with keyword matching. Vector uses similarity alone.",
-   "fieldname": "search_type",
-   "fieldtype": "Select",
-   "label": "Search Type",
-   "options": "Hybrid\nVector"
-  },
-  {
-   "fieldname": "section_break_chunking",
-   "fieldtype": "Section Break",
-   "label": "Chunking"
-  },
-  {
-   "default": "1000",
-   "description": "Maximum characters per chunk.",
-   "fieldname": "chunk_size",
-   "fieldtype": "Int",
-   "label": "Chunk Size",
-   "non_negative": 1
-  },
-  {
-   "fieldname": "column_break_chunking",
-   "fieldtype": "Column Break"
-  },
-  {
-   "default": "200",
-   "description": "Characters shared between consecutive chunks to preserve context across boundaries.",
-   "fieldname": "chunk_overlap",
-   "fieldtype": "Int",
-   "label": "Chunk Overlap",
-   "non_negative": 1
-  },
-  {
-   "fieldname": "section_break_service",
-   "fieldtype": "Section Break",
-   "label": "Service"
-  },
-  {
-   "default": "http://127.0.0.1:8001",
-   "description": "Base URL of the frappe_ai FastAPI service.",
-   "fieldname": "service_base_url",
-   "fieldtype": "Data",
-   "label": "Service Base URL"
-  },
-  {
-   "fieldname": "column_break_service",
-   "fieldtype": "Column Break"
-  },
-  {
-   "default": "120",
-   "description": "Seconds before a non-streaming request to the service times out.",
-   "fieldname": "request_timeout",
-   "fieldtype": "Int",
-   "label": "Request Timeout (s)",
-   "non_negative": 1
-  },
-  {
-   "default": "600",
-   "description": "Seconds before an idle streaming connection to the service times out.",
-   "fieldname": "stream_timeout",
-   "fieldtype": "Int",
-   "label": "Stream Timeout (s)",
-   "non_negative": 1
-  },
-  {
-   "fieldname": "section_break_status",
-   "fieldtype": "Section Break",
-   "label": "Status"
-  },
-  {
-   "description": "Site-scoped path where LanceDB tables are stored.",
-   "fieldname": "lancedb_path",
-   "fieldtype": "Data",
-   "label": "LanceDB Path",
-   "read_only": 1
-  },
-  {
-   "description": "Health indicator for the FastAPI service, updated by the health probe.",
-   "fieldname": "service_status",
-   "fieldtype": "Data",
-   "label": "Service Status",
-   "read_only": 1
-  }
- ],
- "index_web_pages_for_search": 1,
- "issingle": 1,
- "links": [],
- "modified": "2026-08-05 00:00:00.000000",
- "modified_by": "Administrator",
- "module": "Frappe AI",
- "name": "AI Settings",
- "owner": "Administrator",
- "permissions": [
-  {
-   "create": 1,
-   "print": 1,
-   "read": 1,
-   "role": "System Manager",
-   "share": 1,
-   "write": 1
-  }
- ],
- "row_format": "Dynamic",
- "sort_field": "creation",
- "sort_order": "DESC",
- "states": [],
- "track_changes": 1
+    "actions": [],
+    "allow_rename": 1,
+    "autoname": "field:title",
+    "creation": "2026-08-05 00:00:00",
+    "doctype": "DocType",
+    "engine": "InnoDB",
+    "field_order": [
+        "title",
+        "enabled",
+        "is_default",
+        "section_break_config",
+        "provider",
+        "model_id",
+        "model_type",
+        "context_window",
+        "api_key",
+        "base_url",
+        "section_break_params",
+        "params"
+    ],
+    "fields": [
+        {
+            "fieldname": "title",
+            "fieldtype": "Data",
+            "in_list_view": 1,
+            "label": "Title",
+            "reqd": 1,
+            "unique": 1
+        },
+        {
+            "default": "1",
+            "fieldname": "enabled",
+            "fieldtype": "Check",
+            "label": "Enabled"
+        },
+        {
+            "default": "0",
+            "fieldname": "is_default",
+            "fieldtype": "Check",
+            "label": "Is Default"
+        },
+        {
+            "fieldname": "section_break_config",
+            "fieldtype": "Section Break"
+        },
+        {
+            "description": "Linked AI Provider. When set, this model's API Key and Base URL are ignored \u2014 both are read from the linked AI Provider instead. Leave blank to use this model's own API Key/Base URL directly against an OpenAI-compatible endpoint.",
+            "fieldname": "provider",
+            "fieldtype": "Link",
+            "label": "Provider",
+            "options": "AI Provider"
+        },
+        {
+            "description": "Bare model identifier for the OpenAI-compatible transport, e.g. <code>gemini-2.5-flash</code>, <code>gpt-4.1</code>, <code>llama3.1</code>. No <code>provider/</code> prefix \u2014 provider identity and endpoint come from the Provider above.",
+            "fieldname": "model_id",
+            "fieldtype": "Autocomplete",
+            "in_list_view": 1,
+            "label": "Model ID",
+            "reqd": 1
+        },
+        {
+            "default": "Chat",
+            "description": "Chat models use chat completions. Select Embedding only for models that expose an embeddings endpoint.",
+            "fieldname": "model_type",
+            "fieldtype": "Select",
+            "in_list_view": 1,
+            "label": "Model Type",
+            "options": "Chat\nEmbedding",
+            "reqd": 1
+        },
+        {
+            "description": "Max input tokens. Not auto-detected (no Agno equivalent to litellm's model registry) \u2014 enter manually, or leave 0 if unknown.",
+            "fieldname": "context_window",
+            "fieldtype": "Int",
+            "label": "Context Window",
+            "non_negative": 1
+        },
+        {
+            "description": "API key to authenticate with this model's endpoint. Only used when no Provider is linked above \u2014 a linked Provider's own API Key is used instead.",
+            "fieldname": "api_key",
+            "fieldtype": "Password",
+            "label": "API Key"
+        },
+        {
+            "description": "Endpoint for this model, e.g. a self-hosted Ollama (<code>http://localhost:11434</code>), a proxy, or another OpenAI-compatible API. Only used when no Provider is linked above \u2014 a linked Provider's own Base URL is used instead.",
+            "fieldname": "base_url",
+            "fieldtype": "Data",
+            "label": "Base URL"
+        },
+        {
+            "collapsible": 1,
+            "fieldname": "section_break_params",
+            "fieldtype": "Section Break",
+            "label": "Parameters"
+        },
+        {
+            "description": "Optional JSON object passed to the model (e.g. <code>{\"temperature\": 0.2, \"max_tokens\": 1024}</code>)",
+            "fieldname": "params",
+            "fieldtype": "JSON",
+            "label": "Params"
+        }
+    ],
+    "links": [],
+    "modified": "2026-08-05 00:00:00.000000",
+    "modified_by": "Administrator",
+    "module": "Frappe AI",
+    "name": "AI Model",
+    "naming_rule": "By fieldname",
+    "owner": "Administrator",
+    "permissions": [
+        {
+            "create": 1,
+            "delete": 1,
+            "print": 1,
+            "read": 1,
+            "report": 1,
+            "role": "System Manager",
+            "share": 1,
+            "write": 1
+        },
+        {
+            "read": 1,
+            "role": "All"
+        }
+    ],
+    "row_format": "Dynamic",
+    "sort_field": "creation",
+    "sort_order": "DESC",
+    "states": [],
+    "title_field": "title",
+    "track_changes": 1
 }

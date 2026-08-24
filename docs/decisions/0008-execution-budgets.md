@@ -1,6 +1,7 @@
 # ADR 0008 — Execution budgets and mutation limits
 
-**Status:** Accepted — implementation deferred to Phase 8.1
+**Status:** Accepted — direct Frappe/FAC dispatch implemented; remote MCP coverage and
+production-hardening verification remain deferred
 **Date:** 2026-08-05
 **Deciders:** Sri Harsha Dabbiru
 **Prompted by:** production-readiness review (tool execution budgets, mutation limits)
@@ -50,25 +51,26 @@ Introduce **per-run execution budgets**, configured on `AI Agent` and enforced i
 `max_iterations` is retained — it bounds a different thing (reasoning depth) and the two are
 complementary.
 
-### Enforcement — two layers, deliberately
+### Enforcement — current boundary and remaining gap
 
-1. **At dispatch** (`frappe_ai/api/dispatch.py`) — the per-run counters are checked and
-   incremented before the tool executes. This is the authoritative gate, in the same place
-   permission checks happen.
-2. **Inside each mutating builtin** — `max_records_per_call` is re-checked against the
-   actual argument list.
+1. **At the direct Frappe dispatch boundary** (`frappe_ai/api/dispatch.py`) — the per-run
+   counters are checked and incremented before native or direct FAC tools execute. This is
+   the authoritative gate, in the same place permission checks happen.
+2. **Remote MCP is a known gap.** An independently executing MCP transport currently does
+   not pass through `frappe_ai/api/dispatch.py`, so its calls do not receive these counters.
+   A separate propagation/design step is required before remote MCP mutations are treated
+   as budget-equivalent.
 
-The second layer is not redundant. Dispatch sees a tool name and an argument blob; only the
-builtin knows how many records the arguments really resolve to after parsing. Enforcing in
-both places means a malformed or adversarial payload cannot slip past by disguising its
-size.
+The direct boundary counts the records represented by the dispatch argument payload. The
+implementation does not yet provide a second per-builtin enforcement layer for every
+possible tool implementation; that remains part of the hardening follow-up.
 
 ### Accounting
 
 Counters live in a new `AI Run.budget_usage` (JSON) field:
 
 ```json
-{"tool_calls": 12, "mutations": 3, "records_touched": 47, "runtime_seconds": 88}
+{"tool_calls": 12, "mutations": 3, "records": 47}
 ```
 
 Persisting on `AI Run` rather than in service memory gives three properties:
@@ -94,8 +96,9 @@ can see exactly what landed.
 
 - **Bounded blast radius.** Prompt injection, a buggy agent, or a runaway trigger can now
   do a bounded amount of damage rather than an unbounded amount.
-- **Completes ADR 0003.** That ADR bounds *what* an agent may touch; this bounds *how much*.
-  Together they are a usable safety story; separately, each has an obvious hole.
+- **Strengthens ADR 0003.** That ADR bounds *what* an agent may touch; this bounds *how
+  much* on the direct Frappe/FAC path. Remote MCP remains an explicit hole until its
+  counters are propagated.
 - **Per-agent tuning.** A cautious customer-facing agent and a bulk data-cleanup agent can
   have very different budgets without a global compromise.
 - **Cost control.** `max_tool_calls` and `max_runtime_seconds` also cap the token spend of
@@ -151,21 +154,24 @@ created 100, and will report success. Failing loudly is the honest behaviour.
 
 ## Implementation Note
 
-Scheduled for **Phase 8.1**, after parity. This is a deliberate sequencing choice, not an
-assessment that the risk is low. Until Phase 8.1 completes, `frappe_ai` should not be
-exposed to production traffic — in particular, `auto_approve` triggers should not be enabled
-against production data. The progress tracker records this as a hard gate.
+The direct Frappe/FAC implementation landed during the Assistant Core migration. Remote
+MCP coverage, SSE heartbeats, rate limiting, retries, and production verification remain
+scheduled for **Phase 8.1**. This is not an assessment that the risk is low. Until the
+Phase 8.1 gate completes, `frappe_ai` should not be exposed to production traffic — in
+particular, `auto_approve` triggers and unbounded remote MCP mutations should not be
+enabled against production data.
 
 ---
 
 ## Verification
 
-- An agent asked to create 500 records is stopped at `max_records_per_call`; the run fails
-  with an error naming the budget; `budget_usage` reflects what was actually written.
+- Direct dispatch of a call representing 500 records is stopped at `max_records_per_call`;
+  the run fails with an error naming the budget and `budget_usage` is updated.
 - A run that pauses for confirmation and resumes **continues** accumulating counters rather
   than resetting them.
-- A budget is enforced even when the tool call is issued directly against the dispatch
+- A budget is enforced when a native or direct FAC tool call is issued against the dispatch
   endpoint, bypassing the service.
+- Remote MCP budget equivalence remains unverified and unresolved.
 - A read-heavy run is not blocked by `max_mutations`.
 - Exceeding `max_runtime_seconds` fails the run and releases the stream.
 - `budget_usage` on a completed run matches the tool calls recorded in `AI Run.tool_calls`.

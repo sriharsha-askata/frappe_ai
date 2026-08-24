@@ -224,6 +224,7 @@ def get_run_config(run: str, user: str) -> dict:
 		if not model_doc.enabled:
 			frappe.throw(_("AI Model {0} is disabled.").format(model_name), title=_("Disabled Model"))
 
+		plugin_tools = _resolve_agent_plugin_tools(agent_doc, user)
 		return {
 			"agent": {
 				"name": agent_doc.name,
@@ -257,6 +258,11 @@ def get_run_config(run: str, user: str) -> dict:
 
 def _model_call_config(model_doc) -> dict:
 	"""Resolve an ``AI Model`` into the shared OpenAI-compatible transport config."""
+	if (model_doc.get("model_type") or "Chat") == "Embedding":
+		frappe.throw(
+			_("AI Model {0} is an Embedding model and cannot drive chat completions.").format(model_doc.name),
+			title=_("Invalid Chat Model"),
+		)
 	try:
 		return resolve_model_config(model_doc)
 	except ModelConfigurationError as exc:

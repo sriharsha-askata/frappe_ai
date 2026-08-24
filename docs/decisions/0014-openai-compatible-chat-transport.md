@@ -46,9 +46,9 @@ not imported or called by chat execution.
 
 The OpenAI SDK's retries are bounded to three attempts, request timeouts have a
 default, and SDK/Agno failures are normalized into authentication, invalid
-model, rate limit, timeout, connection, or generic provider errors. Test
-Connection builds the same transport and credential configuration as a normal
-run, with a shorter timeout and no retry.
+model, rate limit, timeout, connection, or generic provider errors. The explicit
+Test Connection action runs the separate capability suite in ADR 0015 with a
+shorter timeout and no retry; runtime AgentBuilder construction never calls it.
 
 ## Consequences
 

@@ -1,8 +1,10 @@
 # 003 — DocType Reference
 
-**Status:** Approved. Implemented through Phase 5 — all 18 DocTypes now exist in
-`frappe_ai`.
-**Scope:** All 18 DocTypes in `frappe_ai` — 16 derived from `flow`, 2 new for MCP.
+**Status:** Approved. The current implementation contains 22 DocTypes. The original
+18-DocType parity set is extended by Assistant Core/FAC migration and MCP metadata
+DocTypes added during 2026-08-19–21.
+**Scope:** All 22 current DocTypes in `frappe_ai`, including compatibility records,
+MCP metadata, and direct Assistant Core/FAC bindings.
 
 Field definitions below were extracted from the `flow` JSON files and are exact.
 Layout fields (Section/Column/Tab Break) are omitted throughout.
@@ -17,7 +19,7 @@ Layout fields (Section/Column/Tab Break) are omitted throughout.
 | 2 | `AI Model` | Master | `Flow Model` | 1 |
 | 3 | `AI Settings` | Single | `Flow Knowledge Settings` (extended) | 1 |
 | 4 | `AI Agent` | Master | `Flow Agent` (extended) | 3 |
-| 5 | `AI Agent Tool` | Child | `Flow Agent Tool` | 3 |
+| 5 | `AI Agent Tool` | Child | `Flow Agent Tool` | 3, compatibility |
 | 6 | `AI Agent Knowledge Base` | Child | `Flow Agent Knowledge Base` | 3 |
 | 7 | `AI Tool` | Master | `Flow Tool` | 3 |
 | 8 | `AI Session` | Transaction | `Flow Session` | 3 |
@@ -31,6 +33,10 @@ Layout fields (Section/Column/Tab Break) are omitted throughout.
 | 16 | `AI Agent Memory` | Master | `Flow Agent Memory` | 5 |
 | 17 | `AI MCP Connection` | Master | **New** | 5 |
 | 18 | `AI Agent MCP Connection` | Child | **New** | 5 |
+| 19 | `AI MCP Tool` | Child | **New** | MCP metadata |
+| 20 | `AI Agent Tool Config` | Child | **New** | compatibility/runtime metadata |
+| 21 | `AI Agent Plugin Tool` | Child | **New** | Assistant Core/FAC migration |
+| 22 | `AI FAC Tool` | Master | **New** | Assistant Core/FAC migration |
 
 None are submittable. Only `AI Settings` is single.
 
@@ -77,25 +83,30 @@ A callable LLM or embedding model. **Naming: `field:title`**. `track_changes: 1`
 | `enabled` | Check | default 1 |
 | `provider` | Link → `AI Provider` | not reqd |
 | `model_id` | Autocomplete | reqd — **bare** model id, e.g. `claude-sonnet-4-6` (no `provider/` prefix) |
+| `model_type` | Select `Chat`/`Embedding` | default `Chat` |
 | `context_window` | Int | user-editable — **not** auto-detected (no Agno equivalent to `litellm.get_model_info`) |
 | `api_key` | **Password** | used only when `provider` is empty (ADR 0013) |
 | `base_url` | Data | used only when `provider` is empty (ADR 0013) |
 | `params` | JSON | |
 
 **Controller:** `validate` chain — normalize → `MODEL_ID_PATTERN` regex (no `provider/`
-prefix requirement) → base_url check → params JSON + `RESERVED_PARAM_KEYS` rejection.
+prefix requirement) → model_type check → base_url check → params JSON + `RESERVED_PARAM_KEYS` rejection.
 `provider` existence is enforced by Frappe core's own Link validation (`LinkValidationError`
 if the named `AI Provider` doesn't exist), not a controller check. `context_window` is
-plain user input; no auto-detection step. Credential/Agno-class resolution
+plain user input; no auto-detection step. Credential/shared-transport resolution
 (`_model_call_config`, `api/service.py`) is a hard two-state split per ADR 0013: `provider`
-set → class + `api_key`/`base_url` come from the linked `AI Provider` only; `provider`
-empty → this model's own `api_key`/`base_url` against `agno.models.openai.OpenAIChat`.
-`after_insert` → `sync_builtin_assistant(model=self.name)` when enabled.
+set → `api_key`/`base_url` come from the linked `AI Provider` only; `provider`
+empty → this model's own `api_key`/`base_url` against the shared OpenAI-compatible chat
+transport.
+`after_insert` attempts `sync_builtin_assistant(model=self.name)` when enabled, but the
+call is currently a no-op because `frappe_ai.assistant` has not been implemented yet.
 
-**Whitelisted:** `test_connection()` (requires `write`; instantiates the resolved Agno
-model class for the linked provider and issues its own minimal call — provider-class-specific,
-not one generic call; requires `agno` installed), module-level `get_provider_models(provider)`
-(sourced from the fixed Agno provider-slug set).
+**Whitelisted:** `test_connection()` (requires `write`; runs a fresh capability suite
+for the saved model and returns per-check statuses; Chat uses the shared
+OpenAI-compatible transport, Embedding uses the embeddings endpoint), module-level
+`get_provider_models(provider)` (litellm model registry suggestions; the free-text
+model field remains valid). The capability suite is never called by runtime agent
+execution.
 
 **Permissions:** System Manager full CRUD **+ `{read, role: All}`** — every user needs to
 read the model bound to their agent.
@@ -119,6 +130,11 @@ architecture requires.
 | `stream_timeout` | Int | default 600 (seconds) | **new** |
 | `lancedb_path` | Data | read-only, site private files path | **new** |
 | `service_status` | Data | read-only, health indicator | **new** |
+
+`lancedb_path` is a read-only site-path indicator returned in service configuration. The
+current store implementation derives the authoritative path as
+`sites/<site>/private/files/lancedb` (or `lancedb_test` in tests); it does not accept a
+user-selected connection string.
 
 > **Unchanged from `flow`:** `search_type` keeps both options and defaults to `Hybrid`.
 > Staying on LanceDB preserves native BM25 + vector fusion.
@@ -148,8 +164,12 @@ changing `embedding_model` while chunks exist (bypass flag `allow_embedding_mode
 | `is_system_generated` | Check | read-only | ported |
 | `model` | Link → `AI Model` | reqd | ported |
 | `max_iterations` | Int | default 10 | ported |
+| `max_tool_calls` | Int | default 50 | production budget |
+| `max_mutations` | Int | default 20 | production budget |
+| `max_records_per_call` | Int | default 100 | production budget |
+| `max_runtime_seconds` | Int | default 600 | production budget |
 | `instructions` | Long Text | reqd | ported |
-| `tools` | Table MultiSelect → `AI Agent Tool` | | ported |
+| `tools` | Table → `AI Agent Tool Config` | deprecated compatibility field | migration |
 | `knowledge_bases` | Table MultiSelect → `AI Agent Knowledge Base` | | ported |
 | `agent_type` | Select `Agent`/`Team` | default `Agent` | **new** |
 | `temperature` | Float | default 0.7 | **new** |
@@ -157,17 +177,21 @@ changing `embedding_model` while chunks exist (bypass flag `allow_embedding_mode
 | `reasoning` | Check | default 0 | **new** |
 | `markdown` | Check | default 1 | **new** |
 | `mcp_connections` | Table MultiSelect → `AI Agent MCP Connection` | | **new** |
+| `plugin_tools` | Table MultiSelect → `AI Agent Plugin Tool` | direct Assistant Core/FAC bindings | **new** |
 
 **Controller:**
-- `before_insert` — seed `DEFAULT_TOOL_SLUGS = ("describe", "read", "execute")` if no tools set.
 - `validate` — `max_iterations >= 1`; `_ensure_knowledge_search_tool()` auto-appends
-  `search_knowledge` when knowledge bases are bound; `validate_immutable`.
+  `search_knowledge` to the compatibility tool table when knowledge bases are bound;
+  MCP tool metadata is populated for linked connections; `validate_immutable`.
 - `on_trash` → `block_delete(always=True)`; `before_rename` → `block_rename`.
 - `_snapshot()` — the config snapshot written to every `AI Run`.
 
 **Runtime:** `AgentBuilder.build()` in the FastAPI service replaces `assemble()`.
-Permission checks (agent enabled, `AI Model` read permission, model enabled) happen in
-**Frappe** before config is released to the service.
+New direct local bindings resolve through Assistant Core's tool registry via
+`plugin_tools`; remote tools resolve through `mcp_connections`. The legacy `tools` table
+is retained as compatibility/migration input. Permission checks (agent enabled, `AI Model`
+read permission, model enabled, and tool availability) happen in **Frappe** before config
+is released to the service.
 
 **Permissions:** System Manager full CRUD **+ `{read, role: All}`**.
 
@@ -299,6 +323,7 @@ The audit record. **Naming: `hash`**, `track_changes: 0` (immutable log).
 | `tool_calls` | JSON | read-only |
 | `questions` | JSON | read-only (pending confirmations) |
 | `usage` | JSON | read-only (tokens) |
+| `budget_usage` | JSON | read-only (tool/mutation/record counters) |
 | `config_snapshot` | JSON | read-only |
 | `error` | Long Text | read-only |
 | `feedback_rating` | Select ``/`Up`/`Down` | read-only |
@@ -492,6 +517,54 @@ Each check has a 5-second timeout.
 |---|---|---|
 | `mcp_connection` | Link → `AI MCP Connection` | reqd |
 
+## 19. AI MCP Tool (child)
+
+Stores discovered tool metadata for an `AI MCP Connection`.
+
+| Field | Type | Attributes |
+|---|---|---|
+| `tool_name` | Data | reqd |
+| `description` | Long Text | |
+| `input_schema` | JSON | |
+| `available` | Check | default 1 |
+| `last_discovered` | Datetime | read-only |
+| `matched_ai_tool` | Link → `AI Tool` | read-only |
+| `raw_metadata` | JSON | read-only |
+
+## 20. AI Agent Tool Config (child)
+
+Compatibility/runtime metadata rows retained while direct Assistant Core/FAC bindings
+are migrated.
+
+| Field | Type | Attributes |
+|---|---|---|
+| `tool_name` | Data | reqd |
+| `source` | Select `mcp`/`fac`/`manual` | default `mcp` |
+| `description` | Small Text | |
+| `enabled` | Check | default 1 |
+
+## 21. AI Agent Plugin Tool (child)
+
+Direct in-process Assistant Core/FAC tool binding for an `AI Agent`.
+
+| Field | Type | Attributes |
+|---|---|---|
+| `fac_tool` | Link → `FAC Tool Configuration` | reqd; Assistant Core registry configuration |
+| `requires_confirmation` | Check | default 1 |
+| `enabled` | Check | default 1 |
+
+## 22. AI FAC Tool (master)
+
+The local catalogue of Assistant Core tools contributed by installed apps.
+**Naming: `field:tool_name`**, unique.
+
+| Field | Type | Attributes |
+|---|---|---|
+| `tool_name` | Data | reqd, unique |
+| `category` | Select `Core`/`Custom`/`Workflow`/`Data`/`Search`/`Automation` | |
+| `description` | Small Text | |
+| `enabled` | Check | default 1 |
+
 ---
 
 ## Permission Summary
@@ -510,6 +583,7 @@ Each check has a 5-second timeout.
 | `AI Trigger` | full | — |
 | `AI Agent Memory` | full | — |
 | `AI MCP Connection` | full | — |
+| `AI FAC Tool` | full | — |
 | child tables | inherit parent | inherit parent |
 
 `ignore_links_on_delete` = `["AI Knowledge Chunk", "AI Run", "AI Session"]`.
@@ -520,7 +594,7 @@ Each check has a 5-second timeout.
 
 | Rule | DocTypes | Why |
 |---|---|---|
-| `field:<x>` | Provider, Model, Agent, Tool, Trigger, Knowledge Base, MCP Connection | Human-readable, stable references |
+| `field:<x>` | Provider, Model, Agent, Tool, Trigger, Knowledge Base, MCP Connection, FAC Tool | Human-readable, stable references |
 | `hash` | Session, Run, Knowledge Source, Agent Memory | High volume, no natural key |
 | `autoincrement` | **Knowledge Chunk** | Integer name **is** the LanceDB row `id` |
 | Single | Settings | One global config |

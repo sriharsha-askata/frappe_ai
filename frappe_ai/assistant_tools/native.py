@@ -2,6 +2,8 @@ from __future__ import annotations
 
 from typing import Any
 
+import frappe
+from frappe import _
 from frappe_assistant_core.core.base_tool import BaseTool
 
 from frappe_ai.tools import builtins
@@ -50,7 +52,8 @@ class SearchKnowledgeTool(_NativeTool):
 
 	def execute(self, arguments):
 		from frappe_ai.knowledge.retriever import retrieve
-		return retrieve(arguments["query"], kbs=[])
+
+		return retrieve(arguments["query"], kbs=arguments.get("__frappe_ai_knowledge_bases") or [])
 
 
 class UpdateMemoryTool(_NativeTool):
@@ -61,4 +64,15 @@ class UpdateMemoryTool(_NativeTool):
 
 	def execute(self, arguments):
 		from frappe_ai.memory.memory import save_memory
-		return save_memory(arguments.get("agent"), content=arguments["content"], scope=arguments["scope"], memory_id=arguments.get("memory_id"), keywords=arguments.get("keywords"))
+
+		agent = arguments.get("__frappe_ai_agent")
+		if not agent:
+			frappe.throw(_("update_memory requires a server-owned agent context."), frappe.ValidationError)
+		return save_memory(
+			agent,
+			content=arguments["content"],
+			scope=arguments["scope"],
+			memory_id=arguments.get("memory_id"),
+			keywords=arguments.get("keywords"),
+			source_run=arguments.get("__frappe_ai_source_run"),
+		)

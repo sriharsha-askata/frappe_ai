@@ -87,6 +87,8 @@ def retrieve(query: str, *, kbs: list[str], limit: int = DEFAULT_LIMIT) -> list[
 			continue
 		results.append(
 			{
+				"chunk": chunk["name"],
+				"chunk_index": chunk.get("chunk_index"),
 				"content": chunk["content"],
 				"score": hit["score"],
 				"source": chunk["source"],
@@ -107,6 +109,6 @@ def _hydrate(ids: set[int]) -> dict[int, dict[str, Any]]:
 	rows = frappe.get_all(
 		CHUNK_DOCTYPE,
 		filters={"name": ["in", list(ids)]},
-		fields=["name", "content", "source", "reference_doctype", "reference_name"],
+		fields=["name", "chunk_index", "content", "source", "reference_doctype", "reference_name"],
 	)
 	return {int(row["name"]): row for row in rows}

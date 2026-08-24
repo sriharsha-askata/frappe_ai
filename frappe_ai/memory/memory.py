@@ -127,12 +127,40 @@ def _update(agent: str, memory_id: str, content: str, keywords: str | None = Non
 
 
 def _has_memory_tool(agent: str) -> bool:
-	return bool(
-		frappe.db.exists(
-			"AI Agent Tool",
-			{"parenttype": "AI Agent", "parent": agent, "tool": MEMORY_TOOL_SLUG},
+	if frappe.db.exists(
+		"AI Agent Tool",
+		{"parenttype": "AI Agent", "parent": agent, "tool": MEMORY_TOOL_SLUG},
+	):
+		return True
+
+	if frappe.db.exists("DocType", "AI Agent Tool Config") and frappe.db.exists(
+		"AI Agent Tool Config",
+		{"parenttype": "AI Agent", "parent": agent, "tool_name": MEMORY_TOOL_SLUG, "enabled": 1},
+	):
+		return True
+
+	if not frappe.db.exists("DocType", "AI Agent Plugin Tool"):
+		return False
+
+	try:
+		bindings = frappe.get_all(
+			"AI Agent Plugin Tool",
+			filters={"parenttype": "AI Agent", "parent": agent, "enabled": 1},
+			pluck="fac_tool",
 		)
-	)
+		if not bindings or not frappe.db.exists("DocType", "FAC Tool Configuration"):
+			return False
+		return bool(
+			frappe.get_all(
+				"FAC Tool Configuration",
+				filters={"name": ["in", bindings], "tool_name": MEMORY_TOOL_SLUG, "enabled": 1},
+				pluck="name",
+				limit=1,
+			)
+		)
+	except Exception:
+		# A missing/partially migrated FAC installation must not make prompt construction fail.
+		return False
 
 
 def _active_memories(agent: str, user: str) -> list[Any]:
@@ -157,4 +185,3 @@ def _select_relevant(rows: list[Any], agent: str, user: str, query: str) -> list
 		if row.name not in names:
 			names.append(row.name)
 	return [r for r in rows if r.name in set(names)]
-

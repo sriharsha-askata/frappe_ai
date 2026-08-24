@@ -65,7 +65,30 @@ def _extract_file_source(source) -> list[ExtractedDoc]:
 def extract_file(file_doc) -> str:
 	"""Extract plain text from a File doc by extension. Usable by any caller that holds a File doc."""
 	extension = os.path.splitext(file_doc.file_name or file_doc.file_url or "")[1].lower().lstrip(".")
+	if _is_remote_dfp_file(file_doc):
+		if hasattr(file_doc, "is_downloadable") and not file_doc.is_downloadable():
+			raise frappe.PageDoesNotExistError()
+		with tempfile.TemporaryDirectory(prefix="frappe-ai-extract-") as directory:
+			path = os.path.join(directory, f"source.{extension}")
+			file_doc.dfp_external_storage_download_to_file(path)
+			return _extract_path(path, extension).strip()
 	return _extract_by_extension(file_doc.get_content(), extension).strip()
+
+
+def _is_remote_dfp_file(file_doc) -> bool:
+	check = getattr(file_doc, "dfp_is_s3_remote_file", None)
+	download = getattr(file_doc, "dfp_external_storage_download_to_file", None)
+	return bool(callable(check) and check() and callable(download))
+
+
+def _extract_path(path: str, extension: str) -> str:
+	if extension == "pdf":
+		docling_text = _extract_pdf_docling_path(path)
+		if docling_text is not None:
+			return docling_text
+	with open(path, "rb") as handle:
+		data = handle.read()
+	return _extract_pdf_fallback(data) if extension == "pdf" else _extract_by_extension(data, extension)
 
 
 def _extract_url_source(source) -> list[ExtractedDoc]:
@@ -169,28 +192,31 @@ def _extract_pdf_docling(data: bytes) -> str | None:
 	with tempfile.NamedTemporaryFile(suffix=".pdf") as tmp:
 		tmp.write(data)
 		tmp.flush()
+		return _extract_pdf_docling_path(tmp.name)
 
-		attempts = (
-			{"do_ocr": True, "scale": 1.0, "do_table_structure": False, "require_minimum": True},
-			{"do_ocr": True, "scale": 0.5, "do_table_structure": False, "require_minimum": True},
-			{"do_ocr": True, "scale": 0.2, "do_table_structure": False, "require_minimum": True},
-			{"do_ocr": False, "scale": 1.0, "do_table_structure": False, "require_minimum": False},
-		)
 
-		for attempt in attempts:
-			try:
-				converter = _get_docling_pdf_converter(
-					do_ocr=attempt["do_ocr"],
-					scale=attempt["scale"],
-					do_table_structure=attempt["do_table_structure"],
-				)
-				result = converter.convert(tmp.name)
-				markdown = _export_docling_markdown_with_pages(result.document).strip()
-			except Exception:
-				return None
+def _extract_pdf_docling_path(path: str) -> str | None:
+	attempts = (
+		{"do_ocr": True, "scale": 1.0, "do_table_structure": False, "require_minimum": True},
+		{"do_ocr": True, "scale": 0.5, "do_table_structure": False, "require_minimum": True},
+		{"do_ocr": True, "scale": 0.2, "do_table_structure": False, "require_minimum": True},
+		{"do_ocr": False, "scale": 1.0, "do_table_structure": False, "require_minimum": False},
+	)
 
-			if not attempt["require_minimum"] or len(markdown) >= DOCLING_MIN_MARKDOWN_CHARS:
-				return markdown
+	for attempt in attempts:
+		try:
+			converter = _get_docling_pdf_converter(
+				do_ocr=attempt["do_ocr"],
+				scale=attempt["scale"],
+				do_table_structure=attempt["do_table_structure"],
+			)
+			result = converter.convert(path)
+			markdown = _export_docling_markdown_with_pages(result.document).strip()
+		except Exception:
+			return None
+
+		if not attempt["require_minimum"] or len(markdown) >= DOCLING_MIN_MARKDOWN_CHARS:
+			return markdown
 
 	return None
 

@@ -54,15 +54,15 @@
 │                   frappe_ai/api/service.py                                 │
 │                                                                             │
 │  get_run_config()                                                          │
-│    ├── _resolve_agent_tools()     ← Returns native AI Tool schemas         │
-│    └── _resolve_agent_mcp_connections()  ← Returns MCP connection config  │
+│    ├── _resolve_agent_plugin_tools() ← Direct Assistant Core/FAC schemas  │
+│    └── _resolve_agent_mcp_connections() ← Remote MCP connection config    │
 └─────────────────────────────────────────────────────────────────────────────┘
                                     │
                     ┌───────────────┴───────────────┐
                     ▼                               ▼
             ┌───────────────┐               ┌───────────────┐
-            │ Native Tools  │               │   MCP Tools   │
-            │ (ai_tool)     │               │ (Assistant)   │
+            │ Direct FAC   │               │   MCP Tools   │
+            │ (registry)   │               │ (remote)      │
             └───────────────┘               └───────────────┘
                     │                               │
                     └───────────────┬───────────────┘
@@ -71,7 +71,7 @@
 │                    frappe_ai/service/builder.py                            │
 │                                                                             │
 │  AgentBuilder.build()                                                      │
-│    ├── _build_tool()     ← Builds native tool Functions                   │
+│    ├── _build_tool()     ← Builds dispatchable direct/FAC Functions       │
 │    └── _build_mcp_tools() ← Builds MCP tool clients                       │
 └─────────────────────────────────────────────────────────────────────────────┘
                                     │
@@ -166,7 +166,9 @@ unexpected keyword argument 'headers'"}` — see Part 3 for the fix.
 4. Verify response comes back
 ```
 
-**Status:** code fix complete — ready for live testing on bench.
+**Status:** verified on `tact.local` 2026-08-19. Assistant Core MCP initialization and
+`tools/list` returned 24 tools; connection health and stream bootstrap are working.
+Successful model-driven execution remains dependent on valid model credentials.
 
 ---
 
@@ -349,7 +351,8 @@ test-agent chat-turn verification, not just `check_connection()`).
 **Completion criteria:** create/update/delete through Assistant Core is
 permission-equivalent to the native `AI Tool` path, and the budget-enforcement gap is
 either closed or explicitly deferred with a tracked follow-up (do not silently ship
-an unbounded-mutation path).
+an unbounded-mutation path). Direct FAC dispatch now counts against the `frappe_ai`
+budget; remote MCP transport still requires a separate budget design.
 
 ### Phase 3 — `execute` parity or replacement
 
@@ -650,7 +653,8 @@ reports are reviewed, and compatibility callers are isolated and documented.
 - [x] Permission testing: create_document via MCP works (verified via JSON-RPC)
 - [x] Permission testing: update_document via MCP works (verified via JSON-RPC)
 - [x] Budget enforcement analysis: ADR 0008 budgets do NOT apply to MCP-routed mutations (gap identified)
-- [ ] Budget enforcement: Decision and implementation still needed for remote MCP path; direct FAC dispatch now counts usage
+- [x] Budget enforcement: direct FAC dispatch counts usage
+- [ ] Budget enforcement: decide how remote MCP calls receive the same counters
 
 ### Phase 6 Verification
 

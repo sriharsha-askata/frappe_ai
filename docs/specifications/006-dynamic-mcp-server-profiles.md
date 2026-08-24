@@ -1,6 +1,13 @@
 # 006 — Dynamic MCP Server Profiles
 
-**Status:** Planned architecture.
+**Status:** Archived proposal; not the current implementation.
+
+This document describes an earlier dynamic MCP server-profile design. The current app
+uses `AI MCP Connection` records for remote/local MCP transports and `AI Agent MCP
+Connection` rows for agent bindings. Local Assistant Core tools use the separate
+`AI Agent Plugin Tool` direct-linkage path. See [007 — MCP Integration & Cleanup](007-mcp-integration-and-cleanup.md)
+for the active migration plan. The former `ai_mcp_server_profile` and
+`ai_mcp_server_tool` artifacts were removed as orphaned, unused artifacts.
 
 **Purpose:** Define how `frappe_ai` publishes centrally-defined tools through
 configuration-driven MCP servers without requiring one `mcp_server.py` module per app
@@ -155,6 +162,21 @@ It contains:
 Disabling a row removes the tool from that profile only. It does not disable the global
 `AI Tool` or remove the tool from other profiles.
 
+Exactly one of `ai_tool` and `import_path` must be set, matching `reference_type`; this
+is enforced in `validate()`. If the `AI Tool` linked by an `ai_tool` row is deleted or
+its `enabled` flag is turned off, the row's `resolution_status` moves to `failed` with a
+`resolution_error` explaining why, rather than silently disappearing from `tools/list` —
+a profile owner must see *why* a tool stopped being exposed, not just that it did.
+
+`schema_snapshot` and `resolution_status` are caches, not sources of truth. They are
+authoritative only between the moment a profile is validated/started and the moment the
+underlying `AI Tool.code` or `import_path` next changes. A long-running stdio or SSE
+server does not watch for those changes mid-session; `tools/list` reflects whatever was
+resolved at startup (see §6). A profile-level "resync" action must exist to force
+re-resolution without restarting the process, and profile owners should be warned that
+editing a Script tool's `code` while a server built from it is running will not take
+effect until that resync or a restart.
+
 ## 5. Dynamic Configuration
 
 Profiles accept standard MCP-style configuration JSON. A stdio profile may look like:
@@ -285,7 +307,9 @@ python -m frappe_ai.mcp.runner --config /path/to/mcp_config.json
 ```
 
 The runner initializes the selected Frappe site when required, resolves every selected
-tool before startup, and refuses to start with an invalid profile.
+tool before startup, and refuses to start with an invalid profile. Resolution performed
+at startup is cached for the life of the process (see §4 on `schema_snapshot`
+staleness) and is not re-checked automatically on each `tools/call`.
 
 ## 7. Transport and Security Boundaries
 
@@ -305,10 +329,40 @@ Database-backed Frappe tools require a Frappe site and authenticated execution c
 The runner must preserve Frappe permission checks and acting-user behavior. It must not
 fall back to unrestricted Administrator execution for normal tool calls.
 
-`frappe_assistant_core` remains the preferred owner of authenticated HTTP-hosted Frappe
-MCP endpoints. `frappe_ai` should not create a competing Frappe-hosted MCP server. The
-generic runner is appropriate for standalone or app-specific stdio profiles and for
-adapters that intentionally delegate to Assistant Core.
+The generic runner is appropriate for standalone or app-specific stdio, SSE, or
+Streamable HTTP profiles. `frappe_ai` should not use it to reimplement a general-purpose
+authenticated HTTP-hosted Frappe MCP endpoint; that is a distinct, larger problem than
+publishing a scoped set of app-specific tools.
+
+### 7.1 Inbound identity — who a `tools/call` executes as
+
+[ADR 0003](../decisions/0003-tools-execute-in-frappe.md)'s acting-user guarantee has an
+explicit mechanism on the browser→FastAPI→Frappe path (a short-lived HMAC run token
+binds a dispatch call to a specific run and a specific user). A remote MCP client
+calling this runner's `tools/call` has no `AI Run` and no run token — the mechanism
+must be defined per transport:
+
+- **stdio**: the runner process itself is launched under a specific OS/Frappe
+  identity (e.g. by `frappe_ai.mcp.runner --profile "Tender MCP"` running as
+  part of a site's process tree). Every tool call made through that process
+  executes as that one fixed identity for the process's lifetime. This is
+  acceptable **only** for profiles where the fixed identity is deliberately
+  scoped (e.g. a service account with narrow, reviewed permissions) — never
+  Administrator — and the profile document must record which identity a stdio
+  server runs as, so it is auditable rather than implicit in a launch command.
+- **SSE / Streamable HTTP**: the runner must authenticate each connecting
+  client and resolve a specific Frappe user for that connection before any
+  `tools/call` is dispatched — via a delegated user credential, or a signed,
+  expiring, run-scoped bridge token that the runner verifies before calling
+  `frappe.set_user`. A shared static API key that maps every caller to one
+  identity is **not acceptable** for any profile that exposes mutating tools,
+  for the same reason ADR 0003 rejects a shared service identity for the
+  browser-facing path.
+
+In all cases the runner must restore the prior user in a `finally` block
+around each dispatched call, matching the pattern ADR 0003 establishes for the
+Frappe-side dispatch endpoint, and must never execute a tool call with no
+resolved identity.
 
 ## 8. External MCP Discovery
 
@@ -379,5 +433,9 @@ snapshots.
 - `tools/call` invokes the correct resolved implementation.
 - Invalid, disabled, missing, or ambiguous references prevent startup with clear errors.
 - Existing external MCP connections continue to discover and catalog remote tools.
-- Assistant Core remains the preferred authenticated HTTP MCP server for Frappe-native
-  integrations.
+- A direct-path tool reference outside the hardcoded allowlist is rejected at validation,
+  regardless of who attempts to save it.
+- An SSE/Streamable HTTP profile with a mutating tool refuses to start without a defined
+  per-connection identity mechanism; no `tools/call` executes with an unresolved user.
+- Disabling or deleting an `AI Tool` referenced by a profile surfaces as a visible
+  `resolution_status = failed` on that profile's row, not a silent drop from `tools/list`.

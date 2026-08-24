@@ -118,7 +118,23 @@ def dispatch_plugin_tool(tool: str, user: str, arguments: dict | None = None, ru
 		from frappe_ai.api.budgets import consume
 
 		consume(run, mutation=tool in {"create_document", "update_document", "delete_document", "run_workflow"}, records=_record_count(arguments or {}))
-		result = get_tool_registry().execute_tool(tool, arguments or {})
+		tool_arguments = dict(arguments or {})
+		agent, knowledge_bases = _resolve_plugin_context(run)
+		if tool == "search_knowledge":
+			tool_arguments["__frappe_ai_knowledge_bases"] = knowledge_bases
+		elif tool == "update_memory":
+			if not agent:
+				frappe.throw(
+					_("update_memory requires an AI Run context."),
+					title=_("Missing Run Context"),
+				)
+			# These values come from the persisted run graph, never from model-supplied
+			# arguments. The native FAC wrapper consumes them without exposing them in
+			# its public input schema.
+			tool_arguments["__frappe_ai_agent"] = agent
+			tool_arguments["__frappe_ai_source_run"] = run
+
+		result = get_tool_registry().execute_tool(tool, tool_arguments)
 		return {"result": result}
 	except Exception as e:
 		return {"error": _error_text(e)}
@@ -133,6 +149,31 @@ def _record_count(arguments: dict) -> int:
 		if isinstance(value, list):
 			return max(len(value), 1)
 	return 1
+
+
+def _resolve_plugin_context(run: str | None) -> tuple[str | None, list[str]]:
+	"""Resolve server-owned agent scope for context-sensitive FAC tools.
+
+	The model must never be able to choose the agent whose memories are written or the
+	knowledge bases searched. Both values come from the persisted ``AI Run`` → ``AI
+	Session`` → ``AI Agent`` graph, and the run owner check is performed while the acting
+	user is installed.
+	"""
+	if not run:
+		return None, []
+
+	from frappe_ai.frappe_ai.doctype.ai_run.ai_run import assert_run_owner
+
+	run_doc = frappe.get_doc("AI Run", run)
+	assert_run_owner(run_doc)
+	session_doc = frappe.get_doc("AI Session", run_doc.session)
+	agent_doc = frappe.get_doc("AI Agent", session_doc.agent)
+	knowledge_bases = [
+		row.knowledge_base
+		for row in getattr(agent_doc, "knowledge_bases", []) or []
+		if getattr(row, "knowledge_base", None)
+	]
+	return agent_doc.name, knowledge_bases
 
 
 def _error_text(e: Exception) -> str:

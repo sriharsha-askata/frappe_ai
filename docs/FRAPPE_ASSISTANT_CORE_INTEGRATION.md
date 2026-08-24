@@ -1,18 +1,31 @@
 # Frappe Assistant Core Integration Guide
 
-> The dynamic MCP publication model is specified in
-> [006 — Dynamic MCP Server Profiles](specifications/006-dynamic-mcp-server-profiles.md).
-> This guide covers the Assistant Core integration boundary; the new specification covers
-> central tool definitions, profile-specific selection, and the reusable MCP runner.
+> The dynamic MCP publication model in [006 — Dynamic MCP Server Profiles](specifications/006-dynamic-mcp-server-profiles.md)
+> is archived. The active integration and migration plan is [007 — MCP Integration & Cleanup](specifications/007-mcp-integration-and-cleanup.md).
 
 This document explains how `frappe_ai` can use `frappe_assistant_core`, what
-that gives us, and which parts of `frappe_ai` should eventually be removed or
-reduced. It is the implementation guide for the future integration.
+that gives us, and which parts of `frappe_ai` should eventually be reduced. It is a
+boundary and migration guide; the current status is tracked in the Assistant Core
+progress document.
+
+## Current implementation (2026-08-21)
+
+`frappe_ai` now supports two Assistant Core paths:
+
+- **Direct plugin linkage** through `AI Agent Plugin Tool`, preferred for tools hosted
+  on the same site. These calls resolve through Assistant Core's in-process registry and
+  return through `frappe_ai`'s acting-user dispatch boundary.
+- **Remote MCP connections** through `AI MCP Connection`, used for external servers and
+  retained as a migration fallback for tender tools.
+
+The legacy `AI Tool`/`AI Agent Tool` records remain for compatibility and migration input;
+they are not being deleted as part of the current work.
 
 ## Executive Recommendation
 
-Use `frappe_assistant_core` as the canonical provider for generic Frappe
-business tools and use its existing MCP endpoint from `frappe_ai`.
+Use `frappe_assistant_core` as the canonical provider for generic Frappe business tools.
+Use direct plugin linkage for same-site tools and its MCP endpoint for remote or deliberate
+transport-based connections.
 
 Keep `frappe_ai` focused on:
 
@@ -32,9 +45,9 @@ The target architecture is:
 Browser
   -> frappe_ai / Frappe creates AI Run and run token
   -> frappe_ai FastAPI builds Agno Agent
-  -> Agno MCP client calls Assistant Core MCP endpoint
-  -> Assistant Core authenticates and resolves the user's tools
-  -> Assistant Core validates permissions and executes BaseTool
+  -> same-site: direct Assistant Core registry dispatch
+  -> remote/fallback: Agno MCP client calls Assistant Core MCP endpoint
+  -> Assistant Core authenticates, validates permissions, and executes BaseTool
   -> Assistant Core records its tool audit
   -> frappe_ai records the agent run and transcript
 ```
@@ -82,15 +95,15 @@ clients without adding a separate server process.
 
 | Capability | Current owner | Future canonical owner | Action in `frappe_ai` |
 |---|---|---|---|
-| Generic document read/list/create/update/delete | Both apps | Assistant Core | Migrate after parity verification |
-| DocType metadata and search | Both apps | Assistant Core | Remove duplicate runtime tools |
+| Generic document read/list/create/update/delete | Both apps | Assistant Core | Direct FAC linkage preferred; MCP fallback during migration |
+| DocType metadata and search | Both apps | Assistant Core | Migrate after schema/permission parity verification |
 | Reports and workflows | Assistant Core or plugins | Assistant Core | Consume through MCP |
 | Generic Python/code execution | Both apps | Explicit per-tool decision | Do not merge automatically |
 | Agent/session/run lifecycle | `frappe_ai` | `frappe_ai` | Keep |
 | Agno model calls and streaming | `frappe_ai` | `frappe_ai` | Keep |
 | Knowledge and memory | `frappe_ai` | `frappe_ai` | Keep |
 | Triggers and scheduled agent runs | `frappe_ai` | `frappe_ai` | Keep |
-| Assistant Core plugin tools | Assistant Core | Assistant Core | Consume through MCP |
+| Assistant Core plugin tools | Assistant Core | Assistant Core | Consume through direct linkage when same-site; MCP when remote |
 | Agent-specific custom tools | `frappe_ai` `AI Tool` | `frappe_ai` initially | Keep when no FAC equivalent exists |
 | MCP endpoint and tool registry | Assistant Core | Assistant Core | Do not duplicate |
 | Agent connection selection | `frappe_ai` | `frappe_ai` | Keep as agent configuration |
@@ -179,9 +192,10 @@ access during execution.
 
 ### Run configuration
 
-`frappe_ai` currently resolves `AI Agent.mcp_connections` in
-`frappe_ai/api/service.py` and sends connection details to FastAPI. The future
-configuration must distinguish safe connection metadata from secrets:
+`frappe_ai` resolves both `AI Agent.plugin_tools` and `AI Agent.mcp_connections` in
+`frappe_ai/api/service.py`. Direct plugin bindings use registry metadata; MCP bindings
+send connection details to FastAPI for the duration of a run. The current MCP
+configuration distinguishes run snapshots from transient connection credentials:
 
 ```text
 Safe to send to FastAPI:
@@ -191,20 +205,21 @@ Safe to send to FastAPI:
 - include_tools
 - timeout policy
 
-Do not place in run config or AI Run.config_snapshot:
+Do not place in `AI Run.config_snapshot`, logs, or persistent service state:
 - API secrets
 - OAuth refresh tokens
 - long-lived credentials
 ```
 
-The FastAPI service should receive a short-lived credential or use a controlled
-credential reference. It must not persist the Assistant Core credential.
+The current streamable-http path passes the configured API key/secret to the service
+in the per-run request so Agno can open the MCP client; the values are not included in
+the run snapshot. Credential minimization/rotation remains a production-hardening item.
 
 ### Runtime tool construction
 
-`AgentBuilder.build()` should continue to append MCP tools to the Agno agent,
-but the MCP connection builder must support Assistant Core's current
-StreamableHTTP transport in addition to existing stdio/SSE connections.
+`AgentBuilder.build()` appends direct plugin tools and MCP tools to the Agno agent. The
+MCP connection builder supports Assistant Core's StreamableHTTP transport in addition to
+stdio/SSE connections.
 
 The runtime should use the installed Agno API for StreamableHTTP and pass:
 
@@ -213,10 +228,9 @@ The runtime should use the installed Agno API for StreamableHTTP and pass:
 - the agent's `include_tools` allowlist;
 - discovery and call timeouts.
 
-The exact Agno constructor must be verified against the installed dependency
-before implementation. The current `frappe_ai` code uses `transport="sse"`,
-while Assistant Core documents StreamableHTTP; treating those as interchangeable
-without verification is a compatibility risk.
+The installed Agno constructor was verified on 2026-08-19: StreamableHTTP uses
+`MCPTools(transport="streamable-http", server_params=StreamableHTTPClientParams(...))`.
+Treating SSE and StreamableHTTP as interchangeable remains incorrect.
 
 ## Identity and Security Requirement
 
@@ -251,16 +265,16 @@ request.
 A shared key is acceptable only for an explicitly restricted, read-only
 deployment. It must not be the default for agents that can mutate Frappe data.
 
-## Required Application Changes
+## Current implementation and remaining work
 
 ### `frappe_ai` connection model
 
-Extend `AI MCP Connection` to support:
+`AI MCP Connection` now supports:
 
 - `streamable-http` transport;
 - endpoint URL;
 - authentication mode;
-- credential reference rather than raw secrets;
+- per-connection credentials used transiently by the service;
 - separate discovery and tool-call timeouts;
 - connection health and last discovery result.
 
@@ -268,13 +282,14 @@ Preserve existing stdio/SSE records and behavior during migration.
 
 ### `frappe_ai` service configuration
 
-Update the Frappe-to-FastAPI run configuration so it sends only safe connection
-metadata and a short-lived auth mechanism. Do not include credentials in
-`AI Run.config_snapshot`, logs, or serialized agent configuration.
+The Frappe-to-FastAPI run configuration sends the selected MCP connection metadata and
+transient authentication values needed to construct the client. Credentials are not
+included in `AI Run.config_snapshot`, logs, or serialized agent configuration.
+Credential rotation/minimization remains open hardening work.
 
 ### `AgentBuilder`
 
-Update `_build_mcp_tools()` to:
+`_build_mcp_tools()` now:
 
 - construct the correct StreamableHTTP client;
 - pass authentication safely;
@@ -285,10 +300,9 @@ Update `_build_mcp_tools()` to:
 
 ### Connection health checks
 
-Update `frappe_ai/api/mcp.py` so health checks perform a real MCP handshake and
-tool discovery for Assistant Core. The result should distinguish endpoint
-unreachable, authentication failure, protocol mismatch, discovery failure, and
-healthy discovery with a tool count.
+`frappe_ai/api/mcp.py` performs a real MCP handshake and tool discovery. The current
+health result records connection state, status text, and discovered tool metadata; more
+granular operational classification remains optional hardening.
 
 ### Agent tool configuration UI
 
@@ -298,14 +312,19 @@ Assistant Core tools are the same storage type.
 
 ### Native tool migration
 
-Add a compatibility report or migration utility that compares native `AI Tool`
+The compatibility report/migration utility compares native `AI Tool`
 slugs with Assistant Core tool names. It should identify exact duplicates,
 similar but incompatible schemas, `frappe_ai`-only tools, Assistant Core-only
 tools, and agents dependent on each tool.
 
-Only exact, tested replacements should be migrated automatically.
+Only exact, tested replacements are migrated automatically. The current migration keeps
+legacy DocTypes as compatibility records.
 
 ## Suggested Migration Order
+
+The sequence below is the original migration shape. Phases 0–2 and the initial MCP
+verification are complete. The active detailed plan, including direct FAC linkage,
+tender migration, budget gaps, and legacy-DocType retention, is in [spec 007](specifications/007-mcp-integration-and-cleanup.md).
 
 ### Phase 0: Inventory
 
@@ -337,11 +356,12 @@ Only exact, tested replacements should be migrated automatically.
 - Add confirmation policy for mutating Assistant Core tools.
 - Enable selected mutating tools by explicit agent allowlist.
 
-### Phase 4: Remove redundancy
+### Phase 4: Reduce redundancy
 
 - Migrate agents from duplicate `frappe_ai` builtins to Assistant Core.
 - Stop seeding migrated duplicate builtin rows.
-- Remove unused duplicate implementations and tests.
+- Retire only duplicate runtime paths proven redundant; retain compatibility records and
+  migration tooling.
 - Keep a compatibility path until stored agents are migrated.
 
 ### Phase 5: Optional unification
@@ -352,8 +372,8 @@ not required for the initial integration.
 
 ## Failure and Fallback Rules
 
-- If Assistant Core is unavailable, continue only with native tools and other
-  healthy MCP connections.
+- If Assistant Core is unavailable, continue with direct native/FAC tools and other
+  healthy MCP connections where the agent configuration permits it.
 - If authentication fails, report an MCP connection error; do not retry with a
   privileged fallback identity.
 - If a requested tool is not returned by `tools/list`, treat it as unavailable.

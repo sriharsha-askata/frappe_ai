@@ -13,10 +13,16 @@
   "is_connected",
   "last_check_time",
   "status_message",
+  "section_break_auth",
+  "api_key",
+  "api_secret",
   "section_break_config",
   "command",
+  "command_args",
   "endpoint_url",
-  "environment_variables"
+  "environment_variables",
+  "mcp_config",
+  "tools"
  ],
  "fields": [
   {
@@ -39,7 +45,7 @@
    "fieldtype": "Select",
    "in_list_view": 1,
    "label": "Connection Type",
-   "options": "stdio\nSSE",
+   "options": "stdio\nSSE\nstreamable-http",
    "reqd": 1
   },
   {
@@ -65,6 +71,23 @@
    "read_only": 1
   },
   {
+   "fieldname": "section_break_auth",
+   "fieldtype": "Section Break",
+   "label": "Authentication"
+  },
+  {
+   "fieldname": "api_key",
+   "fieldtype": "Data",
+   "label": "API Key",
+   "description": "API key for authentication (used with streamable-http)"
+  },
+  {
+   "fieldname": "api_secret",
+   "fieldtype": "Password",
+   "label": "API Secret",
+   "description": "API secret for authentication (used with streamable-http)"
+  },
+  {
    "fieldname": "section_break_config",
    "fieldtype": "Section Break",
    "label": "Configuration"
@@ -76,7 +99,13 @@
    "label": "Command"
   },
   {
-   "depends_on": "eval:doc.connection_type === 'SSE'",
+   "depends_on": "eval:doc.connection_type === 'stdio'",
+   "fieldname": "command_args",
+   "fieldtype": "JSON",
+   "label": "Command Arguments"
+  },
+  {
+   "depends_on": "eval:['SSE', 'streamable-http'].includes(doc.connection_type)",
    "fieldname": "endpoint_url",
    "fieldtype": "Data",
    "label": "Endpoint URL"
@@ -85,6 +114,24 @@
    "fieldname": "environment_variables",
    "fieldtype": "JSON",
    "label": "Environment Variables"
+  },
+  {
+   "fieldname": "mcp_config",
+   "fieldtype": "JSON",
+   "label": "MCP Config"
+  },
+  {
+   "fieldname": "tools",
+   "fieldtype": "Table",
+   "label": "Discovered Tools",
+   "options": "AI MCP Tool"
+  },
+  {
+   "fieldname": "tools_list",
+   "fieldtype": "Small Text",
+   "label": "Available Tools",
+   "description": "List of available tools from this MCP connection",
+   "read_only": 1
   }
  ],
  "index_web_pages_for_search": 1,

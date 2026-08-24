@@ -1,8 +1,9 @@
 # 001 — Architecture Specification
 
-**Status:** Approved. Implemented through Phase 5; Phase 6 frontend runtime is partially
-implemented in React/esbuild, but the full-page host layout is still being separated from
-the slide-in panel shell. Phase 8 production-hardening items remain outstanding.
+**Status:** Approved. Core runtime/parity phases 1–5 are implemented; the Phase 6
+frontend runtime is implemented in React/esbuild, but the full-page host layout is still
+being separated from the slide-in panel shell. Assistant Core/FAC migration is active,
+and Phase 8 production-hardening items remain outstanding.
 **Applies to:** `apps/frappe_ai`
 **Supersedes:** nothing (new app)
 
@@ -68,7 +69,8 @@ The objective is therefore narrow: **change the execution substrate, preserve th
 │                                   │(5)│                               │
 │  Triggers (doc_events + cron) ────┼──►│                               │
 │  safe_exec sandbox                │   │  Stateless. No credentials    │
-│  Permission enforcement           │   │  at rest. No DB access.       │
+│  LanceDB (derived indexes)        │   │  at rest. No DB access.       │
+│  Permission enforcement           │   │  No direct LanceDB access.    │
 └───────────────────────────────────┘   └───────────────────────────────┘
 ```
 
@@ -80,7 +82,9 @@ The objective is therefore narrow: **change the execution substrate, preserve th
    with a short-lived token minted by Frappe. Frappe workers are not held open.
 3. **Config fetch** — FastAPI pulls agent configuration from Frappe at the start of each
    run (stateless; no cache that could go stale after a DocType edit).
-4. **Retrieval** — FastAPI queries LanceDB directly for knowledge search.
+4. **Retrieval** — Frappe-side knowledge and memory modules access the site-scoped
+   LanceDB store from the tool/persistence boundary. The FastAPI service remains
+   stateless and does not open a Frappe database connection.
 5. **Tool dispatch & persistence** — every Frappe-touching tool call, and every message/run
    write, goes back to Frappe over HTTP carrying the originating user's identity.
 
@@ -101,7 +105,7 @@ resolve the question against it.
 | Sandboxed code execution (Script tools, conditions) | **Frappe** | `safe_exec` namespace lives with the data it guards |
 | LLM orchestration / run loop | **FastAPI + Agno** | The async work that motivated the split |
 | Streaming to the browser | **FastAPI** | Long-lived connections must not occupy Frappe workers |
-| Vector storage and similarity search | **LanceDB** (via FastAPI) | Shared store; writes stay in Frappe workers |
+| Vector storage and similarity search | **LanceDB**, accessed by Frappe knowledge/memory modules | Site-local derived store; writes and retrieval stay behind the Frappe boundary |
 | Trigger *detection* (doc events, cron) | **Frappe** | Requires in-process hooks and the scheduler |
 | Trigger *execution* | **FastAPI** | Same run path as interactive chat |
 
@@ -134,7 +138,7 @@ Browser                Frappe :8000                      FastAPI :8001
    │                       mint short-lived run token
    │        ◄──────────────  {run, session, token, stream_url}
    │
-   ├─ EventSource(stream_url, Bearer token) ─────────────►
+   ├─ POST stream_url, Bearer token ─────────────────────►
    │                                              verify token w/ Frappe
    │                                              GET agent config ──►
    │                       ◄──────────────────────
@@ -272,8 +276,9 @@ See [ADR 0002](../decisions/0002-lancedb-vector-store.md).
 
 ## 8. Streaming Protocol
 
-SSE over `text/event-stream`. The wire format is **identical to `flow`'s**, so the Vue
-panel port is mechanical.
+SSE over `text/event-stream`. The event shapes remain compatible with `flow`; the current
+React client parses the stream through a fetch-based transport adapter because resume
+requests carry a JSON body.
 
 | Event | Payload |
 |---|---|
@@ -324,9 +329,10 @@ rate limit rather than the gunicorn worker count.
 New dependencies: `agno`, `fastapi`, `uvicorn`.
 Already present in this bench: `lancedb 0.36.0`, `openai 2.30.0`, `pydantic 2.11.7`.
 
-> `litellm 1.83.7` is present in this bench (installed transitively for other apps)
-> but `frappe_ai` does not depend on it. Model calls go through Agno's native
-> per-provider classes instead. See [ADR 0009](../decisions/0009-no-litellm-agno-native-models.md).
+> `litellm` is a declared dependency for provider validation and model-id suggestions
+> only. Chat calls and embedding calls do not go through litellm: chat uses Agno's native
+> provider classes, and embeddings use direct provider SDK callers. See [ADR 0009](../decisions/0009-no-litellm-agno-native-models.md),
+> [ADR 0012](../decisions/0012-embeddings-direct-provider-sdk.md), and [ADR 0013](../decisions/0013-litellm-for-provider-ux-agno-still-executes.md).
 
 ---
 
@@ -337,9 +343,10 @@ Already present in this bench: `lancedb 0.36.0`, `openai 2.30.0`, `pydantic 2.11
 2. The browser can reach `:8001` directly (same host, or a reverse-proxy route).
 3. Site count is small enough that one service instance can serve all sites; the site name
    is carried per request.
-4. LanceDB runs embedded against the site's private files directory. The service therefore
-   needs read access to that path; ingestion writes stay in Frappe background workers
-   (single-writer discipline).
+4. LanceDB runs embedded against the site's private files directory from Frappe-side
+   knowledge and memory code. Ingestion writes stay in Frappe background workers
+   (single-writer discipline); the FastAPI service does not need direct filesystem access
+   to the LanceDB store.
 
 ---
 

@@ -64,6 +64,7 @@ class AISettings(Document):
 		if not self.embedding_model:
 			self.embedding_dimension = 0
 			return
+		require_embedding_model(self.embedding_model)
 		previous = self.get_doc_before_save()
 		model_unchanged = previous is not None and previous.embedding_model == self.embedding_model
 		if model_unchanged and self.embedding_dimension:
@@ -79,11 +80,22 @@ class AISettings(Document):
 		self.embedding_dimension = probe_dimension(self.embedding_model)
 
 
-def require_embedding_model():
-	"""Knowledge ingestion needs an embedding model; block creating knowledge docs until one is set."""
+def require_embedding_model(model_name: str | None = None):
+	"""Require a configured AI Model explicitly marked for embeddings."""
 	settings = frappe.get_cached_doc("AI Settings")
-	if not settings.embedding_model:
+	model_name = model_name or settings.embedding_model
+	if not model_name:
 		frappe.throw(
 			_("Set an embedding model in AI Settings before adding knowledge bases or sources."),
 			title=_("AI Settings Required"),
 		)
+	model_type, model_enabled = frappe.db.get_value("AI Model", model_name, ["model_type", "enabled"])
+	if model_type != "Embedding":
+		frappe.throw(
+			_("AI Model {0} is a Chat model. Select Model Type = Embedding before using it for knowledge.").format(
+				model_name
+			),
+			title=_("Invalid Embedding Model"),
+		)
+	if not model_enabled:
+		frappe.throw(_("AI Model {0} is disabled.").format(model_name), title=_("Model Disabled"))

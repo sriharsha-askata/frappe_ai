@@ -6,15 +6,18 @@ knowledge, event-driven automation, persistent memory, and a full audit trail.
 **Architecture:** Frappe (config, persistence, permissions) + FastAPI (async orchestration)
 + Agno (agent framework) + LanceDB (vectors).
 
-**Current status:** ✅ Phase 5 verified (Triggers, Memory & MCP). Phase 6 frontend work
-now has an API-first React SPA with a dedicated `/app/frappe-ai` workspace, plus thin
-Desk/page host adapters for compatibility. The same-origin frontend contract is now
-documented explicitly for custom clients. See the
-[progress tracker](progress/flow-to-frappe-ai-migration.md).
+**Current status (2026-08-21):** Core runtime/parity phases 1–5 are implemented, and
+the Phase 6 React frontend runtime is in place. Remaining frontend work is dedicated
+page-shell layout and end-to-end parity verification. Current implementation work is
+the Assistant Core/FAC migration: direct plugin bindings are implemented, while tender
+workflow verification and the final legacy-tool audit remain. Production hardening is
+still incomplete. See the [migration progress tracker](progress/flow-to-frappe-ai-migration.md)
+and the [Assistant Core migration tracker](progress/ai-tool-retirement-via-assistant-core.md).
 
-> ⚠️ **Phases 1–7 deliver parity, not production readiness.** Safety-critical items —
-> SSE heartbeats, execution budgets, mutation limits, rate limiting — are scheduled for
-> **Phase 8.1**, which is a hard gate before any production traffic. Details in the
+> ⚠️ **Parity work does not imply production readiness.** SSE heartbeats, rate limiting,
+> bounded LLM retries, observability, and equivalent budget handling for remote MCP
+> remain in **Phase 8.1**, which is a hard gate before any production traffic. Direct
+> Frappe/FAC budget accounting exists, but the complete hardening gate is not met. Details in the
 > [progress tracker](progress/flow-to-frappe-ai-migration.md#parity--production-ready).
 
 ---
@@ -27,7 +30,7 @@ documented explicitly for custom clients. See the
 | Know what feature lives where | [002 — Feature Mapping](specifications/002-feature-mapping.md) |
 | Look up a DocType or field | [003 — DocType Reference](specifications/003-doctype-reference.md) |
 | Implement or review a custom frontend client | [005 — Frontend Contract](specifications/005-frontend-contract.md) |
-| Know where the work stands | [Progress tracker](progress/flow-to-frappe-ai-migration.md) |
+| Know where the work stands | [Migration progress](progress/flow-to-frappe-ai-migration.md) and [Assistant Core/FAC migration progress](progress/ai-tool-retirement-via-assistant-core.md) |
 | Understand *why* something is the way it is | [Decisions](#decisions) below |
 | See what surprised us while building this, and why | [Learnings](learnings.md) |
 
@@ -39,9 +42,12 @@ documented explicitly for custom clients. See the
 |---|---|
 | [001 — Architecture](specifications/001-architecture.md) | Component boundaries, request lifecycles, auth model, data architecture, streaming protocol, failure handling, deployment |
 | [002 — Feature Mapping](specifications/002-feature-mapping.md) | Every `flow` capability and its `frappe_ai` equivalent, marked Port / Adapt / Redesign / New / Drop. The parity checklist. |
-| [003 — DocType Reference](specifications/003-doctype-reference.md) | All 18 DocTypes: fields, types, naming rules, controllers, permissions |
-| [006 — Dynamic MCP Server Profiles](specifications/006-dynamic-mcp-server-profiles.md) | Central AI Tool definitions, configurable MCP profiles, dynamic tool publication, and migration from app-specific MCP server files |
+| [003 — DocType Reference](specifications/003-doctype-reference.md) | All 22 current DocTypes: fields, types, naming rules, controllers, permissions |
+| [006 — Dynamic MCP Server Profiles](specifications/006-dynamic-mcp-server-profiles.md) | Archived earlier profile proposal; current MCP work is tracked in 007 |
 | [005 — Frontend Contract](specifications/005-frontend-contract.md) | Stable same-origin JSON endpoints, SSE stream protocol, host adapter boundaries, and end-to-end client flows for the standalone SPA or any custom frontend |
+| [DocType Cleanup Plan](DOCTYPE_CLEANUP_PLAN.md) | Which DocTypes are genuinely dead vs. load-bearing; corrects an earlier premise that MCP had already replaced the builtin tool system |
+| [007 — MCP Integration & Cleanup](specifications/007-mcp-integration-and-cleanup.md) | Verified plan to integrate with Assistant Core/FAC, migrate runtime authority, and retain `ai_tool`/`ai_agent_tool` as compatibility records |
+| [011 — AI Model Capability Testing](specifications/011-ai-model-capability-testing.md) | Explicit saved-model Chat/Embedding capability suite and result contract |
 
 ## Decisions
 
@@ -55,12 +61,13 @@ documented explicitly for custom clients. See the
 | [0006](decisions/0006-unified-safe-exec-namespace.md) | One hardened `safe_exec` namespace | Fixes a permission-bypass present in `flow`; explains why Agno doesn't replace sandboxing |
 | [0007](decisions/0007-failure-over-durable-execution.md) | Fail-and-retry, not mid-run resume | Why a service restart fails runs cleanly instead of resuming them; triggers stay durable via RQ |
 | [0008](decisions/0008-execution-budgets.md) | Execution budgets and mutation limits | Bounds *how much* an agent can do, where ADR 0003 bounds *what* it can touch |
-| [0009](decisions/0009-no-litellm-agno-native-models.md) | Drop litellm; use Agno's native per-provider model classes | Removes a redundant abstraction layer under Agno — `AI Model` maps directly onto an Agno model class |
+| [0009](decisions/0009-no-litellm-agno-native-models.md) | ~~No litellm for chat execution; use Agno's native per-provider model classes~~ — **Superseded by 0014** | Historical rationale for keeping Agno as the orchestration layer |
 | [0010](decisions/0010-service-bootstrap-via-env-vars.md) | ~~FastAPI service bootstraps via environment variables~~ — **Superseded by 0011** | Env-var secret required a manual export step `bench start` didn't automate; caused a real boot failure |
 | [0011](decisions/0011-service-secret-in-site-config.md) | Service secret lives in `site_config.json`, not a DB field + env var | `bench start` boots the service unattended; one source of truth instead of two kept in sync by hand |
 | [0012](decisions/0012-embeddings-direct-provider-sdk.md) | Embeddings via direct provider SDK calls, not litellm or Agno | No `agno.embedder` exists; extends ADR 0009's reasoning to the one call type it didn't originally cover |
 | [0013](decisions/0013-litellm-for-provider-ux-agno-still-executes.md) | ~~litellm for provider/model UX only; Agno still executes chat~~ — **Superseded by 0014** | Historical provider/model UX decision; LiteLLM remains UX-only |
 | [0014](decisions/0014-openai-compatible-chat-transport.md) | One OpenAI-compatible transport for all chat execution | Removes provider SDK coupling while preserving Agno orchestration, tools, confirmations, structured output, and streaming |
+| [0015](decisions/0015-configuration-time-model-capability-tests.md) | Capability checks run explicitly at configuration time | Provides actionable coverage without runtime preflight calls or real business-tool execution |
 
 ---
 
@@ -103,8 +110,11 @@ how many records a legitimately-permitted agent writes — and `auto_approve` tr
 human check at all.
 
 Per-run budgets (`max_tool_calls`, `max_mutations`, `max_records_per_call`,
-`max_runtime_seconds`) close that gap, enforced at dispatch **and** inside each mutating
-builtin. → [ADR 0008](decisions/0008-execution-budgets.md)
+`max_runtime_seconds`) close that gap at the direct Frappe/FAC dispatch boundary.
+→ [ADR 0008](decisions/0008-execution-budgets.md)
+
+The budget fields and direct Frappe/FAC dispatch accounting are implemented. Remote MCP
+calls still bypass these counters and remain a production-hardening gap.
 
 ---
 

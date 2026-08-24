@@ -22,12 +22,13 @@ marked done in the [progress tracker](../progress/flow-to-frappe-ai-migration.md
 
 ## 1. Configuration Tier
 
-> **litellm dropped.** `flow`'s configuration tier validates providers and model
+> **litellm is UX-only.** `flow`'s configuration tier validates providers and model
 > ids against litellm, and auto-detects context window via
-> `litellm.get_model_info()`. `frappe_ai` does not depend on litellm — provider
-> validation and model instantiation go through Agno's native per-provider model
-> classes instead. Rows 1.1, 1.2, 1.5, 1.6, and 1.8 below are marked
-> **Redesign** as a result. See [ADR 0009](../decisions/0009-no-litellm-agno-native-models.md).
+> `litellm.get_model_info()`. `frappe_ai` uses litellm only for provider/model
+> suggestions; provider validation and model instantiation use the shared
+> OpenAI-compatible transport. Rows 1.1, 1.2, 1.5, 1.6,
+> and 1.8 below are marked **Redesign** as a result. See [ADR 0014](../decisions/0014-openai-compatible-chat-transport.md)
+> and [ADR 0015](../decisions/0015-configuration-time-model-capability-tests.md).
 
 | # | `flow` feature | `frappe_ai` | Kind | Notes |
 |---|---|---|---|---|
@@ -38,7 +39,7 @@ marked done in the [progress tracker](../progress/flow-to-frappe-ai-migration.md
 | 1.5 | `_apply_provider` prefixing `provider/` onto `model_id` | Dropped. `model_id` is a bare id (e.g. `"claude-sonnet-4-6"`); provider comes from the linked `AI Provider`, not string composition. | **Redesign** | ADR 0009. |
 | 1.6 | `_resolve_context_window` via `litellm.get_model_info` | Dropped. `context_window` is a plain user-editable `Int`, not derived. | **Redesign** | No Agno equivalent exists; documented as a deliberate loss of convenience, not a functional regression. ADR 0009. |
 | 1.7 | `RESERVED_PARAM_KEYS` rejection | same | **Port** | |
-| 1.8 | `test_connection()` — 1-token ping via `litellm.completion` | Instantiates the resolved Agno model class and issues its own minimal call | **Redesign** | Provider-class-specific rather than one generic call. Requires `agno` installed; deferred to whichever phase first declares that dependency. ADR 0009. |
+| 1.8 | `test_connection()` — 1-token ping via `litellm.completion` | Explicit fresh capability suite for Chat/Embedding transports; runtime never preflights | **Redesign** | Core checks cover non-streaming, streaming, synthetic tools/tool-call round trip, and embeddings. Structured output and bounded larger input are warnings. See ADR 0015. |
 | 1.9 | `get_provider_models(provider)` | same, sourced from the fixed Agno provider-slug set rather than `litellm.models_by_provider` | **Adapt** | |
 | 1.10 | `Flow Knowledge Settings` (Single) — embedding model, chunk size/overlap, search type | `AI Settings` (Single) | **Adapt** | Merged with new service config: `service_base_url`, `service_secret`, timeouts, `lancedb_path`. |
 | 1.11 | `_guard_model_change` — blocks embedding-model change while chunks exist | same | **Port** | Bypass flag retained. |
@@ -143,7 +144,7 @@ dispatch endpoint.
 | 5.6 | 10 MB `_read_capped` limit | same | **Port** | |
 | 5.7 | DocType source `content_fields` validated against meta | same | **Port** | Blocks injection; rejects child-table fields. |
 | 5.8 | Character chunker with overlap, whitespace-aware | same | **Port** | |
-| 5.9 | Embedding via litellm, batched at 96, order-preserving | `frappe_ai.knowledge.embedder`, direct provider SDK calls via `EMBEDDING_CALLERS` | **Redesign** | No litellm (ADR 0009), no Agno embedder package exists. Batching/order-preservation logic ported unchanged; the provider call site is new. Ships `openai` only — see [ADR 0012](../decisions/0012-embeddings-direct-provider-sdk.md). |
+| 5.9 | Embedding via litellm, batched at 96, order-preserving | `frappe_ai.knowledge.embedder`, direct provider SDK calls via `EMBEDDING_CALLERS` | **Redesign** | Embeddings do not use litellm; no Agno embedder package exists. Batching/order-preservation logic ported unchanged; the provider call site is new. Ships `openai` only — see [ADR 0012](../decisions/0012-embeddings-direct-provider-sdk.md). |
 | 5.10 | `probe_dimension()` | same | **Port** | `AI Settings.embedding_model` is `Link → AI Model` (unlike `flow`'s raw model-id string), so this takes an `AI Model` name and resolves credentials the same way chat models do (`AI Model` own creds, then `AI Provider` fallback). |
 | 5.11 | LanceDB `chunks` table | same | **Port** | [ADR 0002](../decisions/0002-lancedb-vector-store.md) |
 | 5.12 | **Hybrid search (BM25 + vector)** | same | **Port** | Preserved by staying on LanceDB. `search_type` defaults to `Hybrid`. |
@@ -246,11 +247,11 @@ dispatch endpoint.
 
 | # | `flow` feature | `frappe_ai` | Kind | Notes |
 |---|---|---|---|---|
-| 10.1 | Built-in `Flow` assistant agent, 40 iterations | `Frappe AI` assistant | **Port** | |
-| 10.2 | ~50-line operating-doctrine system prompt | same | **Port** | discover→verify→act; Custom Field guidance; agent-vs-one-shot; KB recipe; Script-tool contract. |
-| 10.3 | `sync_builtin_assistant` on `after_migrate` and on first model insert | same | **Port** | |
-| 10.4 | Refreshes instructions, appends missing tools, **never removes user-added tools**; bails if the user cleared `is_system_generated` | same | **Port** | |
-| 10.5 | No-op when no enabled model exists | same | **Port** | |
+| 10.1 | Built-in `Flow` assistant agent, 40 iterations | `Frappe AI` assistant | **Pending** | `frappe_ai.assistant` has not been implemented yet; this remains a parity item. |
+| 10.2 | ~50-line operating-doctrine system prompt | — | **Pending** | The operating-doctrine prompt is not currently shipped. |
+| 10.3 | `sync_builtin_assistant` on `after_migrate` and on first model insert | guarded hook only | **Pending** | `AI Model.after_insert` has an ImportError guard; `hooks.py` does not currently register the sync. |
+| 10.4 | Refreshes instructions, appends missing tools, **never removes user-added tools**; bails if the user cleared `is_system_generated` | — | **Pending** | Must be implemented with the assistant agent. |
+| 10.5 | No-op when no enabled model exists | — | **Pending** | Behaviour to verify when the assistant agent is implemented. |
 
 ---
 
@@ -276,7 +277,7 @@ dispatch endpoint.
 | Port | ~86 |
 | Adapt | ~16 |
 | Redesign | 7 |
-| New | 8 (MCP) + 2 (agent tuning fields) |
+| New | 8 original MCP items + Assistant Core/FAC migration items + 2 agent tuning fields |
 | Drop | 2 |
 
 **The two drops**, both deliberate:
@@ -292,19 +293,23 @@ dispatch endpoint.
 2. **Explicit dependency declaration** (11.6) — `flow` relied on transitive availability.
 3. **Trigger execution transport** (6.14) — in-process execution becomes a POST to the
    service. Detection logic itself is unchanged.
-4. **Provider validation** (1.1, 1.2) — validated against Agno-supported provider slugs
-   instead of `litellm.provider_list`. → [ADR 0009](../decisions/0009-no-litellm-agno-native-models.md)
+4. **Provider validation** (1.1, 1.2) — chat execution is resolved against Agno-supported
+   provider slugs; litellm is used only for provider validation and model suggestions.
+   → [ADR 0009](../decisions/0009-no-litellm-agno-native-models.md),
+   [ADR 0013](../decisions/0013-litellm-for-provider-ux-agno-still-executes.md)
 5. **Model id composition** (1.5) — `model_id` is a bare id resolved via the linked
    `AI Provider`, not a litellm-parsed `provider/model` string. → ADR 0009
 6. **Context window** (1.6) — dropped from auto-detected to plain user-editable, since
    Agno has no `litellm.get_model_info()` equivalent. → ADR 0009
-7. **Connection test** (1.8) — provider-class-specific ping via the resolved Agno model
-   class, instead of one generic `litellm.completion()` call. → ADR 0009
+7. **Connection test** (1.8) — explicit fresh capability suite through the shared
+   OpenAI-compatible transport, with synthetic-only tool testing and blocked
+   dependent checks. → ADR 0015
 
-Items 4–7 are all instances of the same underlying redesign — dropping litellm as a
-dependency in favor of Agno's native per-provider model classes — counted separately
-here because each touches a distinct row above, but documented as one decision in
-[ADR 0009](../decisions/0009-no-litellm-agno-native-models.md).
+Items 4–7 are all instances of the same underlying redesign — keeping Agno as the sole
+chat execution layer while narrowing litellm to provider/model UX and validation —
+counted separately here because each touches a distinct row above. The final split is
+documented in [ADR 0009](../decisions/0009-no-litellm-agno-native-models.md) and
+[ADR 0013](../decisions/0013-litellm-for-provider-ux-agno-still-executes.md).
 
 > **Note:** an earlier draft planned a move to ChromaDB, which would have added four more
 > redesigns — losing hybrid search, degrading memory recall to keyword matching, and

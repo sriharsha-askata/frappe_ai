@@ -34,6 +34,7 @@ AI_INTERNAL_DOCTYPES = frozenset(
 		"AI Settings",
 		"AI Agent",
 		"AI Agent Tool",
+		"AI Agent Tool Config",
 		"AI Agent Knowledge Base",
 		"AI Tool",
 		"AI Session",

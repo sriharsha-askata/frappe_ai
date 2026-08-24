@@ -5,7 +5,8 @@
  "engine": "InnoDB",
  "field_order": [
   "mcp_connection",
-  "include_tools"
+  "include_tools",
+  "tools_list"
  ],
  "fields": [
   {
@@ -17,10 +18,16 @@
    "reqd": 1
   },
   {
-   "description": "Optional JSON array of MCP tool names to expose from this connection for this agent only.",
+   "description": "Optional: comma-separated list of tool names to use. Leave empty to use all.",
    "fieldname": "include_tools",
-   "fieldtype": "JSON",
+   "fieldtype": "Small Text",
    "label": "Include Tools"
+  },
+  {
+   "fieldname": "tools_list",
+   "fieldtype": "Small Text",
+   "label": "Available Tools",
+   "read_only": 1
   }
  ],
  "istable": 1,

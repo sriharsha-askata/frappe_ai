@@ -13,6 +13,14 @@ import frappe
 from frappe import _
 
 
+EMBEDDING_MODEL_PREFIXES = (
+	"text-embedding-",
+	"gemini-embedding-",
+	"openai/text-embedding-",
+	"gemini/gemini-embedding-",
+)
+
+
 def migrate_ai_tools() -> dict[str, Any]:
 	"""Migrate legacy AI Tool selections to direct FAC bindings idempotently."""
 	report: dict[str, Any] = {"migrated": [], "unmatched": [], "ambiguous": [], "skipped": []}
@@ -75,6 +83,32 @@ def migrate_ai_tools() -> dict[str, Any]:
 
 	frappe.db.commit()
 	report["status"] = "completed" if not (report["unmatched"] or report["ambiguous"]) else "completed_with_review"
+	return report
+
+
+def migrate_ai_model_types() -> dict[str, Any]:
+	"""Mark legacy models as embeddings only when their IDs say so unambiguously.
+
+	New and otherwise unidentifiable models retain the Chat default. The migration
+	is repeatable and never changes a model already marked Embedding.
+	"""
+	report: dict[str, Any] = {"updated": [], "skipped": []}
+	if not frappe.db.exists("DocType", "AI Model"):
+		return {**report, "status": "not_installed"}
+
+	for row in frappe.get_all("AI Model", fields=["name", "model_id", "model_type"]):
+		if row.model_type == "Embedding":
+			report["skipped"].append({"name": row.name, "reason": "already_embedding"})
+			continue
+		model_id = (row.model_id or "").strip().casefold()
+		if not model_id.startswith(EMBEDDING_MODEL_PREFIXES):
+			report["skipped"].append({"name": row.name, "reason": "not_identifiable"})
+			continue
+		frappe.db.set_value("AI Model", row.name, "model_type", "Embedding", update_modified=False)
+		report["updated"].append(row.name)
+
+	frappe.db.commit()
+	report["status"] = "completed"
 	return report
 
 

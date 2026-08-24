@@ -186,7 +186,7 @@ Returns:
   "run": "AIR-0001",
   "session": "AIS-0001",
   "token": "eyJ...",
-  "stream_url": "http://127.0.0.1:8000/chat/stream",
+  "stream_url": "http://127.0.0.1:8001/stream/AIR-0001",
   "expires_in": 900
 }
 ```

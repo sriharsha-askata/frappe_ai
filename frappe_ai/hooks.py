@@ -191,6 +191,7 @@ after_migrate = [
 	"frappe_ai.tools.builtins.sync_builtin_tools",
 	"frappe_ai.api.fac_tools.sync_fac_tools",
 	"frappe_ai.api.migration.migrate_ai_tools",
+	"frappe_ai.api.migration.migrate_ai_model_types",
 ]
 
 extend_bootinfo = "frappe_ai.boot.boot_session"

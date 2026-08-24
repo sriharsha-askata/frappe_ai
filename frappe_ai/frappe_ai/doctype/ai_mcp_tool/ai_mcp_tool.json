@@ -1,0 +1,27 @@
+{
+ "actions": [],
+ "creation": "2026-08-15 00:00:00",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": ["tool_name", "description", "input_schema", "available", "last_discovered", "matched_ai_tool", "raw_metadata"],
+ "fields": [
+  {"fieldname":"tool_name","fieldtype":"Data","label":"Remote Tool Name","reqd":1,"in_list_view":1},
+  {"fieldname":"description","fieldtype":"Long Text","label":"Description"},
+  {"fieldname":"input_schema","fieldtype":"JSON","label":"Input Schema"},
+  {"fieldname":"available","fieldtype":"Check","label":"Available","default":"1","in_list_view":1},
+  {"fieldname":"last_discovered","fieldtype":"Datetime","label":"Last Discovered","read_only":1},
+  {"fieldname":"matched_ai_tool","fieldtype":"Link","label":"Matching AI Tool","options":"AI Tool","read_only":1},
+  {"fieldname":"raw_metadata","fieldtype":"JSON","label":"Raw Metadata","read_only":1}
+ ],
+ "istable": 1,
+ "links": [],
+ "modified": "2026-08-15 00:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "Frappe AI",
+ "name": "AI MCP Tool",
+ "owner": "Administrator",
+ "permissions": [],
+ "row_format": "Dynamic",
+ "sort_field": "creation",
+ "sort_order": "DESC"
+}

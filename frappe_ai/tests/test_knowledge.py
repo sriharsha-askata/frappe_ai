@@ -38,6 +38,7 @@ from frappe_ai.knowledge.extract import (
 	_render_rich_text,
 	_validate_public_url,
 	extract,
+	extract_file,
 )
 from frappe_ai.knowledge.ingest import (
 	ingest_source,
@@ -229,6 +230,7 @@ def _make_model(title="Embed Model", model_id="text-embedding-3-small"):
 			"title": title,
 			"provider": "openai",
 			"model_id": model_id,
+			"model_type": "Embedding",
 			"api_key": "sk-test",
 			"enabled": 1,
 		}
@@ -259,7 +261,8 @@ class TestEmbedder(IntegrationTestCase):
 		args, kwargs = mocked.call_args
 		self.assertEqual(args[0], ["a", "b"])
 		self.assertEqual(args[1]["model"], "text-embedding-3-small")
-		self.assertEqual(args[1]["api_key"], "sk-test")
+		provider_key = frappe.get_doc("AI Provider", "openai").get_password("api_key", raise_exception=False)
+		self.assertEqual(args[1]["api_key"], provider_key or "sk-test")
 
 	def test_embed_texts_batches_large_input(self):
 		texts = [f"t{i}" for i in range(100)]
@@ -288,6 +291,12 @@ class TestEmbedder(IntegrationTestCase):
 		self.model.enabled = 0
 		self.model.save()
 		with self.assertRaisesRegex(frappe.ValidationError, "disabled"):
+			embed_texts(["a"])
+
+	def test_embed_texts_rejects_chat_model(self):
+		self.model.model_type = "Chat"
+		self.model.save()
+		with self.assertRaisesRegex(frappe.ValidationError, "Chat model"):
 			embed_texts(["a"])
 
 	def test_embed_texts_unknown_provider_throws(self):
@@ -473,6 +482,30 @@ class TestExtract(IntegrationTestCase):
 		).insert()
 		docs = extract(frappe._dict(source_type="File", file=file_doc.file_url))
 		self.assertEqual(docs[0].text, "file body")
+
+	def test_remote_dfp_file_streams_to_temporary_file(self):
+		class RemoteFile:
+			file_name = "remote-tender.txt"
+			file_url = "/private/files/remote-tender.txt"
+
+			@staticmethod
+			def dfp_is_s3_remote_file():
+				return True
+
+			@staticmethod
+			def is_downloadable():
+				return True
+
+			@staticmethod
+			def dfp_external_storage_download_to_file(path):
+				with open(path, "wb") as handle:
+					handle.write(b"streamed minio tender text")
+
+			@staticmethod
+			def get_content():
+				raise AssertionError("remote content must not be loaded into memory")
+
+		self.assertEqual(extract_file(RemoteFile()), "streamed minio tender text")
 
 	def test_file_source_rejects_unsupported_format(self):
 		file_doc = frappe.get_doc(

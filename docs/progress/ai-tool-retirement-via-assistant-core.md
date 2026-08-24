@@ -102,6 +102,9 @@
 - Direct FAC runtime path is implemented: `AI Agent Plugin Tool` links to
   `FAC Tool Configuration`, `ToolRegistry` supplies availability/schema metadata,
   and `dispatch_plugin_tool` executes under the acting user.
+- Context-sensitive FAC tools are now server-scoped: `search_knowledge` receives
+  knowledge bases from the persisted run's agent, and `update_memory` receives the
+  persisted agent/source-run identity rather than model-supplied values.
 - Guest callback loading is hardened by explicitly owner-checking the run and loading
   the run graph from the database before building service config.
 - Budgets are counted by the Frappe dispatch endpoints, but the independent remote
@@ -154,8 +157,8 @@ See [spec 007](../specifications/007-mcp-integration-and-cleanup.md) Parts 4-5
   counts usage, but an Agno MCP call currently does not.
 - Complete the written `execute` versus Assistant Core `run_python_code` sandbox
   comparison; keep hardened `safe_exec` until approved.
-- Make `search_knowledge` and `update_memory` agent-scoped rather than the current
-  generic wrappers, and add behavior-equivalence tests.
+- Add behavior-equivalence tests for the now agent-scoped `search_knowledge` and
+  `update_memory` wrappers.
 - Run known-good Spec Review, Historical Match, and SAP workflows through direct FAC
   bindings while retaining MCP fallback; remove the Tender MCP configuration only
   after those workflows pass.
@@ -166,7 +169,7 @@ See [spec 007](../specifications/007-mcp-integration-and-cleanup.md) Parts 4-5
 
 ## Verification performed
 
-- `frappe_ai.tests.test_api`: 32/32 passing.
+- `frappe_ai.tests.test_api`: **34/34 passing** on 2026-08-21 with host-level database access, including the two direct-FAC scope tests.
 - `frappe_ai.tests.test_builder`: 2/2 passing.
 - Local E2E reached `start_run → HMAC token → FastAPI SSE → Frappe run-config
   callback → model execution`; the configured model returned its expected fake-key
@@ -184,6 +187,9 @@ See [spec 007](../specifications/007-mcp-integration-and-cleanup.md) Parts 4-5
 - Full `bench migrate` could not run because Redis Queue was unavailable; the changed
   `AI Agent Plugin Tool` DocType was reloaded directly and verified to link to
   `FAC Tool Configuration`.
+- Host-level service verification confirmed MariaDB, Frappe web, FastAPI, workers, and
+  scheduler are running. The earlier MariaDB socket failures came from the restricted
+  sandbox environment, which cannot access the host database network/socket.
 - Disposable E2E agent/session/run records were removed after testing.
 
 ## Remaining blockers
@@ -210,3 +216,4 @@ See [spec 007](../specifications/007-mcp-integration-and-cleanup.md) Parts 4-5
 | 2026-08-21 | Tender migration made Priority 1: all ten local tender capabilities will be registered once as FAC tools, with MCP retained only as a migration fallback. |
 | 2026-08-21 | Registered all ten tender FAC tools, migrated all three tender agents to direct FAC bindings on `tact.local`, retained MCP fallback, and verified idempotent rerun. |
 | 2026-08-21 | Focused migration/orchestration tests passed; full tender suite recorded one unrelated SAP selection failure, and full bench migrate remains pending Redis availability. |
+| 2026-08-21 | Closed the direct-FAC scope gap: knowledge search is constrained to the run's agent knowledge bases, memory writes are constrained to the run's agent and source run, and two integration tests cover model-supplied scope override attempts. |

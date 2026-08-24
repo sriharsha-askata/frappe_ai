@@ -121,10 +121,17 @@ def _tool_summary_from_doc(tool_name: str) -> dict[str, Any] | None:
 	}
 
 
+def _tool_summary_from_row(row) -> dict[str, Any] | None:
+	tool_name = getattr(row, "tool", None)
+	if not tool_name:
+		return None
+	return _tool_summary_from_doc(tool_name)
+
+
 def _tool_summaries(agent_doc) -> list[dict[str, Any]]:
 	items: list[dict[str, Any]] = []
 	for row in getattr(agent_doc, "tools", []) or []:
-		summary = _tool_summary_from_doc(row.tool)
+		summary = _tool_summary_from_row(row)
 		if summary:
 			items.append(summary)
 	return items
@@ -132,6 +139,15 @@ def _tool_summaries(agent_doc) -> list[dict[str, Any]]:
 
 def _mcp_connection_row(doc) -> dict[str, Any]:
 	status = "connected" if doc.is_connected else "disconnected"
+	tool_summaries = [
+		{
+			"id": row.tool_name,
+			"name": row.tool_name,
+			"description": row.description or "",
+			"available": bool(row.available),
+		}
+		for row in getattr(doc, "tools", []) or []
+	]
 	return {
 		"id": doc.name,
 		"name": doc.name,
@@ -139,9 +155,9 @@ def _mcp_connection_row(doc) -> dict[str, Any]:
 		"transport": str(doc.connection_type or "").lower(),
 		"status": status,
 		"status_message": doc.status_message or "",
-		"tool_count": _tool_count(doc.status_message),
-		"tool_summaries": [],
-		"tool_summaries_available": False,
+		"tool_count": len([row for row in getattr(doc, "tools", []) or [] if row.available]) or _tool_count(doc.status_message),
+		"tool_summaries": tool_summaries,
+		"tool_summaries_available": bool(tool_summaries),
 		"test_connection_supported": True,
 	}
 
