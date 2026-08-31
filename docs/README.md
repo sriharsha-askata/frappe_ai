@@ -30,7 +30,7 @@ and the [Assistant Core migration tracker](progress/ai-tool-retirement-via-assis
 | Know what feature lives where | [002 — Feature Mapping](specifications/002-feature-mapping.md) |
 | Look up a DocType or field | [003 — DocType Reference](specifications/003-doctype-reference.md) |
 | Implement or review a custom frontend client | [005 — Frontend Contract](specifications/005-frontend-contract.md) |
-| Know where the work stands | [Migration progress](progress/flow-to-frappe-ai-migration.md) and [Assistant Core/FAC migration progress](progress/ai-tool-retirement-via-assistant-core.md) |
+| Know where the work stands | [Migration progress](progress/flow-to-frappe-ai-migration.md) and [Assistant Core/FAC migration progress and deletion plan](progress/ai-tool-retirement-via-assistant-core.md) |
 | Understand *why* something is the way it is | [Decisions](#decisions) below |
 | See what surprised us while building this, and why | [Learnings](learnings.md) |
 

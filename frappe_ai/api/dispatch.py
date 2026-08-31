@@ -119,7 +119,7 @@ def dispatch_plugin_tool(tool: str, user: str, arguments: dict | None = None, ru
 
 		consume(run, mutation=tool in {"create_document", "update_document", "delete_document", "run_workflow"}, records=_record_count(arguments or {}))
 		tool_arguments = dict(arguments or {})
-		agent, knowledge_bases = _resolve_plugin_context(run)
+		agent, model, knowledge_bases = _resolve_plugin_context(run)
 		if tool == "search_knowledge":
 			tool_arguments["__frappe_ai_knowledge_bases"] = knowledge_bases
 		elif tool == "update_memory":
@@ -133,11 +133,29 @@ def dispatch_plugin_tool(tool: str, user: str, arguments: dict | None = None, ru
 			# its public input schema.
 			tool_arguments["__frappe_ai_agent"] = agent
 			tool_arguments["__frappe_ai_source_run"] = run
+		elif tool == "load_full_document_text":
+			# The document-chunking budget must scale with the run's actual model
+			# (see frappe_ai.lib.model.single_tool_result_char_budget), not a
+			# hardcoded document-size constant blind to which model is running.
+			tool_arguments["__frappe_ai_source_run"] = run
+			tool_arguments["__frappe_ai_model"] = model
 
-		result = get_tool_registry().execute_tool(tool, tool_arguments)
+		try:
+			result = get_tool_registry().execute_tool(tool, tool_arguments)
+		except Exception as e:
+			# Log the exact arguments the model sent alongside the failure: a
+			# tool's own ValidationError (e.g. "no matching file found") reads the
+			# same in the model's error feedback whether the data was actually
+			# missing or the model passed a wrong/malformed argument for it — this
+			# is the only place both are visible together.
+			frappe.log_error(
+				title=f"frappe_ai dispatch_plugin_tool failed: {tool}",
+				message=frappe.as_json(
+					{"tool": tool, "user": user, "run": run, "arguments": tool_arguments, "error": _error_text(e)}
+				),
+			)
+			return {"error": _error_text(e)}
 		return {"result": result}
-	except Exception as e:
-		return {"error": _error_text(e)}
 	finally:
 		frappe.set_user(previous_user)
 		frappe.local.user = previous_local_user
@@ -151,16 +169,16 @@ def _record_count(arguments: dict) -> int:
 	return 1
 
 
-def _resolve_plugin_context(run: str | None) -> tuple[str | None, list[str]]:
-	"""Resolve server-owned agent scope for context-sensitive FAC tools.
+def _resolve_plugin_context(run: str | None) -> tuple[str | None, str | None, list[str]]:
+	"""Resolve server-owned agent/model scope for context-sensitive FAC tools.
 
-	The model must never be able to choose the agent whose memories are written or the
-	knowledge bases searched. Both values come from the persisted ``AI Run`` → ``AI
-	Session`` → ``AI Agent`` graph, and the run owner check is performed while the acting
-	user is installed.
+	The model must never be able to choose the agent whose memories are written, the
+	knowledge bases searched, or which AI Model a size budget is computed against.
+	All three come from the persisted ``AI Run`` → ``AI Session`` → ``AI Agent`` graph,
+	and the run owner check is performed while the acting user is installed.
 	"""
 	if not run:
-		return None, []
+		return None, None, []
 
 	from frappe_ai.frappe_ai.doctype.ai_run.ai_run import assert_run_owner
 
@@ -168,12 +186,13 @@ def _resolve_plugin_context(run: str | None) -> tuple[str | None, list[str]]:
 	assert_run_owner(run_doc)
 	session_doc = frappe.get_doc("AI Session", run_doc.session)
 	agent_doc = frappe.get_doc("AI Agent", session_doc.agent)
+	model_name = session_doc.model or agent_doc.model
 	knowledge_bases = [
 		row.knowledge_base
 		for row in getattr(agent_doc, "knowledge_bases", []) or []
 		if getattr(row, "knowledge_base", None)
 	]
-	return agent_doc.name, knowledge_bases
+	return agent_doc.name, model_name, knowledge_bases
 
 
 def _error_text(e: Exception) -> str:

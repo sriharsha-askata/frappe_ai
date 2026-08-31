@@ -27,6 +27,332 @@
 | 6 | `run_action` and full parity audit | 🔴 Not completed |
 | 7 | Retire legacy runtime authority | 🟡 Runtime use is being reduced; DocTypes are retained |
 
+## Focused migration plan: `AI Tool` → Assistant Core/FAC
+
+**Plan status:** 🟡 Review draft — implementation is intentionally deferred until the
+checklist below is reviewed.
+
+This section is the detailed, reviewable plan for removing the redundant legacy tool
+system. [007 — MCP Integration & Cleanup](../specifications/007-mcp-integration-and-cleanup.md)
+remains the broader integration plan; this section is the concrete migration and deletion
+runbook for `AI Tool`, `AI Agent Tool`, and their compatibility field.
+
+### The target decision
+
+The final runtime should have one canonical tool path:
+
+```text
+BaseTool implementation in the owning app
+        ↓
+FAC Tool Configuration
+        ↓
+AI Agent Plugin Tool (per-agent selection)
+        ↓
+ToolRegistry / dispatch_plugin_tool
+        ↓
+frappe_ai AgentBuilder
+```
+
+`AI Tool` must not become a permanent alias or a second source of truth. During migration,
+legacy rows are matched to FAC configurations by their stable tool name and retained only
+as compatibility data until the cutover gates pass. The migration does **not** create an
+`AI Tool → FAC Tool Configuration` link.
+
+This is deliberate:
+
+- `AI Tool.import_path` points to a legacy callable function; FAC `module_path` points to
+  a registered Assistant Core `BaseTool` class.
+- FAC owns enablement, category, role access, source app, and module metadata.
+- `AI Agent Plugin Tool` owns agent selection and the per-agent confirmation override.
+- Keeping a link would leave two names, descriptions, enabled flags, implementation paths,
+  and confirmation policies that could drift.
+- The durable post-migration relationship is the agent's
+  `AI Agent Plugin Tool.fac_tool` link, not a legacy tool alias.
+
+### Why this migration is needed
+
+`AI Tool` currently combines two responsibilities that Assistant Core already separates:
+
+1. A Frappe AI catalog/implementation record: imported function path or database-stored
+   Script code, LLM description, enabled flag, and confirmation flag.
+2. A runtime dispatch target: `dispatch_tool()` loads the row and calls `to_tool()`.
+
+Assistant Core provides the replacement boundary:
+
+1. A version-controlled `BaseTool` implementation registered through the `assistant_tools`
+   hook.
+2. A `FAC Tool Configuration` record containing runtime policy and source metadata.
+3. The Assistant Core `ToolRegistry`, which repeats enablement, role, permission, argument,
+   audit, and execution checks.
+
+Maintaining both systems after migration would create duplicate tool definitions and two
+different authorization/configuration paths. Removing `AI Tool` is safe only after every
+consumer has moved to the FAC path and every tool without an equivalent has been given an
+explicit replacement or disposition.
+
+### What moves where
+
+| Existing concern | Final owner | Migration action |
+|---|---|---|
+| Imported `AI Tool` callable | Owning app's `BaseTool` class | Wrap or refactor the callable into a registered `BaseTool`; keep business logic in the owning app. |
+| Script `AI Tool.code` | Version-controlled `BaseTool` implementation, or temporary legacy path | Do not copy database code into `module_path`. Rewrite and review it, or classify it as not migratable. |
+| LLM-facing description | `BaseTool.description` / FAC metadata | Compare and preserve semantics; FAC becomes canonical. |
+| Global enabled state | `FAC Tool Configuration.enabled` | Migrate deliberately; do not overwrite a shared FAC setting blindly when other users/apps depend on it. |
+| Tool category and role access | FAC configuration | Set and verify through Assistant Core. |
+| Agent tool selection | `AI Agent Plugin Tool` | Create one row per exact migrated tool and agent. |
+| Agent confirmation policy | `AI Agent Plugin Tool.requires_confirmation` | Copy the legacy effective value explicitly; do not rely on the new row default. |
+| Run-time execution | `ToolRegistry.execute_tool()` via `dispatch_plugin_tool()` | Remove new runtime calls to `dispatch_tool()` after cutover. |
+| Legacy migration evidence | Migration report/archive | Preserve mappings, exceptions, and verification results; no permanent alias is required. |
+
+### Tool migration matrix
+
+Every row must be classified before deletion. The classifications are exact replacement,
+adapter required, manual rewrite, intentionally retained, or unmatched.
+
+| Tool group | Target | Required work | Deletion gate |
+|---|---|---|---|
+| `find_doctypes`, `describe`, `read` | Assistant Core metadata/document tools | Confirm schema, result shape, permissions, and user filtering. | Parity tests pass for a restricted user and an allowed user. |
+| `create`, `update`, `delete` | Assistant Core document mutation tools | Confirm acting-user identity, validation, confirmation, partial-failure behavior, and budgets. | Direct FAC dispatch and end-to-end confirmation tests pass. |
+| `execute` | `frappe_ai` Assistant Core `BaseTool` wrapper or approved Assistant Core equivalent | Complete the `run_python_code` versus hardened `safe_exec` comparison. Keep `safe_exec` until the comparison is reviewed. | No broader namespace or permission bypass is introduced. |
+| `run_action` | `frappe_ai` `BaseTool` or proven Assistant Core workflow equivalent | Compare current semantics for submit, cancel, amend, rename, workflow, and whitelisted methods. | All current action variants have explicit coverage. |
+| `search_knowledge` | `frappe_ai` `BaseTool` wrapper | Reuse the existing LanceDB/MariaDB retrieval path and enforce the run's agent knowledge-base scope. | Scope-override and retrieval behavior tests pass. |
+| `update_memory` | `frappe_ai` `BaseTool` wrapper | Reuse the existing memory write path; stamp agent, user scope, and source run server-side. | Model-supplied scope override tests pass. |
+| Tender context, persistence, and failure tools | `tender_automation` `BaseTool` implementations | Keep tender business logic in `tender_automation`; register each tool once through hooks. | Spec Review, Historical Match, and SAP Match complete through direct FAC. |
+| Tender MCP-only tools | `tender_automation` `BaseTool` implementations | Retain MCP only as migration fallback; remove duplicate MCP bindings after workflow verification. | All three workflows pass without Tender MCP. |
+| Custom Imported tools | Owning app's `BaseTool` or temporary compatibility path | Migrate one implementation at a time; no automatic conversion based only on import path. | Owner confirms behavior and permissions. |
+| Custom Script tools | Reviewed version-controlled `BaseTool` or explicit exception | Do not silently execute database-stored code through FAC. | Every Script row has a reviewed disposition. |
+
+### User stories
+
+1. As a tool owner, I want one version-controlled `BaseTool` implementation and one FAC
+   configuration record, so that runtime behavior and access policy have a single owner.
+2. As an agent administrator, I want to select FAC tools per agent, so that agent
+   capabilities are explicit and do not depend on legacy `AI Tool` rows.
+3. As an end user, I want migrated tools to preserve my Frappe permissions and confirmation
+   prompts, so that migration does not grant additional access or remove safety checks.
+4. As a migration operator, I want a dry-run report showing exact, unmatched, and ambiguous
+   tools, so that uncertain mappings are reviewed instead of migrated silently.
+5. As a reviewer, I want behavior, budget, audit, and workflow evidence for each tool group,
+   so that deletion of the legacy system is based on proof rather than configuration alone.
+6. As an operator, I want a reversible cutover before deletion, so that a failed migration
+   can be rolled back without reconstructing tool definitions from memory.
+
+### Migration phases
+
+#### Phase 0 — Freeze, inventory, and backup
+
+- [ ] Announce that new tools must not be added only to `AI Tool`; new work must target
+  `BaseTool` plus FAC configuration.
+- [ ] Export all `AI Tool` rows, including `slug`, type, import path, Script code,
+  description, enabled state, and confirmation policy.
+- [ ] Export every legacy `AI Agent Tool` binding and every `AI Agent Plugin Tool` binding
+  across each installed site.
+- [ ] Inventory code and data references to `AI Tool`, `AI Agent Tool`, `AI Agent.tools`,
+  `AI Agent Tool Config`, `AI FAC Tool`, and `AI MCP Tool.matched_ai_tool`.
+- [ ] Inventory all registered Assistant Core tools and all `FAC Tool Configuration` rows,
+  including `module_path`, source app, enabled state, category, and role access.
+- [ ] Capture a database backup and store the migration report with the deployment
+  artifacts before changing agent bindings.
+- [ ] Record the current successful behavior of each production agent, especially the three
+  tender workflows.
+
+**Exit criteria:** the inventory is complete, every legacy row has an owner, and the
+rollback backup/report exists.
+
+#### Phase 1 — Establish the canonical FAC implementations
+
+- [ ] For each exact Assistant Core equivalent, record the mapping without duplicating an
+  implementation in `frappe_ai`.
+- [ ] For `frappe_ai`-owned tools, ensure the `BaseTool` classes are registered through
+  `frappe_ai/hooks.py` and discoverable by the Assistant Core registry.
+- [ ] For tender tools, ensure the `BaseTool` classes are registered through
+  `tender_automation/hooks.py`; do not create one plugin implementation per agent.
+- [ ] For every wrapper, preserve the existing business logic rather than creating a
+  second implementation.
+- [ ] Ensure FAC synchronization creates or updates `FAC Tool Configuration` rows with the
+  correct `tool_name`, `source_app`, `module_path`, description, category, and enabled state.
+- [ ] Resolve name collisions before binding agents. Only exact stable tool-name matches
+  may be automated.
+
+**Exit criteria:** every intended replacement is discoverable from the Assistant Core
+registry and has one canonical implementation path.
+
+#### Phase 2 — Migrate behavior and security semantics
+
+- [ ] Compare public input schemas and output shapes between each legacy tool and its FAC
+  replacement.
+- [ ] Verify `get_available_tools(user=...)` hides disabled and role-restricted tools.
+- [ ] Verify `dispatch_plugin_tool()` installs the acting user and restores the previous
+  user in all success and failure paths.
+- [ ] Verify Frappe DocType permissions, user permissions, ownership, and validation apply
+  identically for read and mutation operations.
+- [ ] Map `requires_confirmation` from each legacy agent binding to the plugin binding;
+  verify both approve and deny behavior.
+- [ ] Verify direct FAC calls consume `AI Run` budgets. Record remote MCP budget coverage
+  separately; it is not a reason to preserve `AI Tool`.
+- [ ] Verify Assistant Core audit records and `AI Run` records both capture the migrated
+  call and can be correlated.
+- [ ] Complete and review the `execute` sandbox comparison before disabling its legacy
+  implementation.
+
+**Exit criteria:** the replacement is permission-equivalent, confirmation-equivalent, and
+has explicit behavior evidence for every migrated tool.
+
+#### Phase 3 — Dry-run and agent binding migration
+
+- [ ] Run the existing migration/reporting path after FAC configuration synchronization.
+- [ ] For each exact match, create an `AI Agent Plugin Tool` row pointing directly to the
+  matching FAC configuration.
+- [ ] Copy the legacy agent-level enabled and confirmation settings explicitly.
+- [ ] Do not overwrite shared FAC global settings merely to mirror one legacy agent.
+  Report conflicts for review.
+- [ ] Refuse automatic migration for missing or ambiguous matches; add them to the report.
+- [ ] Prevent duplicate plugin rows on reruns and verify idempotency.
+- [ ] Leave the legacy `AI Agent Tool` rows and `AI Tool` records untouched during this
+  phase so rollback remains a data-only operation.
+- [ ] Review the migration report site by site and mark each row `Migrated`, `Manual`,
+  `Retained`, or `Rejected` with an owner and reason.
+
+**Exit criteria:** every production agent has an intentional FAC binding or a documented
+exception, and rerunning the migration produces no duplicate bindings.
+
+#### Phase 4 — End-to-end verification
+
+- [ ] Test registry discovery for an allowed user, a disabled tool, and a role-restricted
+  tool.
+- [ ] Test read-only tools with permitted and forbidden DocTypes.
+- [ ] Test create/update/delete with confirmation, permission failures, validation errors,
+  partial failures, and budget limits.
+- [ ] Test `execute` against the forbidden namespace (`frappe.db.sql`, `frappe.qb`,
+  `frappe.db.set_value`, `frappe.get_all`) and permitted operations.
+- [ ] Test knowledge search cannot widen beyond the agent's persisted knowledge bases.
+- [ ] Test memory writes cannot choose another agent, user scope, or source run.
+- [ ] Test tool failures are normalized into the model/run path and do not leave runs stuck.
+- [ ] Test Assistant Core and `frappe_ai` audit records.
+- [ ] Run Spec Review, Historical Match, and SAP Match through direct FAC bindings with
+  known-good data and compare results to the recorded baseline.
+- [ ] Test that a service restart, callback failure, and stream termination leave runs in
+  a recoverable terminal state.
+
+**Exit criteria:** all acceptance evidence is attached to the migration report; no workflow
+depends on the legacy dispatch path for normal operation.
+
+#### Phase 5 — Runtime cutover and compatibility quarantine
+
+- [ ] Make `AI Agent Plugin Tool` / FAC the only path used for newly configured agents.
+- [ ] Keep legacy rows readable and recoverable, but stop using them to build new runtime
+  configuration.
+- [ ] Update frontend tool metadata APIs to read FAC registry metadata instead of loading
+  `AI Tool` rows.
+- [ ] Update migration/setup code so future installs do not seed new `AI Tool` rows for
+  migrated capabilities.
+- [ ] Remove normal runtime dependencies on `dispatch_tool()` and legacy resolver calls.
+- [ ] Keep the migration command/report available until the quarantine period ends.
+- [ ] Run the full app and focused integration suites after the cutover.
+
+**Exit criteria:** production agents run through FAC, legacy rows are not authoritative,
+and the application no longer creates new legacy tool state.
+
+#### Phase 6 — Delete the redundant legacy system
+
+Deletion is a separate change and must not be bundled with the first migration attempt.
+
+- [ ] Confirm zero active `AI Agent Tool` bindings and zero unclassified `AI Tool` rows.
+- [ ] Confirm no runtime, frontend, trigger, migration, test, or setup code requires
+  `AI Tool` except an explicitly retained archival/report reader.
+- [ ] Confirm all required tool implementations are registered `BaseTool` classes and all
+  FAC configurations have valid module paths.
+- [ ] Confirm no production workflow depends on the Tender MCP fallback.
+- [ ] Archive the final mapping and verification report outside the database.
+- [ ] Remove the deprecated `AI Agent.tools` field and its compatibility child table only
+  after the previous gates pass.
+- [ ] Remove `AI Tool` and its controller/resolver code only after the previous gates pass.
+- [ ] Remove `AI Agent Tool Config` if no compatibility reader remains.
+- [ ] Audit `AI FAC Tool` separately. It is a local mirror, not the Assistant Core source
+  of truth; remove it if no code or UI requires it after FAC metadata is consumed directly.
+- [ ] Remove obsolete migration branches only after one release/deployment cycle with no
+  rollback request.
+- [ ] Update specifications, README, setup guides, and migration docs to describe FAC as
+  canonical and mark the legacy system removed.
+
+**Exit criteria:** the old DocTypes and dispatch path can be removed without losing an
+implementation, agent binding, permission rule, audit record, or rollback artifact.
+
+### Data migration rules
+
+1. Match `AI Tool.slug` to `FAC Tool Configuration.tool_name`; do not match by title or
+   description.
+2. Require exactly one FAC match. Missing and ambiguous matches are manual review items.
+3. Treat `FAC Tool Configuration` as global policy and `AI Agent Plugin Tool` as agent
+   selection. Do not copy an agent-specific flag into global FAC configuration.
+4. Copy legacy confirmation policy to each plugin binding explicitly.
+5. Do not assume an `AI Tool.import_path` can be placed into FAC `module_path`; the target
+   path must identify a registered `BaseTool` class.
+6. Do not migrate Script code automatically. A database code blob must receive a reviewed
+   implementation disposition.
+7. Make the migration idempotent. Re-running it must not duplicate agent bindings or
+   change reviewed exceptions.
+8. Keep legacy data until the deletion phase. Migration and deletion are separate commits
+   or deployable changes.
+
+### Verification strategy
+
+Use the highest public seam available for each claim:
+
+- Assistant Core registry discovery for tool availability, metadata, and role filtering.
+- `dispatch_plugin_tool()` for acting-user, permission, budget, and error behavior.
+- `start_run` → FastAPI SSE → Frappe callback for full agent-run behavior.
+- Direct workflow entry points for tender baseline/result comparisons.
+- Migration reporting for data completeness and idempotency.
+
+Avoid declaring parity from unit tests that only inspect schemas or mocked registry calls.
+The deletion gate requires at least one integration-level execution for every migrated
+tool family and real workflow verification for every production agent.
+
+### Rollback plan
+
+Rollback remains possible until the final deletion phase:
+
+- Restore the previous agent bindings from the migration report or database backup.
+- Re-enable the legacy `AI Tool`/`AI Agent Tool` rows without rewriting their definitions.
+- Repoint the affected agent to the legacy path only for the affected tool family.
+- Keep FAC rows and BaseTool implementations in place; they are additive and safe to leave
+  during rollback.
+- If deletion has already shipped, restore the archived DocType definitions and data from
+  the pre-deletion backup before restarting workers and running migrations.
+
+No destructive deletion should occur until the final mapping report, database backup,
+and rollback rehearsal are complete.
+
+### Definition of done
+
+- [ ] One canonical `BaseTool` implementation exists for every migrated capability.
+- [ ] One FAC configuration exists for every canonical tool and its module path resolves.
+- [ ] Every production agent uses `AI Agent Plugin Tool` for migrated tools.
+- [ ] No new agent setup creates legacy `AI Tool` bindings.
+- [ ] Permissions, confirmation, budgets, schemas, outputs, and audits are verified.
+- [ ] Tender workflows pass through direct FAC without MCP fallback.
+- [ ] `execute` has a reviewed sandbox decision.
+- [ ] `run_action` has an explicit replacement and parity evidence.
+- [ ] Every unmatched or retained legacy row has a documented owner and reason.
+- [ ] The final report and rollback artifact are archived.
+- [ ] Legacy DocTypes, fields, and runtime code are removed only after all gates pass.
+
+### Review log
+
+Use this table during review and implementation. Add a dated row whenever a phase or
+decision is accepted; do not mark a phase complete based only on code presence.
+
+| Date | Reviewer | Phase/decision | Status | Evidence or follow-up |
+|---|---|---|---|---|
+| 2026-08-31 |  | Target architecture and no-alias decision | 🟡 Pending review |  |
+|  |  | Tool inventory and classification | ⬜ Not started |  |
+|  |  | FAC implementation parity | ⬜ Not started |  |
+|  |  | Agent data migration | ⬜ Not started |  |
+|  |  | End-to-end verification | ⬜ Not started |  |
+|  |  | Runtime cutover | ⬜ Not started |  |
+|  |  | Legacy deletion | ⬜ Not started |  |
+
 ---
 
 ## Completed

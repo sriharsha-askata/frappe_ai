@@ -319,6 +319,31 @@ def fail_run(run: str, error: str) -> dict[str, str]:
 		frappe.set_user(original_user)
 
 
+@frappe.whitelist(allow_guest=True)
+def log_diagnostic(title: str, message: str) -> dict[str, str]:
+	"""Service-secret-authenticated callback: record a service-side diagnostic.
+
+	Lets the FastAPI service (which has no Frappe site context of its own — see
+	`service/config.py`'s module docstring) surface run diagnostics — model call
+	timing/token counts, and the real exception underneath an opaque Agno
+	`RunErrorEvent` — into Frappe's Error Log instead of a log file only visible
+	in the bench-managed uvicorn process's own console.
+
+	Args:
+		title (str): Error Log title (truncated by `frappe.log_error` as usual).
+		message (str): Full diagnostic text (traceback, timing, etc.).
+
+	Returns:
+		dict[str, str]: `{"status": "logged"}`.
+
+	Raises:
+		frappe.AuthenticationError: If the service secret is missing or invalid.
+	"""
+	_verify_service_secret()
+	frappe.log_error(title=title, message=message)
+	return {"status": "logged"}
+
+
 def _verify_service_secret() -> None:
 	"""Same check as `api/service.py`/`api/dispatch.py` — see either's docstring."""
 	provided = frappe.get_request_header("X-Frappe-AI-Service-Secret") or ""

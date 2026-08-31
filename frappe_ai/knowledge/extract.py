@@ -182,7 +182,21 @@ def _extract_pdf_fallback(data: bytes) -> str:
 
 	try:
 		with pdfplumber.open(BytesIO(data)) as pdf:
-			pages = [_extract_pdf_page(page) for page in pdf.pages]
+			pages = []
+			for index, page in enumerate(pdf.pages):
+				try:
+					pages.append(_extract_pdf_page(page))
+				except Exception:
+					# One malformed page (bad table geometry, corrupt content
+					# stream, etc.) must not fail the whole document — pdfplumber
+					# has no per-page recovery of its own, unlike the Docling path
+					# this is a fallback for, which already retries at reduced
+					# quality rather than aborting outright.
+					frappe.log_error(
+						title="PDF page extraction failed, skipping page",
+						message=f"page={index + 1}",
+					)
+					pages.append("")
 	except PDFPasswordIncorrect:
 		frappe.throw(_("PDF is password protected and cannot be read."), title=_("Cannot Read PDF"))
 	return "\n\n".join(page for page in pages if page)
@@ -288,7 +302,19 @@ def _extract_pdf_page(page) -> str:
 
 	body = page
 	for table in tables:
-		body = body.outside_bbox(table.bbox)
+		# Table detection can return a bbox that slightly overshoots the page
+		# edges (common near margins or on skewed/scanned pages); outside_bbox
+		# validates strictly and raises on that, so clamp to the page first —
+		# same defensive pattern already used for image bboxes in _ocr_region.
+		bbox = (
+			max(table.bbox[0], page.bbox[0]),
+			max(table.bbox[1], page.bbox[1]),
+			min(table.bbox[2], page.bbox[2]),
+			min(table.bbox[3], page.bbox[3]),
+		)
+		if bbox[2] <= bbox[0] or bbox[3] <= bbox[1]:
+			continue
+		body = body.outside_bbox(bbox)
 	prose = _clean_pdf_text(body.extract_text() or "")
 	if prose:
 		parts.append(prose)

@@ -34,10 +34,12 @@ from frappe_ai.service.config import ServiceSettings
 
 GET_SERVICE_CONFIG_METHOD = "frappe_ai.api.service.get_service_config"
 GET_RUN_CONFIG_METHOD = "frappe_ai.api.service.get_run_config"
+GET_FALLBACK_MODEL_CONFIG_METHOD = "frappe_ai.api.service.get_fallback_model_config"
 DISPATCH_TOOL_METHOD = "frappe_ai.api.dispatch.dispatch_tool"
 DISPATCH_PLUGIN_TOOL_METHOD = "frappe_ai.api.dispatch.dispatch_plugin_tool"
 PERSIST_RUN_RESULT_METHOD = "frappe_ai.api.api.persist_run_result"
 FAIL_RUN_METHOD = "frappe_ai.api.api.fail_run"
+LOG_DIAGNOSTIC_METHOD = "frappe_ai.api.api.log_diagnostic"
 DEFAULT_REQUEST_TIMEOUT_SECONDS = 15.0
 TOOL_DISPATCH_TIMEOUT_SECONDS = 300.0
 
@@ -117,6 +119,22 @@ class FrappeClient:
 		"""
 		return await self._get_json(GET_RUN_CONFIG_METHOD, params={"run": run, "user": user})
 
+	async def get_fallback_model_config(self, user: str) -> dict[str, Any]:
+		"""Fetch the system default AI Model's call config, for retry after a
+		`model_provider_error` on the run's originally-configured model.
+
+		Args:
+			user (str): The Frappe user the run belongs to.
+
+		Returns:
+			dict[str, Any]: Same shape as `get_run_config`'s `"model"` key.
+
+		Raises:
+			FrappeClientError: If the call fails, the secret is rejected, or no
+				enabled default AI Model is configured.
+		"""
+		return await self._get_json(GET_FALLBACK_MODEL_CONFIG_METHOD, params={"user": user})
+
 	async def dispatch_tool(self, tool: str, user: str, arguments: dict[str, Any] | None = None, run: str | None = None) -> dict[str, Any]:
 		"""Execute one Frappe-touching tool call as `user` (ADR 0003).
 
@@ -177,6 +195,21 @@ class FrappeClient:
 			FrappeClientError: If the call fails or Frappe rejects the shared secret.
 		"""
 		return await self._post_json(FAIL_RUN_METHOD, json={"run": run, "error": error})
+
+	async def log_diagnostic(self, title: str, message: str) -> None:
+		"""Record a service-side diagnostic in Frappe's Error Log.
+
+		Best-effort: swallows `FrappeClientError` so a logging failure never
+		masks or replaces the run failure it was trying to help diagnose.
+
+		Args:
+			title (str): Error Log title.
+			message (str): Full diagnostic text (traceback, timing, etc.).
+		"""
+		try:
+			await self._post_json(LOG_DIAGNOSTIC_METHOD, json={"title": title, "message": message})
+		except FrappeClientError:
+			pass
 
 	async def _get_json(self, method: str, *, params: dict[str, Any] | None = None) -> dict[str, Any]:
 		url = f"{self.settings.frappe_url}/api/method/{method}"

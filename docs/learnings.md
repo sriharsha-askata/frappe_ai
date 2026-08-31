@@ -9,6 +9,30 @@ intended behaviour), this file is allowed to just be a running log. Newest first
 
 ---
 
+## Opaque `model_provider_error` was a mid-stream read timeout
+
+**Date:** 2026-08-30
+
+Minimax M3 spec review failed on call #3 with `error_type=model_provider_error`
+and an empty message. Token limits were a red herring: calls #1 and #2 succeeded
+at 2.6k/7.8k tokens, and call #3 returned HTTP 200 and streamed 214 chunks over
+~137s (last chunk already had `tool_calls`) before `httpx.ReadTimeout('')`.
+
+Agno wraps that empty `ReadTimeout` as `ModelProviderError('')`, which becomes
+the opaque Stage Log string. The OpenAI-compatible client defaulted to a 60s
+timeout, independent of `AI Settings.stream_timeout` (600s). The client timeout
+is now 600s (overridable via that setting), and a stream timeout is reported as
+such instead of an empty provider error.
+
+Verified on run `21jaien0u9`: call #3 finished at 182s / 245 chunks (previously
+died at ~137s). The AI Run completed. Persist then failed separately: spec review
+still writes identity filters named Capacity / Product Type / Voltage Class /
+etc., which `delete_legacy_enquiry_tender_filters` removed as Design Search
+masters. Insert raised `LinkValidationError` ("Could not find Row #1: Filter:
+Capacity, ..."). Persist now skips filter names that have no master.
+
+---
+
 ## Confirmation pause/resume: three real bugs, found only by live-testing all three answer types
 
 **Date:** 2026-08-07 (closing out Phase 3's last unverified completion criterion)

@@ -28,11 +28,16 @@ from __future__ import annotations
 
 import json
 import logging
+import time
 from collections.abc import AsyncIterator
+from dataclasses import dataclass, field
 from typing import Any
 
+from agno.agent import Agent
 from agno.models.message import Message
 from agno.run.agent import (
+	ModelRequestCompletedEvent,
+	ModelRequestStartedEvent,
 	RunContentEvent,
 	RunErrorEvent,
 	RunOutput,
@@ -47,6 +52,177 @@ from frappe_ai.service.frappe_client import FrappeClient, FrappeClientError
 
 logger = logging.getLogger("frappe_ai.service.chat")
 MAX_STORED_TOOL_CONTENT_CHARS = 8000
+
+def _exception_is_stream_timeout(exc: BaseException) -> bool:
+	current: BaseException | None = exc
+	for _ in range(8):
+		if current is None:
+			break
+		name = type(current).__name__
+		if name in {"ReadTimeout", "WriteTimeout", "ConnectTimeout", "TimeoutError", "APITimeoutError"}:
+			return True
+		if "deadline exceeded" in str(current).lower():
+			return True
+		current = current.__cause__ or current.__context__
+	return False
+
+class _AgnoDiagnosticHandler(logging.Handler):
+	"""Forwards Agno's own exception logging into Frappe's Error Log for one run.
+
+	Agno's `"agno"` logger sets `propagate = False` and its `RichHandler` has
+	`rich_tracebacks=False` with a bare `"%(message)s"` format, so the real
+	exception behind an opaque `RunErrorEvent` (see `agno/agents/base.py`'s
+	`except Exception as e: log_exception(...)`) is otherwise dropped — never
+	reaching this process's own logger hierarchy, let alone Frappe. Attaching
+	directly to the `"agno"` logger (bypassing propagate) for the duration of one
+	`agent.arun()` call, with a formatter that renders `exc_info`, recovers it.
+	"""
+
+	def __init__(
+		self, frappe_client: FrappeClient, run: str, level: int = logging.WARNING, title: str = "Agno error"
+	) -> None:
+		super().__init__(level=level)
+		self._frappe_client = frappe_client
+		self._run = run
+		self._title = title
+		self.setFormatter(logging.Formatter("%(levelname)s %(name)s: %(message)s"))
+
+	def emit(self, record: logging.LogRecord) -> None:
+		import asyncio
+
+		message = self.format(record)[:4000]
+		task = asyncio.create_task(
+			self._frappe_client.log_diagnostic(f"frappe_ai Run {self._run}: {self._title}", message)
+		)
+		# Best-effort: don't let a logging failure raise into Agno's own exception path.
+		task.add_done_callback(lambda t: t.exception())
+
+
+@dataclass
+class _TurnAttempt:
+	"""One `agent.arun()` attempt's outcome, buffered rather than yielded directly.
+
+	Buffering (instead of yielding SSE frames as events arrive) is what makes the
+	fallback-model retry in `stream_chat` safe: a failed attempt's frames are
+	simply discarded rather than having already reached the client, so retrying
+	the whole turn from scratch on a different model can't emit duplicates.
+	"""
+
+	frames: list[bytes] = field(default_factory=list)
+	pending: list[PendingConfirmation] = field(default_factory=list)
+	final_output: RunOutput | None = None
+	run_error: Any | None = None
+	model_call_index: int = 0
+	call_log: list[str] = field(default_factory=list)
+	tool_completed: bool = False
+	tool_log: list[str] = field(default_factory=list)
+
+
+async def _run_agent_turn(agent: Agent, messages: list[Message], run: str, frappe_client: FrappeClient) -> _TurnAttempt:
+	"""Run one `agent.arun()` turn to completion, buffering its SSE frames.
+
+	`tool_completed` specifically tracks whether any tool call *finished*
+	(dispatched and returned, side effects included) — not merely started — since
+	that's the fact that makes a fallback-model retry of this same turn unsafe.
+	"""
+	attempt = _TurnAttempt()
+	model_call_started_at: float | None = None
+
+	model = getattr(agent, "model", None)
+	orig_ainvoke_stream = getattr(model, "ainvoke_stream", None) if model is not None else None
+	if orig_ainvoke_stream is not None:
+
+		async def _ainvoke_stream_with_timeout_context(messages, *args, **kwargs):
+			started = time.monotonic()
+			chunk_count = 0
+			try:
+				async for chunk in orig_ainvoke_stream(messages, *args, **kwargs):
+					chunk_count += 1
+					yield chunk
+			except Exception as exc:
+				elapsed = round(time.monotonic() - started, 3)
+				if _exception_is_stream_timeout(exc):
+					from agno.exceptions import ModelProviderError
+
+					raise ModelProviderError(
+						message=(
+							f"Provider stream timed out after {elapsed:.0f}s while reading the model "
+							f"response ({chunk_count} chunks received). The model was still generating "
+							"a tool call. Increase AI Settings.stream_timeout if this persists."
+						),
+						status_code=504,
+						model_name=getattr(model, "name", None),
+						model_id=getattr(model, "id", None),
+					) from exc
+				raise
+
+		model.ainvoke_stream = _ainvoke_stream_with_timeout_context
+
+	agno_diagnostic_handler = _AgnoDiagnosticHandler(frappe_client, run)
+	agno_logger = logging.getLogger("agno")
+	agno_logger.addHandler(agno_diagnostic_handler)
+	try:
+		async for event in agent.arun(input=messages, stream=True, stream_events=True, yield_run_output=True):
+			if isinstance(event, ModelRequestStartedEvent):
+				attempt.model_call_index += 1
+				model_call_started_at = time.monotonic()
+				continue
+			if isinstance(event, ModelRequestCompletedEvent):
+				duration = time.monotonic() - model_call_started_at if model_call_started_at is not None else None
+				attempt.call_log.append(
+					f"call #{attempt.model_call_index} duration={f'{duration:.2f}s' if duration is not None else 'n/a'} "
+					f"input_tokens={event.input_tokens} output_tokens={event.output_tokens} "
+					f"total_tokens={event.total_tokens} time_to_first_token={event.time_to_first_token}"
+				)
+				continue
+			if isinstance(event, RunOutput):
+				attempt.final_output = event
+				continue
+			if isinstance(event, RunErrorEvent):
+				# The model call itself failed (bad credentials, provider outage,
+				# etc.) — on this failure path Agno's generator yields a
+				# RunErrorEvent and never yields a final RunOutput at all (verified
+				# empirically: a 401 from the provider produces
+				# RunStartedEvent -> ModelRequestStartedEvent -> RunErrorEvent, no
+				# RunOutput), so this can't be detected via final_output.status
+				# alone the way a mid-run error might be.
+				attempt.run_error = event
+				continue
+			if isinstance(event, RunContentEvent) and event.content:
+				attempt.frames.append(_frame("text", {"content": event.content}))
+			elif isinstance(event, ToolCallStartedEvent) and event.tool:
+				attempt.frames.append(
+					_frame(
+						"tool_started",
+						{"id": event.tool.tool_call_id, "name": event.tool.tool_name, "arguments": event.tool.tool_args},
+					)
+				)
+			elif isinstance(event, ToolCallCompletedEvent) and event.tool:
+				attempt.tool_completed = True
+				# event.content here is a short status string for the SSE tool_ended
+				# frame (client display only) — the actual result fed back into the
+				# model's own conversation is event.tool.result, which is what this
+				# diagnostic needs to measure.
+				result_text = str(event.tool.result) if event.tool.result is not None else ""
+				attempt.tool_log.append(
+					f"tool={event.tool.tool_name} args={event.tool.tool_args} "
+					f"error={event.tool.tool_call_error} result_chars={len(result_text)} "
+					f"result_preview={result_text[:200]!r}"
+				)
+				maybe_pending = _pending_from_tool_execution(event.tool) if event.tool.tool_call_error else None
+				if maybe_pending:
+					attempt.pending.append(maybe_pending)
+				else:
+					attempt.frames.append(
+						_frame(
+							"tool_ended",
+							{"id": event.tool.tool_call_id, "name": event.tool.tool_name, "result": event.content},
+						)
+					)
+	finally:
+		agno_logger.removeHandler(agno_diagnostic_handler)
+
+	return attempt
 
 
 async def stream_chat(
@@ -117,47 +293,57 @@ async def stream_chat(
 			redirect_answers=_redirects(answers),
 			approved_results=approved_results,
 		)
-		logger.error(
-			"Run %s provider input roles=%s agent_instructions=%s system_message_role=%s",
-			run,
-			[getattr(message, "role", None) for message in messages],
-			getattr(agent, "instructions", None),
-			getattr(agent, "system_message_role", None),
-		)
-		pending: list[PendingConfirmation] = []
-		final_output: RunOutput | None = None
-		run_error: Any | None = None
+		attempt = await _run_agent_turn(agent, messages, run, frappe_client)
 
-		async for event in agent.arun(input=messages, stream=True, stream_events=True, yield_run_output=True):
-			if isinstance(event, RunOutput):
-				final_output = event
-				continue
-			if isinstance(event, RunErrorEvent):
-				# The model call itself failed (bad credentials, provider outage,
-				# etc.) — on this failure path Agno's generator yields a
-				# RunErrorEvent and never yields a final RunOutput at all (verified
-				# empirically: a 401 from the provider produces
-				# RunStartedEvent -> ModelRequestStartedEvent -> RunErrorEvent, no
-				# RunOutput), so this can't be detected via final_output.status
-				# alone the way a mid-run error might be.
-				run_error = event
-				continue
-			if isinstance(event, RunContentEvent) and event.content:
-				yield _frame("text", {"content": event.content})
-			elif isinstance(event, ToolCallStartedEvent) and event.tool:
-				yield _frame(
-					"tool_started",
-					{"id": event.tool.tool_call_id, "name": event.tool.tool_name, "arguments": event.tool.tool_args},
+		# Retry once against the system default model if the *originally
+		# configured* model failed before any tool call completed — i.e. no
+		# side-effecting tool has run yet this turn, so a clean retry from
+		# scratch on a different model can't double-run anything or emit
+		# duplicate frames (the failed attempt's frames are discarded, not
+		# yielded). If a tool already completed, retrying would risk re-running
+		# side effects (e.g. persist_spec_review_result) — fail as before instead.
+		#
+		# In practice this guard rarely allows a retry: the observed failure
+		# pattern is call #1 (context load) -> a tool call succeeds -> call #2
+		# succeeds -> call #3 fails with an empty-message model_provider_error.
+		# By the time the model fails, a tool has almost always already run, so
+		# most model_provider_error failures are NOT eligible for fallback and
+		# fail outright instead — confirmed via a temporary diagnostic during
+		# testing (2026-08-29): tool_completed=True on every observed failure.
+		if attempt.run_error is not None and not attempt.pending and not attempt.tool_completed:
+			try:
+				fallback_model_cfg = await frappe_client.get_fallback_model_config(user)
+			except FrappeClientError:
+				fallback_model_cfg = None
+			if fallback_model_cfg and fallback_model_cfg.get("model_id") != config["model"].get("model_id"):
+				await frappe_client.log_diagnostic(
+					f"frappe_ai Run {run}: retrying with fallback model",
+					f"Primary model {config['model'].get('model_id')} failed with "
+					f"{type(attempt.run_error).__name__}: {attempt.run_error!r}. "
+					f"Retrying with fallback model {fallback_model_cfg.get('model_id')}.",
 				)
-			elif isinstance(event, ToolCallCompletedEvent) and event.tool:
-				maybe_pending = _pending_from_tool_execution(event.tool) if event.tool.tool_call_error else None
-				if maybe_pending:
-					pending.append(maybe_pending)
-				else:
-					yield _frame(
-						"tool_ended",
-						{"id": event.tool.tool_call_id, "name": event.tool.tool_name, "result": event.content},
-					)
+				fallback_agent = Agent(
+					model=builder._build_model(fallback_model_cfg),
+					name=agent.name,
+					instructions=None,
+					system_message_role="system",
+					tools=agent.tools,
+					markdown=agent.markdown,
+					reasoning=agent.reasoning,
+					db=None,
+					add_history_to_context=False,
+					telemetry=False,
+				)
+				attempt = await _run_agent_turn(fallback_agent, messages, run, frappe_client)
+
+		for frame in attempt.frames:
+			yield frame
+		pending = attempt.pending
+		final_output = attempt.final_output
+		run_error = attempt.run_error
+		model_call_index = attempt.model_call_index
+		call_log = attempt.call_log
+		tool_log = attempt.tool_log
 
 		if run_error is None and final_output is not None and final_output.status == RunStatus.error:
 			run_error = final_output.content or "Model call failed."
@@ -167,6 +353,19 @@ async def stream_chat(
 				run_error,
 				provider=config["model"].get("provider"),
 				model_id=config["model"].get("model_id"),
+			)
+			await frappe_client.log_diagnostic(
+				f"frappe_ai Run {run}: provider/model execution failed",
+				"Run {run} failed after {n} model call(s): {msg}\n\n"
+				"raw_error_type={etype}\nraw_error_repr={erepr!r}\n\nCall log:\n{calls}\n\nTool log:\n{tools}".format(
+					run=run,
+					n=model_call_index,
+					msg=error.message,
+					etype=type(run_error).__name__,
+					erepr=run_error,
+					calls="\n".join(call_log) or "(no completed calls)",
+					tools="\n".join(tool_log) or "(no completed tool calls)",
+				),
 			)
 			logger.error("Run %s failed in provider/model execution: %s", run, error.message)
 			# Agno reports model/run failures via a RunErrorEvent (and/or
@@ -179,13 +378,6 @@ async def stream_chat(
 			return
 
 		result = _build_result(final_output, pending, approved_results=approved_results)
-		logger.error(
-			"Run %s persist payload size bytes=%s messages=%s status=%s",
-			run,
-			len(json.dumps(result, default=str)),
-			len(result.get("messages") or []),
-			result.get("status"),
-		)
 		await frappe_client.persist_run_result(run, result)
 		persisted = True
 		yield _frame("done", _done_payload(result))

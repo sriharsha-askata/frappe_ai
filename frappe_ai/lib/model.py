@@ -23,7 +23,11 @@ from typing import Any
 import frappe
 
 OPENAI_COMPATIBLE_TRANSPORT = "openai_compatible"
-DEFAULT_REQUEST_TIMEOUT_SECONDS = 60
+# Streaming tool-call responses can stall mid-SSE for well over a minute after
+# hundreds of chunks (Minimax M3 spec-review call #3: 214 chunks then an empty
+# httpx.ReadTimeout at ~137s). 60s produced an opaque model_provider_error
+# because httpx.ReadTimeout('') stringifies empty. Align with AI Settings.stream_timeout.
+DEFAULT_REQUEST_TIMEOUT_SECONDS = 600
 DEFAULT_MAX_RETRIES = 2
 # OpenAI's ``max_retries`` is the number of retries after the initial request.
 # Two retries therefore gives a maximum of three total attempts.
@@ -363,6 +367,24 @@ def _error_message(error: BaseException | str) -> str:
 		value = getattr(error, field_name, None)
 		if value:
 			return str(value).strip()
+
+	# Agno's RunErrorEvent has no `.message` and often an empty `.content` (the
+	# model call failed before any output streamed back), so falling through to
+	# str(error) dumps its full dataclass repr. Build a readable summary from its
+	# own fields instead when it looks like one of those events.
+	event_type = getattr(error, "error_type", None)
+	agent_name = getattr(error, "agent_name", None)
+	run_id = getattr(error, "run_id", None)
+	if event_type or agent_name or run_id:
+		parts = []
+		if agent_name:
+			parts.append(f"agent '{agent_name}'")
+		if event_type:
+			parts.append(f"error_type={event_type}")
+		if run_id:
+			parts.append(f"run={run_id}")
+		return "Model provider call failed (" + ", ".join(parts) + ")."
+
 	return str(error).strip()
 
 
@@ -426,3 +448,29 @@ def _json_safe(value: Any) -> Any:
 def get_default_model() -> str | None:
 	"""Return the name of the enabled AI Model marked is_default=1, or None."""
 	return frappe.db.get_value("AI Model", {"is_default": 1, "enabled": 1}, "name")
+
+
+CHARS_PER_TOKEN = 4
+DEFAULT_SINGLE_CALL_BUDGET_TOKENS = 25_000
+SINGLE_RESULT_CONTEXT_FRACTION = 0.5
+
+
+def single_tool_result_char_budget(model_name: str | None) -> int:
+	"""Safe character budget for ONE tool call's result payload, derived from
+	`model_name`'s ``AI Model.context_window`` — not a hardcoded, model-blind
+	document-size constant.
+
+	Reserves half the window for one result: a single large tool result must
+	still coexist with the system prompt, prior turns' tool results, and the
+	eventual reply within the same model call, so the full context window is
+	never a safe budget for one piece of it. Falls back to a conservative
+	default when the model is unknown or ``context_window`` is unset/0 (found
+	empirically: agentic tool-calling calls whose cumulative input crossed
+	~27,000-31,000 tokens against "Minimax M3" failed with an opaque
+	model_provider_error, reproduced regardless of chunk size).
+	"""
+	context_window = (model_name and frappe.db.get_value("AI Model", model_name, "context_window")) or 0
+	budget_tokens = (
+		int(context_window * SINGLE_RESULT_CONTEXT_FRACTION) if context_window else DEFAULT_SINGLE_CALL_BUDGET_TOKENS
+	)
+	return budget_tokens * CHARS_PER_TOKEN

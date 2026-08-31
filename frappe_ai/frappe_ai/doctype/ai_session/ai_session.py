@@ -25,6 +25,8 @@ import frappe
 from frappe import _
 from frappe.model.document import Document
 
+from frappe_ai.lib.model import CHARS_PER_TOKEN
+
 TITLE_MAX_LENGTH = 80
 # A "Running" run older than this is treated as abandoned and no longer blocks the session.
 RUNNING_STALE_SECONDS = 300
@@ -34,7 +36,6 @@ RUNNING_STALE_SECONDS = 300
 # so it is chunked and retrieved instead (Phase 4), when an embedding model is
 # configured; otherwise it stays Inline and is truncated to fit at prompt-build time.
 DEFAULT_CONTEXT_WINDOW = 128000
-CHARS_PER_TOKEN = 4
 RETRIEVAL_FRACTION = 0.5
 RESERVED_OUTPUT_TOKENS = 4096
 # Top-K retrieval chunks injected for the latest user turn's retrieval-mode attachments.

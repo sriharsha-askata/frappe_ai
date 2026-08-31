@@ -40,7 +40,7 @@ import frappe
 from frappe import _
 from frappe.utils import cint
 
-from frappe_ai.lib.model import ModelConfigurationError, resolve_model_config
+from frappe_ai.lib.model import ModelConfigurationError, get_default_model, resolve_model_config
 from frappe_ai.service.auth import DEFAULT_TTL_SECONDS, mint_run_token
 
 SERVICE_HEALTH_TIMEOUT = 5
@@ -256,6 +256,49 @@ def get_run_config(run: str, user: str) -> dict:
 		frappe.flags.ignore_permissions = original_ignore_permissions
 
 
+@frappe.whitelist(allow_guest=True)
+def get_fallback_model_config(user: str) -> dict:
+	"""Resolve the system default ``AI Model`` for a run's model-failure fallback.
+
+	Called by the FastAPI service only after a run's originally-configured model
+	fails with a provider/model error (`model_provider_error` and the like) —
+	never as the primary model lookup. Same shared-secret auth as
+	`get_run_config`; the acting user is still checked against `AI Model` read
+	permission so the fallback can't reach a model the run's owner isn't allowed
+	to use.
+
+	Args:
+		user (str): The Frappe user the run belongs to.
+
+	Returns:
+		dict: The same `"model"` shape `get_run_config` returns.
+
+	Raises:
+		frappe.DoesNotExistError: If no enabled AI Model is marked default.
+		frappe.PermissionError: If `user` cannot read that AI Model.
+	"""
+	_verify_service_secret()
+	original_user = frappe.session.user
+	original_local_user = getattr(frappe.local, "user", None)
+	frappe.set_user(user)
+	frappe.local.user = user
+	try:
+		model_name = get_default_model()
+		if not model_name:
+			frappe.throw(_("No enabled default AI Model is configured."), frappe.DoesNotExistError)
+		if not frappe.has_permission("AI Model", "read", model_name):
+			frappe.throw(
+				_("{0} is not permitted to use AI Model {1}.").format(user, model_name), frappe.PermissionError
+			)
+		model_doc = frappe.get_doc("AI Model", model_name)
+		if not model_doc.enabled:
+			frappe.throw(_("AI Model {0} is disabled.").format(model_name), title=_("Disabled Model"))
+		return _model_call_config(model_doc)
+	finally:
+		frappe.set_user(original_user)
+		frappe.local.user = original_local_user
+
+
 def _model_call_config(model_doc) -> dict:
 	"""Resolve an ``AI Model`` into the shared OpenAI-compatible transport config."""
 	if (model_doc.get("model_type") or "Chat") == "Embedding":
@@ -264,9 +307,17 @@ def _model_call_config(model_doc) -> dict:
 			title=_("Invalid Chat Model"),
 		)
 	try:
-		return resolve_model_config(model_doc)
+		config = resolve_model_config(model_doc)
 	except ModelConfigurationError as exc:
 		frappe.throw(str(exc), title=_("Invalid Model Configuration"))
+	try:
+		stream_timeout = frappe.get_cached_value("AI Settings", "AI Settings", "stream_timeout") or 600
+	except Exception:
+		stream_timeout = 600
+	params = dict(config.get("params") or {})
+	params.setdefault("timeout", int(stream_timeout))
+	config["params"] = params
+	return config
 
 
 def _resolve_agent_plugin_tools(agent_doc, user: str) -> list[dict]:
