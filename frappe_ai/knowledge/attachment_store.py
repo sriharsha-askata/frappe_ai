@@ -17,20 +17,38 @@ from __future__ import annotations
 
 from typing import Any
 
+import frappe
 import pyarrow as pa
+from frappe import _
 
-from frappe_ai.knowledge.store import _connect, _ensure_fts_index, _quote, _vector_dim
+from frappe_ai.knowledge.store import (
+	_connect,
+	_ensure_fts_index,
+	_index_metadata,
+	_quote,
+	_validate_index_metadata,
+	_vector_dim,
+	index_metadata_for_table,
+)
 
 TABLE_NAME = "chat_attachment_chunks"
 MAX_SEARCH_LIMIT = 50
 
 
+def index_metadata() -> dict[str, Any]:
+	"""Return the fixed embedding identity recorded in the attachment table."""
+	db = _connect()
+	if TABLE_NAME not in db.list_tables().tables:
+		return {}
+	return index_metadata_for_table(db.open_table(TABLE_NAME))
+
+
 def ensure_table(dimension: int):
 	"""Open the chunks table for the given vector width, creating it if missing.
 
-	On a width mismatch (the embedding model changed) the table is dropped and
-	recreated — chat chunks are ephemeral and rebuildable, so they are not worth
-	preserving across an embedding-model change.
+	On a width or fixed-model metadata mismatch the table is dropped and recreated —
+	chat chunks are ephemeral and rebuildable, so they are not worth preserving
+	across an embedding-index change.
 	"""
 	if not isinstance(dimension, int) or dimension < 1:
 		raise ValueError(f"Invalid embedding dimension: {dimension!r}")
@@ -39,8 +57,14 @@ def ensure_table(dimension: int):
 	if TABLE_NAME in db.list_tables().tables:
 		table = db.open_table(TABLE_NAME)
 		if _vector_dim(table) == dimension:
-			return table
-		db.drop_table(TABLE_NAME)
+			try:
+				_validate_index_metadata(table, dimension)
+			except frappe.ValidationError:
+				db.drop_table(TABLE_NAME)
+			else:
+				return table
+		if TABLE_NAME in db.list_tables().tables:
+			db.drop_table(TABLE_NAME)
 
 	schema = pa.schema(
 		[
@@ -48,7 +72,8 @@ def ensure_table(dimension: int):
 			pa.field("attachment", pa.string()),
 			pa.field("content", pa.string()),
 			pa.field("vector", pa.list_(pa.float32(), dimension)),
-		]
+		],
+		metadata=_index_metadata(dimension),
 	)
 	return db.create_table(TABLE_NAME, schema=schema, exist_ok=True)
 
@@ -88,11 +113,19 @@ def search(
 		return []
 
 	table = _open_table()
+	vector = [float(v) for v in vector]
+	expected_dimension = _vector_dim(table)
+	if len(vector) != expected_dimension:
+		frappe.throw(
+			_("Query vector has dimension {0}, but the attachment index uses {1}.").format(
+				len(vector), expected_dimension
+			),
+			title=_("Embedding Dimension Mismatch"),
+		)
 	if table.count_rows() == 0:
 		return []
 
 	limit = max(1, min(int(limit), MAX_SEARCH_LIMIT))
-	vector = [float(v) for v in vector]
 	if text:
 		_ensure_fts_index(table)
 		query = table.search(query_type="hybrid", vector_column_name="vector").vector(vector).text(text)
@@ -137,4 +170,12 @@ def _table_exists() -> bool:
 
 
 def _open_table():
-	return _connect().open_table(TABLE_NAME)
+	db = _connect()
+	table = db.open_table(TABLE_NAME)
+	if not index_metadata_for_table(table):
+		# Legacy table created before embedding metadata was introduced — drop it so
+		# ensure_table recreates it on the next indexing call.
+		db.drop_table(TABLE_NAME)
+		raise frappe.ValidationError(_("Attachment index is from a previous version and has been cleared."))
+	_validate_index_metadata(table)
+	return table

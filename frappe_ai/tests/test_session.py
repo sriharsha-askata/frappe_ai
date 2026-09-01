@@ -10,12 +10,14 @@ trail depended on, ported to `frappe_ai`'s split process model (see `AI Run`'s a
 from __future__ import annotations
 
 from typing import Any
+from unittest.mock import patch
 
 import frappe
 from frappe.tests import IntegrationTestCase
 
 from frappe_ai.frappe_ai.doctype.ai_run.ai_run import assert_run_owner, create_run
 from frappe_ai.frappe_ai.doctype.ai_session.ai_session import assert_session_owner, derive_title
+from frappe_ai.knowledge.embedder import EmbeddingServiceUnavailable
 
 
 def _model_and_agent(title: str = "Session Test Agent") -> str:
@@ -105,6 +107,64 @@ class TestAISessionPromptMessages(IntegrationTestCase):
 		self.assertEqual(messages[0]["role"], "system")
 		self.assertIn("<agent_memory>", messages[0]["content"])
 		self.assertIn("Vendor Nova prefers invoices on Fridays.", messages[0]["content"])
+
+	def test_attachment_retrieval_falls_back_to_inline_when_embedding_unavailable(self):
+		file_doc = frappe.get_doc(
+			{"doctype": "File", "file_name": "large.txt", "content": "important attachment detail"}
+		).insert(ignore_permissions=True)
+		session = frappe.get_doc({"doctype": "AI Session", "source": "Manual"}).insert(ignore_permissions=True)
+		run = create_run(source="Manual", input="Find the attachment detail", session=session.name)
+		with patch.object(session, "_index_retrieval_attachments"):
+			with patch.object(session, "_attachment_inline_threshold", return_value=10):
+				session.persist_turn(
+					"Find the attachment detail",
+					None,
+					[
+						{
+							"file": file_doc.name,
+							"file_name": "large.txt",
+							"file_size": 100,
+							"extracted_text": "important attachment detail",
+						}
+					],
+					run.name,
+				)
+
+		with patch(
+			"frappe_ai.knowledge.retriever.retrieve_attachments",
+			side_effect=EmbeddingServiceUnavailable("Ollama is unavailable"),
+		):
+			messages = session.build_prompt_messages()
+
+		self.assertIn("important", messages[-1]["content"])
+		self.assertEqual(session.attachments[0].mode, "Inline")
+
+	def test_oversized_attachment_index_failure_demotes_to_inline(self):
+		file_doc = frappe.get_doc(
+			{"doctype": "File", "file_name": "unavailable.txt", "content": "attachment content"}
+		).insert(ignore_permissions=True)
+		session = frappe.get_doc({"doctype": "AI Session", "source": "Manual"}).insert(ignore_permissions=True)
+		run = create_run(source="Manual", input="Read the attachment", session=session.name)
+		with (
+			patch.object(session, "_attachment_inline_threshold", return_value=10),
+			patch("frappe_ai.knowledge.embedder._call_openai_compatible", side_effect=ConnectionError("refused")),
+		):
+			session.persist_turn(
+				"Read the attachment",
+				None,
+				[
+					{
+						"file": file_doc.name,
+						"file_name": "unavailable.txt",
+						"file_size": 100,
+						"extracted_text": "attachment content",
+					}
+				],
+				run.name,
+			)
+
+		session.reload()
+		self.assertEqual(session.attachments[0].mode, "Inline")
 
 
 class TestAISessionModelEnabledValidation(IntegrationTestCase):

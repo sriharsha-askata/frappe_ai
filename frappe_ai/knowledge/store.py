@@ -6,7 +6,8 @@
 MariaDB (AI Knowledge Chunk) is the source of truth for chunk text and metadata.
 This store holds only what search needs: the vector, scoping columns, and a copy
 of the content for the full-text index. Row `id` is the chunk's autoincrement name,
-so every hit maps back to its MariaDB row. The whole store is disposable — it can
+so every hit maps back to its MariaDB row. The fixed embedding identity and width
+are stored in the LanceDB schema metadata. The whole store is disposable — it can
 be rebuilt from MariaDB at any time.
 
 Ported verbatim from `flow.knowledge.store` (`apps/flow/flow/knowledge/store.py`) —
@@ -22,9 +23,14 @@ import lancedb
 import pyarrow as pa
 from frappe import _
 
+from frappe_ai.knowledge.embedder import EMBEDDING_MODEL, EMBEDDING_PROVIDER
+
 TABLE_NAME = "chunks"
 FTS_FIELD = "content"
 MAX_SEARCH_LIMIT = 100
+METADATA_PROVIDER = b"frappe_ai.embedding_provider"
+METADATA_MODEL = b"frappe_ai.embedding_model"
+METADATA_DIMENSION = b"frappe_ai.embedding_dimension"
 
 
 def db_path() -> str:
@@ -52,11 +58,19 @@ def table_dimension() -> int | None:
 	return _vector_dim(db.open_table(TABLE_NAME))
 
 
+def index_metadata() -> dict[str, Any]:
+	"""Return the fixed embedding identity recorded in the chunks table."""
+	db = _connect()
+	if TABLE_NAME not in db.list_tables().tables:
+		return {}
+	return index_metadata_for_table(db.open_table(TABLE_NAME))
+
+
 def ensure_table_for_dimension(dimension: int):
 	"""Open the chunks table for the given vector width, creating it if missing.
 
-	An existing table with a different width is an error — the embedding model
-	changed and the store must be rebuilt, not silently mixed.
+	An existing table with a different width or fixed-model metadata is an error —
+	the store must be rebuilt, not silently mixed.
 	"""
 	if not isinstance(dimension, int) or dimension < 1:
 		raise ValueError(f"Invalid embedding dimension: {dimension!r}")
@@ -72,6 +86,7 @@ def ensure_table_for_dimension(dimension: int):
 				).format(existing, dimension),
 				title=_("Embedding Dimension Mismatch"),
 			)
+		_validate_index_metadata(table, dimension)
 		return table
 
 	schema = pa.schema(
@@ -81,7 +96,8 @@ def ensure_table_for_dimension(dimension: int):
 			pa.field("source", pa.string()),
 			pa.field(FTS_FIELD, pa.string()),
 			pa.field("vector", pa.list_(pa.float32(), dimension)),
-		]
+		],
+		metadata=_index_metadata(dimension),
 	)
 	return db.create_table(TABLE_NAME, schema=schema, exist_ok=True)
 
@@ -129,11 +145,19 @@ def search(
 	if not table_exists():
 		return []
 	table = _open_table()
+	vector = [float(v) for v in vector]
+	expected_dimension = _vector_dim(table)
+	if len(vector) != expected_dimension:
+		frappe.throw(
+			_("Query vector has dimension {0}, but the knowledge index uses {1}.").format(
+				len(vector), expected_dimension
+			),
+			title=_("Embedding Dimension Mismatch"),
+		)
 	if table.count_rows() == 0:
 		return []
 
 	limit = max(1, min(int(limit), MAX_SEARCH_LIMIT))
-	vector = [float(v) for v in vector]
 
 	if text:
 		_ensure_fts_index(table)
@@ -166,10 +190,67 @@ def _open_table():
 	db = _connect()
 	if TABLE_NAME not in db.list_tables().tables:
 		frappe.throw(
-			_("Knowledge store is not initialized. Configure AI Settings and ingest a source."),
+			_("Knowledge store is not initialized. Ensure Ollama is available and ingest a source."),
 			title=_("Knowledge Store Not Ready"),
 		)
-	return db.open_table(TABLE_NAME)
+	table = db.open_table(TABLE_NAME)
+	if not index_metadata_for_table(table):
+		# Legacy table created before embedding metadata was introduced — dispose of it so
+		# the next ingest creates a fresh one with proper metadata.
+		db.drop_table(TABLE_NAME)
+		frappe.throw(
+			_(
+				"Knowledge store is from a previous version. Run rebuild_knowledge_index() to restore knowledge search."
+			),
+			title=_("Knowledge Store Not Ready"),
+		)
+	_validate_index_metadata(table)
+	return table
+
+
+def _index_metadata(dimension: int) -> dict[bytes, bytes]:
+	return {
+		METADATA_PROVIDER: EMBEDDING_PROVIDER.encode(),
+		METADATA_MODEL: EMBEDDING_MODEL.encode(),
+		METADATA_DIMENSION: str(dimension).encode(),
+	}
+
+
+def _metadata_text(value: bytes | str | None) -> str | None:
+	if value is None:
+		return None
+	return value.decode() if isinstance(value, bytes) else str(value)
+
+
+def _validate_index_metadata(table, dimension: int | None = None) -> None:
+	metadata = index_metadata_for_table(table)
+	expected_dimension = _vector_dim(table) if dimension is None else dimension
+	if metadata != {
+		"provider": EMBEDDING_PROVIDER,
+		"model": EMBEDDING_MODEL,
+		"dimension": expected_dimension,
+	}:
+		frappe.throw(
+			_(
+				"Knowledge index embedding metadata does not match Ollama/{0} dimension {1}. Rebuild the knowledge store."
+			).format(EMBEDDING_MODEL, expected_dimension),
+			title=_("Embedding Index Mismatch"),
+		)
+
+
+def index_metadata_for_table(table) -> dict[str, Any]:
+	raw = table.schema.metadata or {}
+	metadata: dict[str, Any] = {
+		"provider": _metadata_text(raw.get(METADATA_PROVIDER)),
+		"model": _metadata_text(raw.get(METADATA_MODEL)),
+	}
+	dimension = _metadata_text(raw.get(METADATA_DIMENSION))
+	if dimension is not None:
+		try:
+			metadata["dimension"] = int(dimension)
+		except ValueError:
+			metadata["dimension"] = dimension
+	return {key: value for key, value in metadata.items() if value is not None}
 
 
 def _ensure_fts_index(table) -> None:

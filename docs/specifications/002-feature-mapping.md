@@ -39,11 +39,11 @@ marked done in the [progress tracker](../progress/flow-to-frappe-ai-migration.md
 | 1.5 | `_apply_provider` prefixing `provider/` onto `model_id` | Dropped. `model_id` is a bare id (e.g. `"claude-sonnet-4-6"`); provider comes from the linked `AI Provider`, not string composition. | **Redesign** | ADR 0009. |
 | 1.6 | `_resolve_context_window` via `litellm.get_model_info` | Dropped. `context_window` is a plain user-editable `Int`, not derived. | **Redesign** | No Agno equivalent exists; documented as a deliberate loss of convenience, not a functional regression. ADR 0009. |
 | 1.7 | `RESERVED_PARAM_KEYS` rejection | same | **Port** | |
-| 1.8 | `test_connection()` — 1-token ping via `litellm.completion` | Explicit fresh capability suite for Chat/Embedding transports; runtime never preflights | **Redesign** | Core checks cover non-streaming, streaming, synthetic tools/tool-call round trip, and embeddings. Structured output and bounded larger input are warnings. See ADR 0015. |
+| 1.8 | `test_connection()` — 1-token ping via `litellm.completion` | Explicit fresh Chat capability suite; runtime never preflights | **Redesign** | Core checks cover non-streaming, streaming, and synthetic tool declaration/call round trip. Structured output and bounded larger input are warnings. See ADR 0015. |
 | 1.9 | `get_provider_models(provider)` | same, sourced from the fixed Agno provider-slug set rather than `litellm.models_by_provider` | **Adapt** | |
-| 1.10 | `Flow Knowledge Settings` (Single) — embedding model, chunk size/overlap, search type | `AI Settings` (Single) | **Adapt** | Merged with new service config: `service_base_url`, `service_secret`, timeouts, `lancedb_path`. |
-| 1.11 | `_guard_model_change` — blocks embedding-model change while chunks exist | same | **Port** | Bypass flag retained. |
-| 1.12 | `_sync_embedding_dimension` via `probe_dimension` | same | **Port** | `probe_dimension` is Phase 4 work (embedder), unrelated to the litellm/Agno model-calling question — needs an embedding call, which is a separate concern from chat model calls. Resolved via ADR 0012 (direct provider SDK, not litellm or Agno). |
+| 1.10 | `Flow Knowledge Settings` (Single) — embedding model, chunk size/overlap, search type | `AI Settings` (Single) | **Adapt** | Embedding selection removed; fixed Ollama `nomic-embed-text` plus observed dimension are application configuration. Other fields remain, alongside `service_base_url`, timeouts, and `lancedb_path`. See ADR 0016. |
+| 1.11 | `_guard_model_change` — blocks embedding-model change while chunks exist | Fixed model identity and dimension checks in the embedder/LanceDB metadata | **Redesign** | Model selection is impossible through either DocType; mismatches require a rebuild from MariaDB. |
+| 1.12 | `_sync_embedding_dimension` via `probe_dimension` | Dimension learned from the first successful fixed-model request | **Redesign** | `probe_dimension()` calls Ollama and persists the returned width; it never resolves an `AI Model`. See ADR 0016. |
 | 1.13 | Model-then-provider credential resolution order | same | **Port** | |
 
 ---
@@ -144,8 +144,8 @@ dispatch endpoint.
 | 5.6 | 10 MB `_read_capped` limit | same | **Port** | |
 | 5.7 | DocType source `content_fields` validated against meta | same | **Port** | Blocks injection; rejects child-table fields. |
 | 5.8 | Character chunker with overlap, whitespace-aware | same | **Port** | |
-| 5.9 | Embedding via litellm, batched at 96, order-preserving | `frappe_ai.knowledge.embedder`, direct provider SDK calls via `EMBEDDING_CALLERS` | **Redesign** | Embeddings do not use litellm; no Agno embedder package exists. Batching/order-preservation logic ported unchanged; the provider call site is new. Ships `openai` only — see [ADR 0012](../decisions/0012-embeddings-direct-provider-sdk.md). |
-| 5.10 | `probe_dimension()` | same | **Port** | `AI Settings.embedding_model` is `Link → AI Model` (unlike `flow`'s raw model-id string), so this takes an `AI Model` name and resolves credentials the same way chat models do (`AI Model` own creds, then `AI Provider` fallback). |
+| 5.9 | Embedding via litellm, batched at 96, order-preserving | `frappe_ai.knowledge.embedder`, fixed Ollama OpenAI-compatible call | **Redesign** | Every call uses provider `ollama` and model `nomic-embed-text`; only `FRAPPE_AI_OLLAMA_BASE_URL` varies. Batching/order-preservation remains. |
+| 5.10 | `probe_dimension()` | same | **Redesign** | Performs one real fixed-model request and persists its width in `AI Settings`; no `AI Model` is involved. |
 | 5.11 | LanceDB `chunks` table | same | **Port** | [ADR 0002](../decisions/0002-lancedb-vector-store.md) |
 | 5.12 | **Hybrid search (BM25 + vector)** | same | **Port** | Preserved by staying on LanceDB. `search_type` defaults to `Hybrid`. |
 | 5.13 | Incremental DocType sync: `last_synced_at` watermark + SHA-256 `content_hash` | same | **Port** | |

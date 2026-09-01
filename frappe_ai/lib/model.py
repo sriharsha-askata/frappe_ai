@@ -217,7 +217,6 @@ def resolve_model_config(model_doc) -> dict[str, Any]:
 		"provider": provider,
 		"transport": OPENAI_COMPATIBLE_TRANSPORT,
 		"model_id": model_doc.model_id,
-		"model_type": getattr(model_doc, "model_type", None) or "Chat",
 		"api_key": api_key,
 		"base_url": base_url,
 		"params": params,
@@ -241,8 +240,6 @@ def create_openai_compatible_model(
 	by this app. ``params`` are forwarded to Agno's OpenAI Chat model, including
 	OpenAI-compatible provider extensions such as Gemini's ``extra_body``.
 	"""
-	if model_config.get("model_type", "Chat") == "Embedding":
-		raise ModelConfigurationError("Embedding models must use the embeddings endpoint, not chat completions.")
 	try:
 		from agno.models.openai.chat import OpenAIChat
 	except (ImportError, ModuleNotFoundError) as exc:

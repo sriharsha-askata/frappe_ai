@@ -308,7 +308,8 @@ persistence is an explicit call back to Frappe, so this class of bug does not ar
 | Tool raises | Caught, returned to the model as `{"error": …}` truncated to 500 chars — a failing tool never kills the run |
 | Stale `Running` run | Auto-failed after `RUNNING_STALE_SECONDS` (300); also `recover_session` on reload and explicit `stop_run` |
 | LanceDB unavailable | `search_knowledge` fails closed with an error; the rest of the run continues |
-| Embedding model changed while chunks exist | Blocked at save time by `_guard_model_change` |
+| Ollama embedding service unavailable | Normal chat continues; attachment retrieval falls back to inline mode; knowledge ingestion/search reports the service error |
+| Ollama model digest or vector dimension changed | Fixed-model LanceDB metadata/dimension checks reject mixed vectors; rebuild from MariaDB |
 
 ---
 
@@ -326,13 +327,16 @@ The service runs in the bench Python environment but does **not** call `frappe.i
 deployable and horizontally scalable; the concurrency ceiling becomes the LLM provider's
 rate limit rather than the gunicorn worker count.
 
-New dependencies: `agno`, `fastapi`, `uvicorn`.
+New dependencies: `agno`, `fastapi`, `uvicorn`. Embeddings require a private Ollama
+service serving the fixed `nomic-embed-text` model; its endpoint is configured through
+`FRAPPE_AI_OLLAMA_BASE_URL` (see [setup](../setup.md)).
 Already present in this bench: `lancedb 0.36.0`, `openai 2.30.0`, `pydantic 2.11.7`.
 
 > `litellm` is a declared dependency for provider validation and model-id suggestions
-> only. Chat calls and embedding calls do not go through litellm: chat uses Agno's native
-> provider classes, and embeddings use direct provider SDK callers. See [ADR 0009](../decisions/0009-no-litellm-agno-native-models.md),
-> [ADR 0012](../decisions/0012-embeddings-direct-provider-sdk.md), and [ADR 0013](../decisions/0013-litellm-for-provider-ux-agno-still-executes.md).
+> only. Chat calls and embedding calls do not go through litellm: chat uses the shared
+> OpenAI-compatible transport, and embeddings use the fixed Ollama OpenAI-compatible
+> endpoint. See [ADR 0014](../decisions/0014-openai-compatible-chat-transport.md) and
+> [ADR 0016](../decisions/0016-fixed-ollama-embeddings.md).
 
 ---
 

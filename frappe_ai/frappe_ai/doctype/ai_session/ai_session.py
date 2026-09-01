@@ -33,8 +33,8 @@ RUNNING_STALE_SECONDS = 300
 
 # Attachment routing thresholds — ported from flow. A file whose text exceeds
 # RETRIEVAL_FRACTION of the model's context window is too big to inline every turn,
-# so it is chunked and retrieved instead (Phase 4), when an embedding model is
-# configured; otherwise it stays Inline and is truncated to fit at prompt-build time.
+# so it is chunked and retrieved instead when the fixed embedding integration can
+# serve it; failures demote it to Inline and it is truncated to fit at prompt-build time.
 DEFAULT_CONTEXT_WINDOW = 128000
 RETRIEVAL_FRACTION = 0.5
 RESERVED_OUTPUT_TOKENS = 4096
@@ -202,13 +202,17 @@ class AISession(Document):
 				)
 				if not chunks:
 					row.db_set("mode", "Inline")
+					row.mode = "Inline"
 					continue
 				vectors = embed_texts(chunks)
-				attachment_store.ensure_table(cint(settings.embedding_dimension))
+				attachment_store.ensure_table(len(vectors[0]))
 				attachment_store.add(self.name, row.name, chunks, vectors)
 			except Exception:
+				# Permanent demotion: data never made it to LanceDB, so Retrieval mode
+				# would silently return nothing. Inline ensures the user gets the capped text.
 				frappe.log_error(title="Chat attachment indexing failed")
 				row.db_set("mode", "Inline")
+				row.mode = "Inline"
 
 	def _file_injection_budget(self) -> int:
 		"""Characters left for file content this turn: the context window minus the reply
@@ -228,12 +232,21 @@ class AISession(Document):
 		  full text.
 
 		"""
+		from frappe_ai.knowledge.embedder import EmbeddingServiceUnavailable
 		from frappe_ai.knowledge.retriever import retrieve_attachments
 		from frappe_ai.memory.memory import build_memory_block
 
-		attachments_by_run = self._group_attachments_by_run()
 		last_user_run = self._latest_user_run()
 		query = self._latest_user_content() if any(a.mode == "Retrieval" for a in self.attachments) else None
+		retrieved_chunks: list[dict[str, Any]] = []
+		if query:
+			try:
+				retrieved_chunks = retrieve_attachments(query, session=self.name, limit=RETRIEVAL_TOP_K)
+			except (EmbeddingServiceUnavailable, frappe.ValidationError):
+				self._demote_retrieval_attachments()
+				query = None
+
+		attachments_by_run = self._group_attachments_by_run()
 		budget = self._file_injection_budget()
 
 		messages: list[dict[str, Any]] = []
@@ -253,11 +266,21 @@ class AISession(Document):
 				if retrieval:
 					content = _note_retrieval_files(content, retrieval)
 				if query and row.run == last_user_run:
-					chunks = retrieve_attachments(query, session=self.name, limit=RETRIEVAL_TOP_K)
-					content, budget = _inject_retrieved_chunks(content, chunks, budget)
+					content, budget = _inject_retrieved_chunks(content, retrieved_chunks, budget)
 				message["content"] = content
 			messages.append(message)
 		return messages
+
+	def _demote_retrieval_attachments(self) -> None:
+		"""Temporarily fall back to inline when embedding is unavailable.
+
+		In-memory only — DB retains Retrieval so the next request retries automatically
+		when the embedding service recovers.
+		"""
+		for row in self.attachments:
+			if row.mode != "Retrieval":
+				continue
+			row.mode = "Inline"
 
 	def _latest_user_run(self) -> str | None:
 		for row in reversed(self.messages):
@@ -359,8 +382,13 @@ def _purge_attachment_chunks(session: str | list[str]) -> None:
 
 
 def _embeddings_configured() -> bool:
-	"""Whether an embedding model is set, i.e. retrieval mode is available."""
-	return bool(frappe.get_cached_value("AI Settings", "AI Settings", "embedding_model"))
+	"""Whether the fixed embedding integration is configured.
+
+	Availability is intentionally not probed here. A real request during indexing
+	(or retrieval) is the availability check, and failures are handled at those
+	boundaries so ordinary chat can continue.
+	"""
+	return True
 
 
 def _route_attachment(text: str | None, threshold: int, embeddings_on: bool) -> str:

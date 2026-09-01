@@ -32,10 +32,6 @@ class AIKnowledgeBase(Document):
 	# end: auto-generated types
 
 	def validate(self):
-		if self.is_new():
-			from frappe_ai.frappe_ai.doctype.ai_settings.ai_settings import require_embedding_model
-
-			require_embedding_model()
 		validate_immutable(self)
 
 	def on_trash(self):

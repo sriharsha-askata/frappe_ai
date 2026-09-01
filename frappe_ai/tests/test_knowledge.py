@@ -1,25 +1,11 @@
 # Copyright (c) 2026, Frappe Technologies and contributors
 # License: MIT. See LICENSE
 
-"""Ported from `flow`'s `tests/test_knowledge.py` (`apps/flow/flow/tests/test_knowledge.py`).
-
-Adaptations from the `flow` original:
-- Doctype names: `Flow Knowledge *` -> `AI Knowledge *`, `Flow Knowledge Settings` ->
-  `AI Settings` (Single).
-- `AI Model` needs a `provider` slug (Agno class resolution, ADR 0009) instead of
-  `flow`'s `model_id` litellm-prefix routing — fixtures set `provider="openai"`.
-- Embedder mock target: `flow` patched the single litellm call site
-  (`litellm.embedding`). `frappe_ai` has no litellm (ADR 0009) or Agno embedder (ADR
-  0012) — the equivalent single external call site is
-  `frappe_ai.knowledge.embedder._call_openai_compatible`, mocked the same way.
-- `TestAgentKnowledge` tested `flow.lib.agent.Agent`, which has no equivalent here
-  (Phase 3 replaced flow's in-process agent runtime with the FastAPI service +
-  `AgentBuilder`). The real integration point in this architecture is
-  `frappe_ai.tools.builtins.bind_search_knowledge` / `_knowledge_search_description`,
-  tested directly instead.
-"""
+"""Knowledge retrieval, fixed Ollama embeddings, and LanceDB integration tests."""
 
 import json
+import os
+from types import SimpleNamespace
 from unittest.mock import patch
 
 import frappe
@@ -46,6 +32,7 @@ from frappe_ai.knowledge.ingest import (
 	reconcile_source,
 	sync_due_sources,
 )
+from frappe_ai.knowledge.migration import migrate_legacy_embedding_configuration, rebuild_knowledge_index
 from frappe_ai.knowledge.retriever import retrieve, retrieve_attachments
 
 DIM = 4
@@ -133,10 +120,33 @@ class TestKnowledgeStore(IntegrationTestCase):
 		self.assertTrue(store.table_exists())
 		self.assertEqual(store.table_dimension(), DIM)
 
+	def test_index_stores_fixed_embedding_metadata(self):
+		store.ensure_table_for_dimension(DIM)
+
+		self.assertEqual(
+			store.index_metadata(),
+			{"provider": "ollama", "model": "nomic-embed-text", "dimension": DIM},
+		)
+
 	def test_ensure_table_rejects_dimension_change(self):
 		store.ensure_table_for_dimension(DIM)
 		with self.assertRaisesRegex(frappe.ValidationError, "Rebuild"):
 			store.ensure_table_for_dimension(DIM + 1)
+
+	def test_ensure_table_rejects_embedding_metadata_change(self):
+		store.ensure_table_for_dimension(DIM)
+		with patch.object(
+			store,
+			"index_metadata_for_table",
+			return_value={"provider": "openai", "model": "old-model", "dimension": DIM},
+		):
+			with self.assertRaisesRegex(frappe.ValidationError, "Rebuild"):
+				store.ensure_table_for_dimension(DIM)
+
+	def test_search_rejects_query_dimension_change(self):
+		self._seed()
+		with self.assertRaisesRegex(frappe.ValidationError, "dimension"):
+			store.search([1.0] * (DIM + 1))
 
 	def test_ensure_table_rejects_invalid_dimension(self):
 		with self.assertRaises(ValueError):
@@ -219,7 +229,7 @@ def _fake_vectors(count, vector=None):
 	return [(i, vector) for i in range(count)]
 
 
-def _make_model(title="Embed Model", model_id="text-embedding-3-small"):
+def _make_model(title="Chat Model", model_id="gpt-4o-mini"):
 	if frappe.db.exists("AI Model", title):
 		return frappe.get_doc("AI Model", title)
 	if not frappe.db.exists("AI Provider", "openai"):
@@ -230,7 +240,6 @@ def _make_model(title="Embed Model", model_id="text-embedding-3-small"):
 			"title": title,
 			"provider": "openai",
 			"model_id": model_id,
-			"model_type": "Embedding",
 			"api_key": "sk-test",
 			"enabled": 1,
 		}
@@ -246,7 +255,7 @@ def _set_settings(**values):
 class TestEmbedder(IntegrationTestCase):
 	def setUp(self):
 		self.model = _make_model()
-		_set_settings(embedding_model=self.model.name)
+		_set_settings(embedding_dimension=0)
 
 	def tearDown(self):
 		frappe.db.rollback()
@@ -260,9 +269,22 @@ class TestEmbedder(IntegrationTestCase):
 		self.assertEqual(vectors, [[1.0, 2.0], [3.0, 4.0]])
 		args, kwargs = mocked.call_args
 		self.assertEqual(args[0], ["a", "b"])
-		self.assertEqual(args[1]["model"], "text-embedding-3-small")
-		provider_key = frappe.get_doc("AI Provider", "openai").get_password("api_key", raise_exception=False)
-		self.assertEqual(args[1]["api_key"], provider_key or "sk-test")
+		self.assertEqual(args[1]["provider"], "ollama")
+		self.assertEqual(args[1]["model"], "nomic-embed-text")
+		self.assertEqual(args[1]["api_key"], "ollama")
+
+	def test_embed_texts_uses_fixed_ollama_configuration(self):
+		_set_settings(embedding_dimension=0)
+		with (
+			patch.dict(os.environ, {"FRAPPE_AI_OLLAMA_BASE_URL": "http://ollama.test:11434/v1"}),
+			patch("frappe_ai.knowledge.embedder._call_openai_compatible", return_value=[(0, [1.0, 2.0])]) as mocked,
+		):
+			self.assertEqual(embed_texts(["a"]), [[1.0, 2.0]])
+
+		config = mocked.call_args.args[1]
+		self.assertEqual(config["provider"], "ollama")
+		self.assertEqual(config["model"], "nomic-embed-text")
+		self.assertEqual(config["base_url"], "http://ollama.test:11434/v1")
 
 	def test_embed_texts_batches_large_input(self):
 		texts = [f"t{i}" for i in range(100)]
@@ -282,34 +304,6 @@ class TestEmbedder(IntegrationTestCase):
 			self.assertEqual(embed_texts([]), [])
 		mocked.assert_not_called()
 
-	def test_embed_texts_requires_configured_model(self):
-		_set_settings(embedding_model="")
-		with self.assertRaisesRegex(frappe.ValidationError, "AI Settings"):
-			embed_texts(["a"])
-
-	def test_embed_texts_rejects_disabled_model(self):
-		self.model.enabled = 0
-		self.model.save()
-		with self.assertRaisesRegex(frappe.ValidationError, "disabled"):
-			embed_texts(["a"])
-
-	def test_embed_texts_rejects_chat_model(self):
-		self.model.model_type = "Chat"
-		self.model.save()
-		with self.assertRaisesRegex(frappe.ValidationError, "Chat model"):
-			embed_texts(["a"])
-
-	def test_embed_texts_unknown_provider_throws(self):
-		# A provider slug can be a perfectly valid Agno chat-model provider (passes
-		# AI Model's own save-time validation) while still having no embeddings
-		# caller wired up in EMBEDDING_CALLERS (ADR 0012 ships "openai" only).
-		if not frappe.db.exists("AI Provider", "anthropic"):
-			frappe.get_doc({"doctype": "AI Provider", "provider": "anthropic"}).insert()
-		self.model.provider = "anthropic"
-		self.model.save()
-		with self.assertRaisesRegex(frappe.ValidationError, "does not support embeddings"):
-			embed_texts(["a"])
-
 	def test_embed_texts_count_mismatch_throws(self):
 		with patch("frappe_ai.knowledge.embedder._call_openai_compatible", return_value=[(0, [1.0])]):
 			with self.assertRaisesRegex(frappe.ValidationError, "2 inputs"):
@@ -328,17 +322,18 @@ class TestEmbedder(IntegrationTestCase):
 			"frappe_ai.knowledge.embedder._call_openai_compatible",
 			return_value=[(0, [0.0] * 1536)],
 		):
-			self.assertEqual(probe_dimension(self.model.name), 1536)
+			self.assertEqual(probe_dimension(), 1536)
 
 
 class TestKnowledgeSettings(IntegrationTestCase):
 	def setUp(self):
-		self.model = _make_model()
-		self.alt_model = _make_model(title="Embed Model Alt", model_id="text-embedding-3-large")
-		_set_settings(embedding_model="", embedding_dimension=0)
+		_set_settings(embedding_dimension=0)
 
 	def tearDown(self):
 		frappe.db.rollback()
+
+	def test_ai_settings_does_not_expose_embedding_model(self):
+		self.assertIsNone(frappe.get_meta("AI Settings").get_field("embedding_model"))
 
 	def _save_settings(self, **values):
 		settings = frappe.get_doc("AI Settings")
@@ -346,77 +341,9 @@ class TestKnowledgeSettings(IntegrationTestCase):
 		settings.save()
 		return settings
 
-	def _make_chunk(self):
-		kb = frappe.get_doc({"doctype": "AI Knowledge Base", "title": "Settings KB"}).insert()
-		source = frappe.get_doc(
-			{
-				"doctype": "AI Knowledge Source",
-				"knowledge_base": kb.name,
-				"source_type": "Text",
-				"title": "Settings Source",
-				"content": "hello",
-			}
-		).insert()
-		return frappe.get_doc(
-			{
-				"doctype": "AI Knowledge Chunk",
-				"knowledge_base": kb.name,
-				"source": source.name,
-				"chunk_index": 0,
-				"content": "hello",
-			}
-		).insert()
-
-	def test_save_probes_dimension(self):
-		with patch("frappe_ai.knowledge.embedder.probe_dimension", return_value=1536) as probe:
-			settings = self._save_settings(embedding_model=self.model.name)
-		self.assertEqual(settings.embedding_dimension, 1536)
-		probe.assert_called_once_with(self.model.name)
-
-	def test_save_unchanged_model_does_not_reprobe(self):
-		with patch("frappe_ai.knowledge.embedder.probe_dimension", return_value=1536):
-			self._save_settings(embedding_model=self.model.name)
-		with patch("frappe_ai.knowledge.embedder.probe_dimension") as probe:
-			self._save_settings(chunk_size=500)
-		probe.assert_not_called()
-
-	def test_model_change_reprobes_without_chunks(self):
-		with patch("frappe_ai.knowledge.embedder.probe_dimension", return_value=1536):
-			self._save_settings(embedding_model=self.model.name)
-		with patch("frappe_ai.knowledge.embedder.probe_dimension", return_value=3072):
-			settings = self._save_settings(embedding_model=self.alt_model.name)
-		self.assertEqual(settings.embedding_dimension, 3072)
-
-	def test_model_change_blocked_while_chunks_exist(self):
-		with patch("frappe_ai.knowledge.embedder.probe_dimension", return_value=1536):
-			self._save_settings(embedding_model=self.model.name)
-		self._make_chunk()
-		with self.assertRaisesRegex(frappe.ValidationError, "Delete all knowledge sources"):
-			self._save_settings(embedding_model=self.alt_model.name)
-
-	def test_clear_model_blocked_while_chunks_exist(self):
-		with patch("frappe_ai.knowledge.embedder.probe_dimension", return_value=1536):
-			self._save_settings(embedding_model=self.model.name)
-		self._make_chunk()
-		with self.assertRaisesRegex(frappe.ValidationError, "Delete all knowledge sources"):
-			self._save_settings(embedding_model="")
-
-	def test_model_change_flag_bypasses_guard(self):
-		with patch("frappe_ai.knowledge.embedder.probe_dimension", return_value=1536):
-			self._save_settings(embedding_model=self.model.name)
-		self._make_chunk()
-		settings = frappe.get_doc("AI Settings")
-		settings.embedding_model = self.alt_model.name
-		settings.flags.allow_embedding_model_change = True
-		with patch("frappe_ai.knowledge.embedder.probe_dimension", return_value=3072):
-			settings.save()
-		self.assertEqual(settings.embedding_dimension, 3072)
-
-	def test_clear_model_resets_dimension(self):
-		with patch("frappe_ai.knowledge.embedder.probe_dimension", return_value=1536):
-			self._save_settings(embedding_model=self.model.name)
-		settings = self._save_settings(embedding_model="")
-		self.assertEqual(settings.embedding_dimension, 0)
+	def test_embedding_dimension_can_be_saved_as_observed_metadata(self):
+		settings = self._save_settings(embedding_dimension=768)
+		self.assertEqual(settings.embedding_dimension, 768)
 
 	def test_chunk_overlap_must_be_smaller_than_chunk_size(self):
 		with self.assertRaisesRegex(frappe.ValidationError, "Chunk Overlap"):
@@ -425,6 +352,47 @@ class TestKnowledgeSettings(IntegrationTestCase):
 	def test_chunk_size_must_be_positive(self):
 		with self.assertRaisesRegex(frappe.ValidationError, "Chunk Size"):
 			self._save_settings(chunk_size=0)
+
+
+class TestEmbeddingMigration(IntegrationTestCase):
+	def tearDown(self):
+		frappe.db.rollback()
+
+	def test_legacy_config_is_reported_and_dimension_reset(self):
+		with (
+			patch("frappe_ai.knowledge.migration._read_legacy_embedding_model", return_value="Old Embeddings"),
+			patch("frappe_ai.knowledge.migration._reset_persisted_dimension") as reset,
+		):
+			report = migrate_legacy_embedding_configuration()
+
+		self.assertEqual(report, {"status": "legacy_configuration_found", "legacy_model": "Old Embeddings"})
+		reset.assert_called_once_with()
+
+	def test_rebuild_preserves_mariadb_chunk_ids_and_counts(self):
+		rows = [SimpleNamespace(name="42", knowledge_base="KB", source="SRC", content="content")]
+		table = SimpleNamespace(count_rows=lambda: 1)
+		with (
+			patch("frappe_ai.knowledge.migration._reset_persisted_dimension"),
+			patch("frappe_ai.knowledge.migration._clear_legacy_embedding_model"),
+			patch("frappe_ai.knowledge.embedder.probe_dimension", return_value=DIM),
+			patch("frappe_ai.knowledge.embedder.embed_texts", return_value=[[0.1, 0.2, 0.3, 0.4]]) as embed,
+			patch("frappe_ai.knowledge.migration.frappe.get_all", return_value=rows),
+			patch("frappe_ai.knowledge.migration.frappe.db.count", return_value=1),
+			patch("frappe_ai.knowledge.store.drop_table"),
+			patch("frappe_ai.knowledge.store.ensure_table_for_dimension") as ensure,
+			patch("frappe_ai.knowledge.store.add") as add,
+			patch("frappe_ai.knowledge.store._open_table", return_value=table),
+			patch(
+				"frappe_ai.knowledge.store.index_metadata",
+				return_value={"provider": "ollama", "model": "nomic-embed-text", "dimension": DIM},
+		)):
+			report = rebuild_knowledge_index()
+
+		self.assertEqual(report["status"], "completed")
+		self.assertEqual(report["chunks"], 1)
+		ensure.assert_called_once_with(DIM)
+		embed.assert_called_once_with(["content"])
+		self.assertEqual(add.call_args.args[0][0]["id"], 42)
 
 
 class TestChunker(IntegrationTestCase):
@@ -768,7 +736,6 @@ class TestIngest(IntegrationTestCase):
 		store.drop_table()
 		self.model = _make_model()
 		_set_settings(
-			embedding_model=self.model.name,
 			embedding_dimension=DIM,
 			chunk_size=60,
 			chunk_overlap=10,
@@ -827,6 +794,14 @@ class TestIngest(IntegrationTestCase):
 		lance_ids = set(table.to_arrow().column("id").to_pylist())
 		self.assertEqual(lance_ids, {int(c["name"]) for c in chunks})
 
+	def test_ingest_initializes_dimension_from_embedding_response(self):
+		_set_settings(embedding_dimension=0)
+		source = self._make_source(content="Wifi keeps dropping on the office network. " * 4)
+		self._ingest(source.name)
+
+		self.assertEqual(frappe.db.get_single_value("AI Settings", "embedding_dimension"), DIM)
+		self.assertEqual(store.index_metadata()["dimension"], DIM)
+
 	def test_resync_is_idempotent(self):
 		source = self._make_source(content="Reset your password from the account settings page. " * 4)
 		self._ingest(source.name)
@@ -869,6 +844,37 @@ class TestIngest(IntegrationTestCase):
 		self.assertEqual(source.status, "Failed")
 		self.assertIn("non-public", source.error_log or "")
 
+	def test_unavailable_embedding_service_marks_source_failed(self):
+		source = self._make_source(content="content that needs embeddings")
+		with (
+			patch("frappe_ai.knowledge.embedder._call_openai_compatible", side_effect=ConnectionError("refused")),
+			patch.object(frappe.db, "commit"),
+			patch.object(frappe.db, "rollback"),
+			self.assertRaisesRegex(frappe.ValidationError, "Ollama embedding service is unavailable"),
+		):
+			ingest_source(source.name)
+
+		source.reload()
+		self.assertEqual(source.status, "Failed")
+		self.assertIn("Ollama embedding service is unavailable", source.error_log or "")
+
+	def test_reembedding_failure_preserves_previous_chunks(self):
+		source = self._make_source(content="content that is already indexed")
+		self._ingest(source.name)
+		before_chunks = self._chunks(source.name)
+		before_lance_count = self._lance_count()
+
+		with (
+			patch("frappe_ai.knowledge.embedder._call_openai_compatible", side_effect=ConnectionError("refused")),
+			patch.object(frappe.db, "commit"),
+			patch.object(frappe.db, "rollback"),
+			self.assertRaisesRegex(frappe.ValidationError, "Ollama embedding service is unavailable"),
+		):
+			ingest_source(source.name)
+
+		self.assertEqual(self._chunks(source.name), before_chunks)
+		self.assertEqual(self._lance_count(), before_lance_count)
+
 	def test_purge_source_is_safe_when_empty(self):
 		source = self._make_source(content="never ingested")
 		purge_source(source.name)
@@ -899,15 +905,13 @@ class TestIngest(IntegrationTestCase):
 		with self.assertRaisesRegex(frappe.ValidationError, "Chunk Overlap"):
 			self._make_source(content="x", chunk_size=100, chunk_overlap=100)
 
-	def test_knowledge_base_requires_embedding_model(self):
-		_set_settings(embedding_model="")
-		with self.assertRaisesRegex(frappe.ValidationError, "AI Settings"):
-			frappe.get_doc({"doctype": "AI Knowledge Base", "title": "No Model KB"}).insert()
+	def test_knowledge_base_does_not_require_embedding_model_setting(self):
+		kb = frappe.get_doc({"doctype": "AI Knowledge Base", "title": "No Model KB"}).insert()
+		self.assertEqual(kb.title, "No Model KB")
 
-	def test_source_requires_embedding_model(self):
-		_set_settings(embedding_model="")
-		with self.assertRaisesRegex(frappe.ValidationError, "AI Settings"):
-			self._make_source(content="needs a model")
+	def test_source_does_not_require_embedding_model_setting(self):
+		source = self._make_source(content="needs a model")
+		self.assertEqual(source.content, "needs a model")
 
 	def test_resync_rebuild_enqueues_full_rebuild(self):
 		source = self._make_source(content="Reset your password from the account settings page. " * 4)
@@ -921,7 +925,6 @@ class TestDoctypeSync(IntegrationTestCase):
 		store.drop_table()
 		self.model = _make_model()
 		_set_settings(
-			embedding_model=self.model.name,
 			embedding_dimension=DIM,
 			chunk_size=200,
 			chunk_overlap=20,
@@ -1112,7 +1115,6 @@ class TestRetriever(IntegrationTestCase):
 		store.drop_table()
 		self.model = _make_model()
 		_set_settings(
-			embedding_model=self.model.name,
 			embedding_dimension=DIM,
 			chunk_size=200,
 			chunk_overlap=20,
@@ -1202,13 +1204,20 @@ class TestRetriever(IntegrationTestCase):
 			self._retrieve("laptop", kbs=[self.kb.name])
 		self.assertEqual(mock.call_args.kwargs["text"], "laptop")
 
+	def test_retrieve_reports_embedding_service_unavailability(self):
+		with patch(
+			"frappe_ai.knowledge.embedder._call_openai_compatible",
+			side_effect=ConnectionError("connection refused"),
+		):
+			with self.assertRaisesRegex(frappe.ValidationError, "Ollama embedding service is unavailable"):
+				retrieve("laptop", kbs=[self.kb.name])
+
 
 class TestKnowledgeBuilder(IntegrationTestCase):
 	def setUp(self):
 		store.drop_table()
 		self.model = _make_model()
 		_set_settings(
-			embedding_model=self.model.name,
 			embedding_dimension=DIM,
 			chunk_size=200,
 			chunk_overlap=20,
@@ -1307,7 +1316,7 @@ class TestAgentKnowledge(IntegrationTestCase):
 	table actually resolves to at dispatch time."""
 
 	def setUp(self):
-		_set_settings(embedding_model=_make_model().name)
+		_set_settings(embedding_dimension=0)
 
 	def tearDown(self):
 		frappe.db.rollback()
@@ -1375,6 +1384,14 @@ class TestAttachmentStore(IntegrationTestCase):
 		attachment_store.ensure_table(DIM)
 		attachment_store.ensure_table(DIM)
 		self.assertTrue(attachment_store._table_exists())
+
+	def test_index_stores_fixed_embedding_metadata(self):
+		attachment_store.ensure_table(DIM)
+
+		self.assertEqual(
+			attachment_store.index_metadata(),
+			{"provider": "ollama", "model": "nomic-embed-text", "dimension": DIM},
+		)
 
 	def test_ensure_table_recreates_on_dimension_change(self):
 		self._seed()
@@ -1450,7 +1467,7 @@ class TestRetrieveAttachments(IntegrationTestCase):
 	def setUp(self):
 		attachment_store.drop_table()
 		self.model = _make_model()
-		_set_settings(embedding_model=self.model.name, embedding_dimension=DIM, search_type="Hybrid")
+		_set_settings(embedding_dimension=DIM, search_type="Hybrid")
 		attachment_store.ensure_table(DIM)
 		attachment_store.add(
 			"SES-x",
@@ -1508,7 +1525,7 @@ class TestSystemGeneratedProtection(IntegrationTestCase):
 
 	def setUp(self):
 		self.model = _make_model()
-		_set_settings(embedding_model=self.model.name, embedding_dimension=DIM)
+		_set_settings(embedding_dimension=DIM)
 
 	def tearDown(self):
 		frappe.db.rollback()

@@ -26,6 +26,7 @@ and the [Assistant Core migration tracker](progress/ai-tool-retirement-via-assis
 
 | If you want to… | Read |
 |---|---|
+| Set up Ollama embeddings or migrate an existing index | [Setup](setup.md) and [fixed Ollama embeddings progress](progress/fixed-ollama-embeddings.md) |
 | Understand how the system fits together | [001 — Architecture](specifications/001-architecture.md) |
 | Know what feature lives where | [002 — Feature Mapping](specifications/002-feature-mapping.md) |
 | Look up a DocType or field | [003 — DocType Reference](specifications/003-doctype-reference.md) |
@@ -47,7 +48,7 @@ and the [Assistant Core migration tracker](progress/ai-tool-retirement-via-assis
 | [005 — Frontend Contract](specifications/005-frontend-contract.md) | Stable same-origin JSON endpoints, SSE stream protocol, host adapter boundaries, and end-to-end client flows for the standalone SPA or any custom frontend |
 | [DocType Cleanup Plan](DOCTYPE_CLEANUP_PLAN.md) | Which DocTypes are genuinely dead vs. load-bearing; corrects an earlier premise that MCP had already replaced the builtin tool system |
 | [007 — MCP Integration & Cleanup](specifications/007-mcp-integration-and-cleanup.md) | Verified plan to integrate with Assistant Core/FAC, migrate runtime authority, and retain `ai_tool`/`ai_agent_tool` as compatibility records |
-| [011 — AI Model Capability Testing](specifications/011-ai-model-capability-testing.md) | Explicit saved-model Chat/Embedding capability suite and result contract |
+| [011 — AI Model Capability Testing](specifications/011-ai-model-capability-testing.md) | Explicit saved-model Chat capability suite and result contract |
 
 ## Decisions
 
@@ -64,10 +65,11 @@ and the [Assistant Core migration tracker](progress/ai-tool-retirement-via-assis
 | [0009](decisions/0009-no-litellm-agno-native-models.md) | ~~No litellm for chat execution; use Agno's native per-provider model classes~~ — **Superseded by 0014** | Historical rationale for keeping Agno as the orchestration layer |
 | [0010](decisions/0010-service-bootstrap-via-env-vars.md) | ~~FastAPI service bootstraps via environment variables~~ — **Superseded by 0011** | Env-var secret required a manual export step `bench start` didn't automate; caused a real boot failure |
 | [0011](decisions/0011-service-secret-in-site-config.md) | Service secret lives in `site_config.json`, not a DB field + env var | `bench start` boots the service unattended; one source of truth instead of two kept in sync by hand |
-| [0012](decisions/0012-embeddings-direct-provider-sdk.md) | Embeddings via direct provider SDK calls, not litellm or Agno | No `agno.embedder` exists; extends ADR 0009's reasoning to the one call type it didn't originally cover |
+| [0012](decisions/0012-embeddings-direct-provider-sdk.md) | ~~Embeddings via direct provider SDK calls~~ — superseded by 0016 | Historical Phase 4 decision; current embeddings use fixed Ollama |
 | [0013](decisions/0013-litellm-for-provider-ux-agno-still-executes.md) | ~~litellm for provider/model UX only; Agno still executes chat~~ — **Superseded by 0014** | Historical provider/model UX decision; LiteLLM remains UX-only |
 | [0014](decisions/0014-openai-compatible-chat-transport.md) | One OpenAI-compatible transport for all chat execution | Removes provider SDK coupling while preserving Agno orchestration, tools, confirmations, structured output, and streaming |
 | [0015](decisions/0015-configuration-time-model-capability-tests.md) | Capability checks run explicitly at configuration time | Provides actionable coverage without runtime preflight calls or real business-tool execution |
+| [0016](decisions/0016-fixed-ollama-embeddings.md) | Fixed Ollama `nomic-embed-text` embeddings | Keeps one vector space while allowing environment-specific private endpoints |
 
 ---
 

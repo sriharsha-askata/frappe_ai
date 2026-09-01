@@ -1,6 +1,6 @@
 # ADR 0012 — Embeddings via direct provider SDK calls, not Agno
 
-**Status:** Accepted
+**Status:** Superseded by [ADR 0016](0016-fixed-ollama-embeddings.md)
 **Date:** 2026-08-06
 
 ## Context

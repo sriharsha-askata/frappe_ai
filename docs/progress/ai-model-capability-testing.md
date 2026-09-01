@@ -6,7 +6,7 @@ Complete in code; focused mocked transport and runtime regression tests pass.
 
 ## Completed
 
-- Replaced the single Test Connection ping with a fresh Chat/Embedding capability suite.
+- Replaced the single Test Connection ping with a fresh Chat capability suite.
 - Added strict core checks, advisory warnings, and blocked dependent checks.
 - Restricted tool testing to a synthetic no-op function.
 - Added per-check UI rendering for saved AI Model forms.
@@ -17,7 +17,7 @@ Complete in code; focused mocked transport and runtime regression tests pass.
 
 - Mocked OpenAI-compatible Chat suite: basic, streaming, tool declaration/call,
   structured output, and bounded input request shapes.
-- Mocked Embedding suite: single input, batch input, dimensions, counts, and Gemini ID normalization.
+- Embedding capability testing is now separate from `AI Model`; all AI Model rows are chat models.
 - AI Model integration tests cover fresh invocations, warnings, blocked failures, and result contracts.
 - Existing transport, builder, and SSE route tests remain covered.
 

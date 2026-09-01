@@ -28,7 +28,7 @@ dependencies = [
     # frappe_ai/service/frappe_client.py depends on it directly.
     "httpx>=0.27,<1",
     # Knowledge/RAG pipeline (Phase 4) — same pins as apps/flow/pyproject.toml.
-    # No litellm for embeddings either — see docs/decisions/0012-embeddings-direct-provider-sdk.md.
+    # Embeddings use the fixed Ollama model through the shared OpenAI SDK client.
     "lancedb<1,>=0.33",
     "python-docx<2,>=1.1",
     "pdfplumber<1,>=0.10",

@@ -51,10 +51,6 @@ class AIKnowledgeSource(Document):
 	# end: auto-generated types
 
 	def validate(self):
-		if self.is_new():
-			from frappe_ai.frappe_ai.doctype.ai_settings.ai_settings import require_embedding_model
-
-			require_embedding_model()
 		fieldname = REQUIRED_INPUT.get(self.source_type)
 		if fieldname and not self.get(fieldname):
 			frappe.throw(

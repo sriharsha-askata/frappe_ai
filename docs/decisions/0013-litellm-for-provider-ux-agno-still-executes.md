@@ -136,11 +136,10 @@ state instead, and the precedence becomes a clean either/or:
 `_model_call_config`'s previous hard "No Provider" throw is removed — an
 unlinked model is now a fully runnable state, not an error.
 
-`resolve_provider_credentials` (`frappe_ai/lib/model.py`) is unchanged and still
-used by `frappe_ai/knowledge/embedder.py` (ADR 0012, Phase 4 embeddings) with its
-original provider-then-model-override precedence — embeddings were not part of
-this change's scope, and their credential resolution is intentionally
-independent of the chat path's.
+`resolve_provider_credentials` (`frappe_ai/lib/model.py`) was also used by the
+then-current `frappe_ai/knowledge/embedder.py` (ADR 0012, Phase 4 embeddings).
+That embedding configuration is superseded by [ADR 0016](0016-fixed-ollama-embeddings.md)
+and remains independent of the chat path.
 
 ---
 
@@ -231,8 +230,8 @@ around the Link-existence requirement this ADR removes anyway.
 
 - [ADR 0009 — No litellm, Agno native models](0009-no-litellm-agno-native-models.md)
   (amended by this ADR, not reversed — chat execution stays Agno-only)
-- [ADR 0012 — Embeddings via direct provider SDK](0012-embeddings-direct-provider-sdk.md)
-  (unaffected — embeddings keep their own provider-then-model precedence)
+- [ADR 0016 — Fixed Ollama embeddings](0016-fixed-ollama-embeddings.md)
+  (current embedding configuration; independent of chat provider UX)
 - `docs/learnings.md` — "Agno needs a real provider SDK per provider" (the
   undocumented Link→Autocomplete follow-up this ADR formally supersedes)
 - [003 — DocType Reference](../specifications/003-doctype-reference.md) §1–2

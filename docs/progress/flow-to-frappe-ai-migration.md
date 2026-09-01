@@ -24,7 +24,7 @@
 | 1 | Foundation & Configuration | ✅ Complete | `AI Provider`/`AI Model`/`AI Settings` + `safe_exec`/`conditions`/`system_generated`; Agno-only chat execution, with litellm now limited to provider/model UX (ADR 0013) |
 | 2 | FastAPI Service Skeleton | ✅ Complete | Hand-built FastAPI (not AgentOS); HMAC run-token primitive; shared-secret service auth via `X-Frappe-AI-Service-Secret` (not `Authorization`); secret bootstraps from `site_config.json` (ADR 0011, supersedes ADR 0010's env-var design) |
 | 3 | Agents, Tools & Run Loop | ✅ Complete | AgentBuilder + Frappe dispatch + SSE chat; live successful completion and confirmation pause/resume verified with an OpenAI-compatible provider |
-| 4 | Knowledge / RAG | ✅ Complete | Knowledge pipeline and three knowledge DocTypes; embeddings use direct provider SDK callers (ADR 0012), not litellm or Agno |
+| 4 | Knowledge / RAG | ✅ Complete | Knowledge pipeline and three knowledge DocTypes; embeddings use fixed Ollama `nomic-embed-text` (ADR 0016) |
 | 5 | Triggers, Memory & MCP | ✅ Complete | Verified on 2026-08-10: trigger tests passed, memory tests passed, MCP import path fixed with `mcp<2`, and a real stdio MCP server returned `Connected (1 tools)` through both `check_connection()` and `check_all_mcp_connections()` |
 | 6 | Frontend Panel | 🟨 In progress | React/esbuild panel and `/app/frappe-ai` page runtime exist; dedicated page layout and full host-surface parity remain |
 | 7 | Parity Complete & Reconciliation | 🟨 In progress | Assistant Core/FAC migration, tender workflow verification, legacy-tool audit, and final documentation reconciliation remain |
@@ -77,7 +77,7 @@ frontend source. To be uninstalled after parity ([ADR 0005](../decisions/0005-gr
 | Package | Status |
 |---|---|
 | `lancedb` | ✅ 0.36.0 installed |
-| `litellm` | ✅ 1.83.7 declared for provider validation/model suggestions only; chat and embedding calls do not use it — see [ADR 0013](../decisions/0013-litellm-for-provider-ux-agno-still-executes.md) |
+| `litellm` | ✅ 1.83.7 declared for provider validation/model suggestions only; chat and embedding calls do not use it — see [ADR 0013](../decisions/0013-litellm-for-provider-ux-agno-still-executes.md) and [ADR 0016](../decisions/0016-fixed-ollama-embeddings.md) |
 | `openai` | ✅ 2.30.0 installed |
 | `pydantic` | ✅ 2.11.7 installed |
 | `agno` | ✅ 2.8.7 installed — added in Phase 1 (`test_connection()` needs it for real) |

@@ -19,10 +19,8 @@ from agno.tools.function import Function
 
 from frappe_ai.lib.model import (
 	NormalizedProviderError,
-	create_openai_compatible_client,
 	create_openai_compatible_model,
 	normalize_provider_error,
-	normalize_transport_model_id,
 )
 
 CHAT_CHECKS = (
@@ -33,16 +31,13 @@ CHAT_CHECKS = (
 	"structured_output",
 	"large_input",
 )
-EMBEDDING_CHECKS = ("embedding_single", "embedding_batch", "embedding_dimensions")
 CORE_CHAT_CHECKS = frozenset({"chat", "streaming", "tool_declaration", "tool_call"})
-CORE_EMBEDDING_CHECKS = frozenset(EMBEDDING_CHECKS)
 OPTIONAL_CHAT_CHECKS = frozenset({"structured_output", "large_input"})
 
 # Keep the larger-input probe useful while ensuring an accidental click cannot
 # send an unbounded payload to a provider.  This is a character bound, not a
 # promise about a model's token window.
 LARGE_INPUT_CHARS = 16_384
-EMBEDDING_BATCH_INPUTS = ("frappe ai embedding probe one", "frappe ai embedding probe two")
 SYNTHETIC_TOOL_NAME = "frappe_ai_connection_test_noop"
 
 
@@ -53,8 +48,6 @@ def run_capability_suite(model_config: dict[str, Any]) -> dict[str, Any]:
 	failure is still handled here so every provider failure gets the same result
 	contract and dependent checks are marked ``blocked`` rather than attempted.
 	"""
-	if model_config.get("model_type", "Chat") == "Embedding":
-		return _run_embedding_suite(model_config)
 	return _run_chat_suite(model_config)
 
 
@@ -174,64 +167,6 @@ def _run_optional_chat_checks(
 	return _suite_result(checks)
 
 
-def _run_embedding_suite(model_config: dict[str, Any]) -> dict[str, Any]:
-	try:
-		client = create_openai_compatible_client(model_config, timeout=15, max_retries=0)
-	except Exception as error:
-		return blocked_suite(
-			EMBEDDING_CHECKS,
-			error,
-			provider=model_config.get("provider"),
-			model_id=model_config.get("model_id"),
-		)
-
-	model_id = normalize_transport_model_id(model_config.get("provider"), model_config["model_id"])
-	checks: list[dict[str, Any]] = []
-	vector_sets: list[list[list[float]]] = []
-
-	try:
-		response = client.embeddings.create(model=model_id, input=["frappe ai single embedding probe"])
-		vectors = _embedding_vectors(response)
-		if len(vectors) != 1:
-			raise ValueError(f"The provider returned {len(vectors)} vectors for one input.")
-		vector_sets.append(vectors)
-		checks.append(_passed("embedding_single", "Single-input embedding succeeded."))
-	except Exception as error:
-		normalized = _normalize(error, model_config)
-		checks.append(_failure("embedding_single", normalized, required=True))
-		return _blocked_after_base_failure(checks, EMBEDDING_CHECKS[1:], normalized)
-
-	try:
-		response = client.embeddings.create(model=model_id, input=list(EMBEDDING_BATCH_INPUTS))
-		vectors = _embedding_vectors(response)
-		if len(vectors) != len(EMBEDDING_BATCH_INPUTS):
-			raise ValueError(
-				f"The provider returned {len(vectors)} vectors for {len(EMBEDDING_BATCH_INPUTS)} inputs."
-			)
-		vector_sets.append(vectors)
-		checks.append(_passed("embedding_batch", "Multi-input batch embedding succeeded."))
-	except Exception as error:
-		normalized = _normalize(error, model_config)
-		checks.append(_failure("embedding_batch", normalized, required=True))
-		checks.append(_blocked("embedding_dimensions", normalized.message, required=True))
-		return _suite_result(checks)
-
-	try:
-		dimensions = {len(vector) for vectors in vector_sets for vector in vectors}
-		if not dimensions or 0 in dimensions or len(dimensions) != 1:
-			raise ValueError(f"Embedding dimensions are inconsistent: {sorted(dimensions)}.")
-		checks.append(
-			_passed(
-				"embedding_dimensions",
-				f"Embedding response counts and dimension are consistent ({next(iter(dimensions))} dimensions).",
-			)
-		)
-	except Exception as error:
-		checks.append(_failure("embedding_dimensions", _normalize(error, model_config), required=True))
-
-	return _suite_result(checks)
-
-
 def _synthetic_tool(invocations: list[dict[str, Any]]) -> Function:
 	def no_op(**arguments: Any) -> dict[str, Any]:
 		invocations.append(arguments)
@@ -266,19 +201,6 @@ def _response_content(response: Any) -> str | None:
 	if content is None:
 		return None
 	return content if isinstance(content, str) else str(content)
-
-
-def _embedding_vectors(response: Any) -> list[list[float]]:
-	data = response.get("data") if isinstance(response, dict) else getattr(response, "data", None)
-	if data is None:
-		raise ValueError("The provider returned no embedding data.")
-	vectors: list[list[float]] = []
-	for entry in data:
-		vector = entry.get("embedding") if isinstance(entry, dict) else getattr(entry, "embedding", None)
-		if not isinstance(vector, (list, tuple)):
-			raise ValueError("The provider returned an invalid embedding vector.")
-		vectors.append([float(value) for value in vector])
-	return vectors
 
 
 def _passed(name: str, message: str, *, required: bool = True, details: dict[str, Any] | None = None) -> dict[str, Any]:

@@ -70,7 +70,8 @@ rejects reserved keys in `extra_params`.
 
 ## 2. AI Model
 
-A callable LLM or embedding model. **Naming: `field:title`**. `track_changes: 1`.
+A callable chat model. Embeddings are application-wide Ollama configuration; they are
+not represented by this DocType. **Naming: `field:title`**. `track_changes: 1`.
 
 > Chat execution has no litellm dependency (Agno's native classes only) — see
 > [ADR 0009](../decisions/0009-no-litellm-agno-native-models.md). `get_provider_models`
@@ -83,14 +84,13 @@ A callable LLM or embedding model. **Naming: `field:title`**. `track_changes: 1`
 | `enabled` | Check | default 1 |
 | `provider` | Link → `AI Provider` | not reqd |
 | `model_id` | Autocomplete | reqd — **bare** model id, e.g. `claude-sonnet-4-6` (no `provider/` prefix) |
-| `model_type` | Select `Chat`/`Embedding` | default `Chat` |
 | `context_window` | Int | user-editable — **not** auto-detected (no Agno equivalent to `litellm.get_model_info`) |
 | `api_key` | **Password** | used only when `provider` is empty (ADR 0013) |
 | `base_url` | Data | used only when `provider` is empty (ADR 0013) |
 | `params` | JSON | |
 
 **Controller:** `validate` chain — normalize → `MODEL_ID_PATTERN` regex (no `provider/`
-prefix requirement) → model_type check → base_url check → params JSON + `RESERVED_PARAM_KEYS` rejection.
+prefix requirement) → base_url check → params JSON + `RESERVED_PARAM_KEYS` rejection.
 `provider` existence is enforced by Frappe core's own Link validation (`LinkValidationError`
 if the named `AI Provider` doesn't exist), not a controller check. `context_window` is
 plain user input; no auto-detection step. Credential/shared-transport resolution
@@ -101,9 +101,9 @@ transport.
 `after_insert` attempts `sync_builtin_assistant(model=self.name)` when enabled, but the
 call is currently a no-op because `frappe_ai.assistant` has not been implemented yet.
 
-**Whitelisted:** `test_connection()` (requires `write`; runs a fresh capability suite
-for the saved model and returns per-check statuses; Chat uses the shared
-OpenAI-compatible transport, Embedding uses the embeddings endpoint), module-level
+**Whitelisted:** `test_connection()` (requires `write`; runs a fresh Chat capability
+suite for the saved model and returns per-check statuses using the shared
+OpenAI-compatible transport), module-level
 `get_provider_models(provider)` (litellm model registry suggestions; the free-text
 model field remains valid). The capability suite is never called by runtime agent
 execution.
@@ -120,8 +120,7 @@ architecture requires.
 
 | Field | Type | Attributes | Origin |
 |---|---|---|---|
-| `embedding_model` | Link → `AI Model` | | ported |
-| `embedding_dimension` | Int | read-only (probed) | ported |
+| `embedding_dimension` | Int | read-only; learned from the first successful fixed-model request | adapted |
 | `search_type` | Select `Hybrid`/`Vector` | default `Hybrid` | ported |
 | `chunk_size` | Int | default 1000 | ported |
 | `chunk_overlap` | Int | default 200 | ported |
@@ -146,9 +145,9 @@ user-selected connection string.
 > an environment variable proved to be two copies of one value that silently
 > drifted out of sync. See [ADR 0011](../decisions/0011-service-secret-in-site-config.md).
 
-**Controller:** chunk sanity (`chunk_overlap < chunk_size`); `_guard_model_change` blocks
-changing `embedding_model` while chunks exist (bypass flag `allow_embedding_model_change`);
-`_sync_embedding_dimension` via `probe_dimension`.
+**Controller:** chunk sanity (`chunk_overlap < chunk_size`). Embeddings use Ollama's fixed
+`nomic-embed-text` model via `FRAPPE_AI_OLLAMA_BASE_URL`; the observed vector dimension is
+persisted lazily and is not a selection field. See [ADR 0016](../decisions/0016-fixed-ollama-embeddings.md).
 **Permissions:** System Manager read/write (no delete).
 
 ---
@@ -350,8 +349,8 @@ usage (resume-safe), then appends only the **delta** messages to the session.
 | `is_system_generated` | Check | read-only, default 0 |
 | `description` | Small Text | **shown to the LLM** to decide when to search |
 
-**Controller:** `validate` requires an embedding model on new + `validate_immutable`;
-delete/rename guarded.
+**Controller:** `validate_immutable`; delete/rename guarded. Embedding availability is
+checked only when a source is actually ingested.
 
 **Authorization model (carried forward from `flow` intentionally):** the KB binding on the
 agent **is** the authorization boundary. Chunks are not re-checked per user at retrieval
@@ -383,8 +382,8 @@ time. Do not bind a KB containing restricted content to an agent available to al
 | `last_synced_at` | Datetime | read-only — **incremental watermark** |
 | `error_log` | Long Text | read-only |
 
-**Controller:** `validate` — `require_embedding_model()` on new, per-type required-input
-map, `DocType` needs `content_fields` (validated against meta; child-table fields rejected),
+**Controller:** `validate` — per-type required-input map, `DocType` needs `content_fields`
+(validated against meta; child-table fields rejected),
 chunk sanity, `validate_immutable(("source_type", "knowledge_base"))`.
 `after_insert` → `enqueue_ingestion` on `queue="long"` with `enqueue_after_commit=True`
 (unless `flags.skip_auto_ingest`). `on_trash` → `block_delete` + `purge_source` (MariaDB

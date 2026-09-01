@@ -6,17 +6,17 @@
 ## Context
 
 A single Test Connection ping proved only that one provider request could be
-made. It did not cover the streaming, function-calling, structured-output, or
-embedding behavior that the agent and knowledge paths actually depend on. A
-runtime preflight would add latency and duplicate provider calls for every run.
+made. It did not cover the streaming, function-calling, or structured-output
+behavior that chat depends on. A runtime preflight would add latency and
+duplicate provider calls for every run. Embeddings are now a separate fixed
+Ollama integration; see ADR 0016.
 
 ## Decision
 
 Keep testing explicit and configuration-time: the saved AI Model form invokes a
-fresh capability suite on each click. Chat checks reuse the OpenAI-compatible
-Agno transport used by runtime execution. Embedding checks use the corresponding
-OpenAI SDK endpoint. The suite executes only a synthetic no-op tool and returns
-structured per-check results.
+fresh Chat capability suite on each click. Chat checks reuse the
+OpenAI-compatible Agno transport used by runtime execution. The suite executes
+only a synthetic no-op tool and returns structured per-check results.
 
 Core capabilities are strict. Structured output and the bounded larger-input
 probe are warnings because provider support and practical limits vary. A base

@@ -182,16 +182,13 @@ class TestDispatchPluginToolScope(IntegrationTestCase):
 						"instructions": "Use scoped tools.",
 					}
 				).insert(ignore_permissions=True)
-		with patch(
-			"frappe_ai.frappe_ai.doctype.ai_settings.ai_settings.require_embedding_model"
-		):
-			knowledge_base = frappe.get_doc(
-				{
-					"doctype": "AI Knowledge Base",
-					"title": "FAC Scoped Knowledge",
-					"description": "Only this knowledge base is in scope.",
-				}
-			).insert(ignore_permissions=True)
+		knowledge_base = frappe.get_doc(
+			{
+				"doctype": "AI Knowledge Base",
+				"title": "FAC Scoped Knowledge",
+				"description": "Only this knowledge base is in scope.",
+			}
+		).insert(ignore_permissions=True)
 		agent_doc = frappe.get_doc("AI Agent", agent)
 		agent_doc.append("knowledge_bases", {"knowledge_base": knowledge_base.name})
 		with patch("frappe_ai.frappe_ai.doctype.ai_agent.ai_agent.AIAgent._ensure_knowledge_search_tool"):

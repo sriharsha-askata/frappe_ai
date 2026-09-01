@@ -5,15 +5,9 @@ from __future__ import annotations
 
 import json
 import unittest
-from types import SimpleNamespace
-from unittest.mock import patch
 
 import httpx
-from frappe_ai.frappe_ai.doctype.ai_model.connection_test import (
-	EMBEDDING_BATCH_INPUTS,
-	SYNTHETIC_TOOL_NAME,
-	run_capability_suite,
-)
+from frappe_ai.frappe_ai.doctype.ai_model.connection_test import SYNTHETIC_TOOL_NAME, run_capability_suite
 from frappe_ai.lib.model import PROVIDER_ENDPOINT_DEFAULTS
 
 
@@ -95,36 +89,6 @@ class TestConnectionSuiteHTTP(unittest.TestCase):
 		self.assertEqual(requests[4]["messages"][-1]["role"], "tool")
 		self.assertEqual(requests[5]["response_format"], {"type": "json_object"})
 		self.assertGreater(len(requests[6]["messages"][-1]["content"]), 16_000)
-
-	def test_embedding_suite_checks_single_batch_and_dimension_contract(self):
-		requests: list[dict] = []
-
-		class Embeddings:
-			def create(self, *, model, input):
-				requests.append({"model": model, "input": input})
-				count = len(input) if isinstance(input, list) else 1
-				return SimpleNamespace(
-					data=[SimpleNamespace(embedding=[0.1, 0.2, 0.3]) for _ in range(count)]
-				)
-
-		client = SimpleNamespace(embeddings=Embeddings())
-		with patch(
-			"frappe_ai.frappe_ai.doctype.ai_model.connection_test.create_openai_compatible_client",
-			return_value=client,
-		):
-			result = run_capability_suite(
-				{
-					"model_type": "Embedding",
-					"provider": "gemini",
-					"model_id": "gemini/gemini-embedding-001",
-				}
-			)
-
-		self.assertTrue(result["ok"])
-		self.assertEqual(requests[0], {"model": "gemini-embedding-001", "input": ["frappe ai single embedding probe"]})
-		self.assertEqual(requests[1]["model"], "gemini-embedding-001")
-		self.assertEqual(requests[1]["input"], list(EMBEDDING_BATCH_INPUTS))
-
 
 if __name__ == "__main__":
 	unittest.main()

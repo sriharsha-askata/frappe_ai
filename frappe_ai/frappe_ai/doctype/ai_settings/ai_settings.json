@@ -4,7 +4,6 @@
  "doctype": "DocType",
  "engine": "InnoDB",
  "field_order": [
-  "embedding_model",
   "embedding_dimension",
   "column_break_search",
   "search_type",
@@ -23,14 +22,7 @@
  ],
  "fields": [
   {
-   "description": "AI Model used to embed chunks and queries. Its Model ID must be an embedding model, e.g. <code>openai/text-embedding-3-small</code>.",
-   "fieldname": "embedding_model",
-   "fieldtype": "Link",
-   "label": "Embedding Model",
-   "options": "AI Model"
-  },
-  {
-   "description": "Vector width of the embedding model. Detected automatically when the embedding model is saved.",
+   "description": "Observed vector width returned by the fixed Ollama nomic-embed-text model. Recorded after the first successful embedding request.",
    "fieldname": "embedding_dimension",
    "fieldtype": "Int",
    "label": "Embedding Dimension",

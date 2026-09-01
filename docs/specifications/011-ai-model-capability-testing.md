@@ -30,11 +30,11 @@ Chat models use the same Agno OpenAI-compatible transport as runtime execution:
 Only the local synthetic no-op tool is supplied during testing. Frappe, Tender,
 database, MCP, and business tools are never dispatched.
 
-Embedding models use the OpenAI-compatible embeddings endpoint for one input and
-a small batch, then verify response counts and vector dimensions. Gemini model
-IDs are normalized only at the transport boundary.
+All `AI Model` rows are chat models. Embeddings use the separate fixed Ollama
+integration described in [ADR 0016](../decisions/0016-fixed-ollama-embeddings.md),
+so the model capability suite never tests or selects an embedding model.
 
-Chat and embedding endpoint checks are required for `ok`. Structured output and
+Chat endpoint checks are required for `ok`. Structured output and
 larger-input checks are advisory and produce warnings on failure. If transport
 configuration, authentication, or the base request fails, dependent checks are
 blocked so the result does not report misleading secondary failures.

@@ -1,14 +1,16 @@
 # Progress — Optional Tender RAG and Embedding-Aware Models
 
+> Superseded for embedding configuration by [Fixed Ollama embeddings](fixed-ollama-embeddings.md).
+
 ## Overall status
 
 Complete in code; focused verification passed against `tact.local`.
 
 ## Completed
 
-- Added `AI Model.model_type` with `Chat` as the default and explicit `Embedding` selection.
-- Routed model connection checks to chat completions or embeddings according to that type.
-- Normalized provider-prefixed Gemini IDs only at transport time.
+- Added the historical `AI Model.model_type` split; this is removed by the fixed Ollama architecture.
+- Routed the historical model connection checks by type; embedding checks are now separate from `AI Model`.
+- Normalized provider-prefixed Gemini IDs only at the historical transport boundary.
 - Preserved provider endpoint and credential resolution for chat and knowledge transports.
 - Added an idempotent after-migrate backfill for unambiguously embedding-named legacy models.
 - Prevented embedding models from being used as chat agent models.
@@ -24,6 +26,6 @@ Complete in code; focused verification passed against `tact.local`.
 
 ## Decisions
 
-- Embedding configuration remains required by general `frappe_ai` knowledge sources.
+- Fixed Ollama embedding configuration is application-wide; it is not required in `AI Settings`.
 - Only Tender Spec Review may fall back to cached direct extraction.
 - Direct fallback context is capped at 100,000 characters per document.

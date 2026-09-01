@@ -28,13 +28,15 @@ class TestAIModelValidation(IntegrationTestCase):
 		doc = frappe.get_doc(_model()).insert()
 
 		self.assertEqual(doc.model_id, "gpt-4o-mini")
-		self.assertEqual(doc.model_type, "Chat")
 		self.assertTrue(doc.enabled)
 
-	def test_embedding_model_type_is_explicit(self):
-		doc = frappe.get_doc(_model(model_type="Embedding", model_id="text-embedding-3-small")).insert()
+	def test_ai_model_does_not_expose_embedding_selection(self):
+		self.assertIsNone(frappe.get_meta("AI Model").get_field("model_type"))
 
-		self.assertEqual(doc.model_type, "Embedding")
+	def test_embedding_model_ids_are_rejected_as_chat_models(self):
+		doc = frappe.get_doc(_model(model_id="text-embedding-3-small"))
+		with self.assertRaisesRegex(frappe.ValidationError, "chat"):
+			doc.insert()
 
 	def test_normalize_strips_whitespace(self):
 		doc = frappe.get_doc(
@@ -262,22 +264,6 @@ class TestAIModelConnection(IntegrationTestCase):
 			}
 		).insert()
 
-	def _embedding_connection_model(self):
-		if not frappe.db.exists("AI Provider", "gemini"):
-			frappe.get_doc({"doctype": "AI Provider", "provider": "gemini"}).insert()
-		frappe.db.set_value("AI Provider", "gemini", "enabled", 1)
-		return frappe.get_doc(
-			{
-				"doctype": "AI Model",
-				"title": "Embedding Connection Model",
-				"provider": "gemini",
-				"model_id": "gemini/gemini-embedding-001",
-				"model_type": "Embedding",
-				"api_key": "test-key",
-				"base_url": "https://provider.example/v1",
-			}
-		).insert()
-
 	def test_connection_uses_shared_transport(self):
 		doc = self._connection_model()
 		fake_model = _FakeChatModel()
@@ -308,23 +294,20 @@ class TestAIModelConnection(IntegrationTestCase):
 		self.assertTrue(second["ok"])
 		second_factory.assert_called_once()
 
-	def test_embedding_connection_uses_embeddings_endpoint_and_normalizes_gemini_id(self):
-		doc = self._embedding_connection_model()
-		client = _FakeEmbeddingClient()
-
-		with patch(
-			"frappe_ai.frappe_ai.doctype.ai_model.connection_test.create_openai_compatible_client",
-			return_value=client,
-		) as factory:
+	def test_chat_connection_does_not_depend_on_ollama_embeddings(self):
+		doc = self._connection_model()
+		with (
+			patch(
+				"frappe_ai.frappe_ai.doctype.ai_model.connection_test.create_openai_compatible_model",
+				return_value=_FakeChatModel(),
+			),
+			patch(
+				"frappe_ai.knowledge.embedder._call_openai_compatible",
+				side_effect=AssertionError("chat must not call embeddings"),
+			)):
 			result = doc.test_connection()
 
 		self.assertTrue(result["ok"])
-		self.assertEqual([check["name"] for check in result["checks"]], ["embedding_single", "embedding_batch", "embedding_dimensions"])
-		factory.assert_called_once()
-		self.assertEqual(factory.call_args.kwargs["timeout"], 15)
-		self.assertEqual(factory.call_args.kwargs["max_retries"], 0)
-		self.assertEqual(client.requests[0], {"model": "gemini-embedding-001", "input": ["frappe ai single embedding probe"]})
-		self.assertEqual(client.requests[1], {"model": "gemini-embedding-001", "input": ["frappe ai embedding probe one", "frappe ai embedding probe two"]})
 
 	def test_connection_returns_normalized_failure_and_blocks_dependents(self):
 		doc = self._connection_model()
@@ -390,14 +373,3 @@ class _FakeChatModel:
 		if self.error:
 			raise self.error
 		return iter([SimpleNamespace(content="OK")])
-
-
-class _FakeEmbeddingClient:
-	def __init__(self):
-		self.requests = []
-		self.embeddings = self
-
-	def create(self, *, model, input):
-		self.requests.append({"model": model, "input": input})
-		count = len(input) if isinstance(input, list) else 1
-		return SimpleNamespace(data=[SimpleNamespace(embedding=[0.1, 0.2, 0.3]) for _ in range(count)])

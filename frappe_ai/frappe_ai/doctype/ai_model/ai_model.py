@@ -17,7 +17,6 @@ from frappe_ai.lib.model import (
 )
 from frappe_ai.frappe_ai.doctype.ai_model.connection_test import (
 	CHAT_CHECKS,
-	EMBEDDING_CHECKS,
 	blocked_suite,
 	run_capability_suite,
 )
@@ -25,11 +24,11 @@ from frappe_ai.frappe_ai.doctype.ai_model.connection_test import (
 # Bare model id — no `provider/` prefix. The provider slug is identity/endpoint
 # metadata; execution always uses the shared OpenAI-compatible transport.
 MODEL_ID_PATTERN = re.compile(r"^[A-Za-z0-9][A-Za-z0-9_\-:.\/]*$")
+EMBEDDING_ID_MARKERS = ("embedding", "embed-", "embed.")
 
 RESERVED_PARAM_KEYS = frozenset(
 	{"model", "api_key", "api_base", "base_url", "messages", "stream", "tools", "tool_choice"}
 )
-MODEL_TYPES = frozenset({"Chat", "Embedding"})
 
 
 class AIModel(Document):
@@ -47,7 +46,6 @@ class AIModel(Document):
 		enabled: DF.Check
 		is_default: DF.Check
 		model_id: DF.Data
-		model_type: DF.Literal["Chat", "Embedding"]
 		params: DF.JSON | None
 		provider: DF.Link | None
 		title: DF.Data
@@ -56,7 +54,6 @@ class AIModel(Document):
 	def validate(self):
 		self._normalize()
 		self._validate_model_id()
-		self._validate_model_type()
 		self._validate_base_url()
 		self._validate_params()
 		self._enforce_single_default()
@@ -93,19 +90,18 @@ class AIModel(Document):
 			self.api_key = self.api_key.strip()
 
 	def _validate_model_id(self):
-		if not MODEL_ID_PATTERN.match(self.model_id or ""):
+		model_id = self.model_id or ""
+		if not MODEL_ID_PATTERN.match(model_id):
 			frappe.throw(
 				_(
 					"Model ID must be a bare model identifier (e.g. <code>claude-sonnet-4-6</code>), not a <code>provider/model</code> string — the provider comes from the linked Provider. Only alphanumerics, dashes, dots, colons or slashes are allowed."
 				),
 				title=_("Invalid Model ID"),
 			)
-
-	def _validate_model_type(self):
-		if (self.model_type or "Chat") not in MODEL_TYPES:
+		if any(marker in model_id.casefold() for marker in EMBEDDING_ID_MARKERS):
 			frappe.throw(
-				_("Model Type must be either Chat or Embedding."),
-				title=_("Invalid Model Type"),
+				_("AI Model only supports chat models. Embeddings use the fixed Ollama nomic-embed-text model."),
+				title=_("Invalid Chat Model"),
 			)
 
 	def _validate_base_url(self):
@@ -142,13 +138,12 @@ class AIModel(Document):
 		constructed by ``AgentBuilder`` and never calls this method.
 		"""
 		self.check_permission("write")
-		check_names = EMBEDDING_CHECKS if (self.model_type or "Chat") == "Embedding" else CHAT_CHECKS
 		try:
 			model_config = resolve_model_config(self)
 		except ModelConfigurationError as e:
-			return blocked_suite(check_names, e, provider=self.provider, model_id=self.model_id)
+			return blocked_suite(CHAT_CHECKS, e, provider=self.provider, model_id=self.model_id)
 		except Exception as e:
-			return blocked_suite(check_names, e, provider=self.provider, model_id=self.model_id)
+			return blocked_suite(CHAT_CHECKS, e, provider=self.provider, model_id=self.model_id)
 
 		return run_capability_suite(model_config)
 
@@ -165,4 +160,8 @@ def get_provider_models(provider: str | None = None) -> list[str]:
 
 	import litellm
 
-	return sorted(litellm.models_by_provider.get(to_litellm_provider(provider.strip().lower()), set()))
+	return sorted(
+		model
+		for model in litellm.models_by_provider.get(to_litellm_provider(provider.strip().lower()), set())
+		if not any(marker in model.casefold() for marker in EMBEDDING_ID_MARKERS)
+	)

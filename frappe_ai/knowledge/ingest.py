@@ -112,12 +112,13 @@ def _rebuild_single(doc, settings) -> None:
 	for extracted in extract(doc):
 		pieces.extend(chunk_text(extracted.text, chunk_size=size, overlap=overlap))
 
-	purge_source(doc.name)
 	if not pieces:
+		purge_source(doc.name)
 		return
 
 	vectors = embed_texts(pieces)
-	store.ensure_table_for_dimension(cint(settings.embedding_dimension))
+	store.ensure_table_for_dimension(len(vectors[0]))
+	purge_source(doc.name)
 
 	rows = []
 	for index, (piece, vector) in enumerate(zip(pieces, vectors, strict=True)):
@@ -208,13 +209,13 @@ def _upsert_page(doc, settings, meta, fields, page, matched_refs, *, track_exits
 		if pieces:
 			to_embed.append((name, new_hash, pieces))
 
-	if stale:
-		_purge_refs(doc.name, stale)
 	if to_embed:
-		_embed_and_insert(doc, settings, to_embed)
+		_embed_and_insert(doc, settings, to_embed, stale)
+	elif stale:
+		_purge_refs(doc.name, stale)
 
 
-def _embed_and_insert(doc, settings, to_embed) -> None:
+def _embed_and_insert(doc, settings, to_embed, stale) -> None:
 	from frappe_ai.knowledge import store
 	from frappe_ai.knowledge.embedder import embed_texts
 
@@ -222,7 +223,9 @@ def _embed_and_insert(doc, settings, to_embed) -> None:
 	for _, _, pieces in to_embed:
 		all_pieces.extend(pieces)
 	vectors = embed_texts(all_pieces)
-	store.ensure_table_for_dimension(cint(settings.embedding_dimension))
+	store.ensure_table_for_dimension(len(vectors[0]))
+	if stale:
+		_purge_refs(doc.name, stale)
 
 	rows = []
 	cursor = 0
