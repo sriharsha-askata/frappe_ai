@@ -1,0 +1,234 @@
+{
+ "app": "frappe_ai",
+ "charts": [],
+ "content": "[{\"id\": \"aiHeader1\", \"type\": \"header\", \"data\": {\"text\": \"<span class=\\\"h4\\\"><b>Frappe AI</b></span>\", \"col\": 12}}, {\"id\": \"scAgent01\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"AI Agent\", \"col\": 3}}, {\"id\": \"scKnow001\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"AI Knowledge Base\", \"col\": 3}}, {\"id\": \"scSession1\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"AI Session\", \"col\": 3}}, {\"id\": \"scModel01\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"AI Model\", \"col\": 3}}, {\"id\": \"aiManage1\", \"type\": \"header\", \"data\": {\"text\": \"<span class=\\\"h4\\\"><b>Manage</b></span>\", \"col\": 12}}, {\"id\": \"cardAgents1\", \"type\": \"card\", \"data\": {\"card_name\": \"Agents & Tools\", \"col\": 3}}, {\"id\": \"cardKnow01\", \"type\": \"card\", \"data\": {\"card_name\": \"Knowledge\", \"col\": 3}}, {\"id\": \"cardSess01\", \"type\": \"card\", \"data\": {\"card_name\": \"Sessions & Runs\", \"col\": 3}}, {\"id\": \"cardConf01\", \"type\": \"card\", \"data\": {\"card_name\": \"Configuration\", \"col\": 3}}, {\"id\": \"cardAuto01\", \"type\": \"card\", \"data\": {\"card_name\": \"Automation & Memory\", \"col\": 3}}, {\"id\": \"cardMCP001\", \"type\": \"card\", \"data\": {\"card_name\": \"MCP & Integrations\", \"col\": 3}}]",
+ "custom_blocks": [],
+ "docstatus": 0,
+ "doctype": "Workspace",
+ "for_user": "",
+ "hide_custom": 0,
+ "icon": "ai-agent",
+ "idx": 0,
+ "indicator_color": "blue",
+ "is_hidden": 0,
+ "label": "Frappe AI",
+ "link_type": "DocType",
+ "links": [
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Agents & Tools",
+   "link_count": 2,
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Card Break"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "AI Agent",
+   "link_count": 0,
+   "link_to": "AI Agent",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "AI FAC Tool",
+   "link_count": 0,
+   "link_to": "AI FAC Tool",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Knowledge",
+   "link_count": 2,
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Card Break"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "AI Knowledge Base",
+   "link_count": 0,
+   "link_to": "AI Knowledge Base",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "AI Knowledge Source",
+   "link_count": 0,
+   "link_to": "AI Knowledge Source",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Sessions & Runs",
+   "link_count": 2,
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Card Break"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "AI Session",
+   "link_count": 0,
+   "link_to": "AI Session",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "AI Run",
+   "link_count": 0,
+   "link_to": "AI Run",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Configuration",
+   "link_count": 3,
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Card Break"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "AI Provider",
+   "link_count": 0,
+   "link_to": "AI Provider",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "AI Model",
+   "link_count": 0,
+   "link_to": "AI Model",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "AI Settings",
+   "link_count": 0,
+   "link_to": "AI Settings",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Automation & Memory",
+   "link_count": 2,
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Card Break"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "AI Trigger",
+   "link_count": 0,
+   "link_to": "AI Trigger",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "AI Agent Memory",
+   "link_count": 0,
+   "link_to": "AI Agent Memory",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "MCP & Integrations",
+   "link_count": 1,
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Card Break"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "AI MCP Connection",
+   "link_count": 0,
+   "link_to": "AI MCP Connection",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  }
+ ],
+ "modified_by": "Administrator",
+ "module": "Frappe AI",
+ "name": "Frappe AI",
+ "number_cards": [],
+ "owner": "Administrator",
+ "parent_page": "",
+ "public": 1,
+ "quick_lists": [],
+ "roles": [],
+ "sequence_id": 1.0,
+ "shortcuts": [
+  {
+   "color": "Blue",
+   "doc_view": "List",
+   "label": "AI Agent",
+   "link_to": "AI Agent",
+   "type": "DocType"
+  },
+  {
+   "color": "Green",
+   "doc_view": "List",
+   "label": "AI Knowledge Base",
+   "link_to": "AI Knowledge Base",
+   "type": "DocType"
+  },
+  {
+   "color": "Orange",
+   "doc_view": "List",
+   "label": "AI Session",
+   "link_to": "AI Session",
+   "type": "DocType"
+  },
+  {
+   "color": "Grey",
+   "doc_view": "List",
+   "label": "AI Model",
+   "link_to": "AI Model",
+   "type": "DocType"
+  }
+ ],
+ "title": "Frappe AI",
+ "type": "Workspace"
+}

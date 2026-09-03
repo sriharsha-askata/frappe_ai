@@ -40,6 +40,13 @@ def _frappe_ai_panel_asset(filename: str) -> str:
 app_include_js = [_frappe_ai_panel_asset("frappe_ai_panel.js")]
 app_include_css = [_frappe_ai_panel_asset("frappe_ai_panel.css")]
 
+# Fixtures
+# ---------
+# Ship the "Frappe AI" desk workspace so it auto-installs on migrate.
+fixtures = [
+	"Workspace:Frappe AI",
+]
+
 assistant_tools = [
 	"frappe_ai.assistant_tools.native.ExecuteTool",
 	"frappe_ai.assistant_tools.native.RunActionTool",
