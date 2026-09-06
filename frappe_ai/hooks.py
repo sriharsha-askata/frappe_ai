@@ -154,6 +154,18 @@ assistant_tools = [
 # 	"Event": "frappe.desk.doctype.event.event.has_permission",
 # }
 
+# Knowledge lifecycle hooks
+# ------------------------
+# Consumer apps may register handlers under these keys in their own hooks.py:
+# - ai_knowledge_before_source_create: called with candidate and knowledge_base;
+#   return {"cancelled": True} to veto creation.
+# - ai_knowledge_after_source_create: called after persistence (and on a dedup hit)
+#   with source, knowledge_base, and source_type.
+# - ai_knowledge_on_index_failed: called with doc and exc after an indexing failure.
+#
+# frappe_ai intentionally does not register these keys. Hook discovery combines
+# the handlers declared by installed consumer apps.
+
 # Document Events
 # ---------------
 # Hook on document methods and events

@@ -9,6 +9,157 @@ intended behaviour), this file is allowed to just be a running log. Newest first
 
 ---
 
+## Google provider Test Connection fails on a missing `google-genai` SDK
+
+**Date:** 2026-08-23
+**Site:** `fact.local`
+**Component:** `AI Model.test_connection`, `lib/model.py`
+
+Clicking **Test Connection** on an `AI Model` linked to an `AI Provider` with slug
+`google` fails with:
+
+```
+frappe.exceptions.ValidationError: `google-genai` not installed.
+Please install it using `pip install google-genai`
+```
+
+This is expected, by-design behaviour under ADR 0009/0013, not a bug: Agno
+executes every chat call through its native per-provider classes, and the
+Gemini class requires Google's own SDK at import time. `is_known_provider()`
+only checks the slug exists (module-existence check happens earlier, at save
+time, via `find_spec`), so a model can validate and save while the SDK itself is
+absent — the gap only surfaces at the moment of an actual call.
+
+### Why litellm doesn't prevent this
+
+A reasonable expectation is that having litellm installed means "no
+per-provider SDKs needed." That is not how `frappe_ai` is designed: ADR 0009
+dropped litellm as an execution path entirely — chat calls run exclusively
+through Agno's native per-provider classes. ADR 0013 brought litellm back but
+scoped strictly to provider-name validation and model-id suggestions; it never
+runs a call. Note also that litellm's own `gemini/...` route imports the same
+Google SDK, so a litellm-based design wouldn't have avoided this install either.
+
+### Verified failure chain
+
+1. `test_connection()` (`ai_model.py`) takes the linked-provider branch,
+   `get_model_class(provider_doc.provider)`.
+2. `lib/model.py` resolves `PROVIDER_MODEL_CLASSES["google"]` and calls
+   `importlib.import_module("agno.models.google")`.
+3. That import pulls `agno/utils/gemini.py`, which does
+   `from google.genai.types import ...`.
+4. `google-genai` isn't installed (it's an optional Agno extra, not declared in
+   `frappe_ai/pyproject.toml`).
+5. Agno converts the `ModuleNotFoundError` into a friendly `ImportError`.
+6. `test_connection()` wraps it as `frappe.throw(..., title="Missing Dependency")`.
+
+### Fix options
+
+**Option A (recommended) — install the SDK:**
+`pip install google-genai`, restart bench, retry. Full native Gemini support
+(thinking/reasoning budgets, grounding, response modalities) at the cost of one
+small extra dependency.
+
+**Option B — zero-new-deps, via Gemini's OpenAI-compatible endpoint:**
+configure the `AI Model` with no linked provider, `model_id` e.g.
+`gemini-2.5-flash`, `base_url = https://generativelanguage.googleapis.com/v1beta/openai/`,
+and the Gemini API key as the model's own `api_key`. Both `_model_call_config`
+and `test_connection` route unlinked models through `agno.models.openai.OpenAIChat`,
+which needs only the already-installed `openai` SDK — the same pattern already
+proven live against Groq. Limited to what the wire-compatible surface supports;
+no Gemini-native features.
+
+**Not recommended:** wiring `agno.models.litellm.LiteLLM` as a provider — it's
+named in ADR 0009 as an escape hatch for providers Agno doesn't cover natively,
+but isn't in `PROVIDER_MODEL_CLASSES`, and Gemini *is* covered natively once its
+SDK is installed, so this buys nothing here.
+
+### Correction — a claim in the original debug session notes was stale
+
+The original notes for this session (now merged into this entry) also claimed,
+under "related context," that a `NameError` in `get_run_config` — `plugin_tools`
+referenced before assignment — was "already fixed in code," citing
+`plugin_tools = _resolve_agent_plugin_tools(agent_doc, user)` added before the
+return dict.
+
+That fix is real and correct for `get_run_config` (`api/service.py:217-227`,
+where `agent_doc` and `user` are both properly defined before that call). But
+the architecture review of 2026-09-06 found the **identical line copy-pasted
+into a different function, `service_health()` (`api/service.py:110`)**, where
+neither `agent_doc` nor `user` is defined — an unfixed, still-live `NameError`
+on that unconfigured-service-health path. See
+[`docs/to_do/critical-service-health-nameerror.md`](to_do/critical-service-health-nameerror.md)
+for the open bug; this note is corrected here rather than left to imply the
+whole class of bug was resolved.
+
+---
+
+## Tender spec review debugging session — four bugs found, one still unconfirmed end-to-end
+
+**Date:** 2026-08-11
+**Site:** `tact.local`
+**Enquiry:** `E-2026-0005`
+
+Tender spec review runs for `E-2026-0005` failed through multiple distinct issues
+while migrating tender orchestration onto `frappe_ai` manual triggers. Several
+bugs were identified and patched in code during this session, but multiple runs
+were created before each fix was live, so historical run states ended up mixed:
+some stuck `Running`, some correctly `Failed`, some appearing to disappear or
+becoming unreadable afterward.
+
+### Bug 1 — `get_run_config` executed as `Guest`
+
+`User Guest does not have doctype access via role permission for document AI Run`
+— the FastAPI service couldn't fetch run config, the tender stage log moved to
+`started`, and the run never actually began. Fixed: `get_run_config()`
+(`api/service.py`) now switches to the explicit acting user before loading
+`AI Run`/`AI Session`. Verified via direct `curl` against a real run after restart.
+
+### Bug 2 — `fail_run`/`persist_run_result` also executed as `Guest`
+
+The service's cleanup callback got `403` on `POST .../fail_run`, so broken runs
+stayed stuck `Running` with no terminal state ever persisted. Fixed:
+`fail_run()`/`persist_run_result()` (`api/api.py`) now execute as `Administrator`
+after validating the shared secret. Verified via `test_api.py`.
+
+### Bug 3 — provider rejected the `developer` message role
+
+`messages[0].role: unknown variant 'developer'` — the run reached model
+execution but the provider refused the request before any tool execution. Fixed:
+`builder.py`/`chat.py` stopped relying on the Agno instructions path that
+produced a provider-specific `developer` role, preserving the transcript
+`system` message instead. Verified via `test_service_app.py`.
+
+### Bug 4 — SSE stream could end without a terminal event, leaving the run stuck
+
+A worker job would complete quickly with `AI Run` still `Running`,
+`iterations = 0`, no `error` — `_run_via_service()` could return after stream
+closure without ever seeing a `done` or `error` event, and the worker treated
+that as success. Fixed: `_run_via_service()` (`triggers/triggers.py`) now raises
+if the stream ends without a terminal SSE event while the run is still
+non-terminal, so future runs fail explicitly instead of hanging forever.
+
+### Status at end of session
+
+All four fixes were live, but **a full clean successful tender spec review run
+had not yet been confirmed end-to-end with all patches live together.** Runs
+observed during debugging (`mjul94v1rk`, `pkunpe5agg`, `vrbnqjp4h8`,
+`4kbf3qvrbk`, `8ak7lvtapa`, `c9tnd3pj18`, `fq6i9o2ino`) showed a mix of the
+above failure modes; `fq6i9o2ino` (Stage Log 18) disappeared entirely
+(`AI Run fq6i9o2ino not found`) after the worker completed quickly — not fully
+explained in this session.
+
+`worker.log` also showed `Failed to initialize MCP toolkit`, not traced to a
+specific failed run in this session — flagged as the most likely next area to
+investigate if failures continued after these four fixes.
+
+Files touched this session: `api/service.py`, `api/api.py`, `service/builder.py`,
+`service/routes/chat.py`, `triggers/triggers.py`, plus `test_api.py`,
+`test_service_api.py`, `test_service_app.py`, and tender migration-related files
+updated earlier in the session.
+
+---
+
 ## Opaque `model_provider_error` was a mid-stream read timeout
 
 **Date:** 2026-08-30

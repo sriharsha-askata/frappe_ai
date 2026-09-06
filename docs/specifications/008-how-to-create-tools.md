@@ -535,6 +535,6 @@ def get_app_utils():
 
 ## Related Documentation
 
-- [MCP Integration Guide](../MCP_INTEGRATION_SETUP_GUIDE.md)
+- [Frappe Assistant Core Integration Guide](../FRAPPE_ASSISTANT_CORE_INTEGRATION.md) — includes the practical MCP setup guide
 - [007-mcp-integration-and-cleanup.md](./007-mcp-integration-and-cleanup.md)
 - Assistant Core source: `frappe_assistant_core/plugins/`

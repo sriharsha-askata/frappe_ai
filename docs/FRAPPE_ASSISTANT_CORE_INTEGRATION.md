@@ -5,8 +5,10 @@
 
 This document explains how `frappe_ai` can use `frappe_assistant_core`, what
 that gives us, and which parts of `frappe_ai` should eventually be reduced. It is a
-boundary and migration guide; the current status is tracked in the Assistant Core
-progress document.
+boundary and migration guide, plus (see "Practical Setup Guide" below) the
+step-by-step operational guide for connecting an `AI Agent` to Assistant Core or
+another MCP server. The current status is tracked in the Assistant Core progress
+document.
 
 ## Current implementation (2026-08-21)
 
@@ -400,6 +402,151 @@ The integration is ready for production consideration only when:
 - existing stdio/SSE connections continue to work;
 - native `frappe_ai` tools remain functional during migration;
 - duplicate builtins are removed only after dependent agents are migrated.
+
+## Practical Setup Guide
+
+The sections above are the architecture and rationale. This section is the
+step-by-step operational guide for actually wiring an `AI Agent` up to Assistant
+Core or another MCP server.
+
+### Two ways to add tools to MCP
+
+**Option 1: use Assistant Core's built-in tools.** Assistant Core already
+provides tools that work with any DocType — `get_document`, `list_documents`,
+`search_documents`, `create_document`, `update_document`, `delete_document`,
+`run_workflow`, and more. No additional code needed, just connect.
+
+**Option 2: create a custom tool.** If you need specific business logic:
+
+```python
+# In your app: my_app/utils/my_tool.py
+
+from frappe_assistant_core.core.base_tool import BaseTool
+
+class MyCustomTool(BaseTool):
+    def __init__(self):
+        self.name = "my_custom_tool"
+        self.description = "Does something specific for my business"
+        self.inputSchema = {
+            "type": "object",
+            "properties": {
+                "input": {"type": "string", "description": "Input parameter"}
+            },
+            "required": ["input"]
+        }
+
+    def execute(self, arguments):
+        # Your business logic here
+        return {"result": "Done!"}
+
+# Register in hooks.py
+assistant_tools = [
+    "my_app.utils.my_tool.MyCustomTool"
+]
+```
+
+### Step-by-step: connect to Assistant Core
+
+1. **Generate an API key for the user.** Users > [Select User] > API Access >
+   Generate API Key. Save the API Key and API Secret.
+2. **Enable Assistant for the user.** Users > [Select User] > check
+   **Enable Assistant** > Save.
+3. **Create an `AI MCP Connection`:**
+   ```
+   Connection Name: Assistant Core
+   Connection Type: streamable-http
+   Endpoint URL: https://yoursite.com/api/method/frappe_assistant_core.api.fac_endpoint.handle_mcp
+   API Key: <your_user_api_key>
+   API Secret: <your_user_api_secret>
+   ```
+4. **Test the connection.** Click **Check Connection** — should show
+   "Connected (X tools)". If it errors, check the API key/secret first.
+5. **Attach to an `AI Agent`.** Open the agent, add a row in the **MCP
+   Connections** child table, select the connection, and optionally set
+   `include_tools` to narrow which tools are exposed.
+6. **Test the agent.** It should now have access to the connected tools.
+
+### Connecting a custom MCP server
+
+For a separate MCP server (e.g. `tender_automation`'s MCP):
+
+- **stdio** (local processes):
+  ```
+  Connection Type: stdio
+  Command: python /path/to/mcp_server.py
+  Command Args: ["--transport", "stdio"]
+  Environment Variables: {}
+  ```
+- **SSE** (HTTP long-polling, older standard):
+  ```
+  Connection Type: SSE
+  Endpoint URL: https://yourserver.com/mcp
+  Environment Variables: {}
+  ```
+
+### Authentication methods
+
+| Header | Format | Example |
+|---|---|---|
+| API Key/Secret | `token api_key:api_secret` | `token abc123:xyz789` |
+| OAuth Bearer | `Bearer <token>` | `Bearer eyJhbGci...` |
+
+In code (`builder.py`'s MCP connection handling):
+
+```python
+if connection_type == "streamable-http":
+    headers = {}
+    if api_key and api_secret:
+        headers["Authorization"] = f"token {api_key}:{api_secret}"
+
+    tools.append(MCPTools(
+        url=endpoint_url,
+        transport="streamable-http",
+        headers=headers,
+        include_tools=include_tools
+    ))
+```
+
+### Troubleshooting
+
+**Connection fails:**
+1. Check the API key is valid and not expired.
+2. Check the user has **Assistant Enabled**.
+3. Check the endpoint URL is reachable from the server.
+4. Check the site URL format.
+
+**Tools not showing:**
+1. Click **Check Connection** to refresh tool discovery.
+2. Check `include_tools` isn't narrowing the list unexpectedly.
+3. Verify the user has permission for those tools in Assistant Core.
+
+**Authentication errors:**
+1. Verify the API key/secret is correct.
+2. Check the user has **Assistant Enabled**.
+3. For OAuth, ensure the token is valid and not expired.
+
+### Quick reference — `AI MCP Connection` fields
+
+| Field | Required | Description |
+|---|---|---|
+| `connection_name` | Yes | Unique name |
+| `connection_type` | Yes | `stdio`, `SSE`, or `streamable-http` |
+| `endpoint_url` | For HTTP | MCP server URL |
+| `command` | For stdio | Command to run |
+| `api_key` | Optional | API key for auth |
+| `api_secret` | Optional | API secret for auth |
+| `include_tools` | Optional | Limit which tools are available |
+
+Connection types: **stdio** (local process, good for development), **SSE** (HTTP
+long-polling, older standard), **streamable-http** (HTTP streaming, recommended
+for production).
+
+### Next steps for a new integration
+
+1. Start simple — connect to Assistant Core first.
+2. Test read-only tools before enabling any mutating ones.
+3. Add custom tools in your own apps as needed.
+4. Explore what the agent can do with the tools now available to it.
 
 ## Source References
 

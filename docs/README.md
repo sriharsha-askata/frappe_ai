@@ -34,6 +34,7 @@ and the [Assistant Core migration tracker](progress/ai-tool-retirement-via-assis
 | Know where the work stands | [Migration progress](progress/flow-to-frappe-ai-migration.md) and [Assistant Core/FAC migration progress and deletion plan](progress/ai-tool-retirement-via-assistant-core.md) |
 | Understand *why* something is the way it is | [Decisions](#decisions) below |
 | See what surprised us while building this, and why | [Learnings](learnings.md) |
+| See what's outstanding — bugs, gaps, cleanup — and why it matters | [To Do](to_do/README.md) |
 
 ---
 
@@ -46,9 +47,16 @@ and the [Assistant Core migration tracker](progress/ai-tool-retirement-via-assis
 | [003 — DocType Reference](specifications/003-doctype-reference.md) | All 22 current DocTypes: fields, types, naming rules, controllers, permissions |
 | [006 — Dynamic MCP Server Profiles](specifications/006-dynamic-mcp-server-profiles.md) | Archived earlier profile proposal; current MCP work is tracked in 007 |
 | [005 — Frontend Contract](specifications/005-frontend-contract.md) | Stable same-origin JSON endpoints, SSE stream protocol, host adapter boundaries, and end-to-end client flows for the standalone SPA or any custom frontend |
-| [DocType Cleanup Plan](DOCTYPE_CLEANUP_PLAN.md) | Which DocTypes are genuinely dead vs. load-bearing; corrects an earlier premise that MCP had already replaced the builtin tool system |
 | [007 — MCP Integration & Cleanup](specifications/007-mcp-integration-and-cleanup.md) | Verified plan to integrate with Assistant Core/FAC, migrate runtime authority, and retain `ai_tool`/`ai_agent_tool` as compatibility records |
+| [Frappe Assistant Core Integration Guide](FRAPPE_ASSISTANT_CORE_INTEGRATION.md) | Ownership boundary between `frappe_ai` and Assistant Core, the acting-user identity/security requirement for MCP calls, failure/fallback rules, and a step-by-step practical setup guide |
 | [011 — AI Model Capability Testing](specifications/011-ai-model-capability-testing.md) | Explicit saved-model Chat capability suite and result contract |
+
+**Open problem statement** (not yet a numbered spec — no ADR has resolved its central
+question):
+
+| Doc | Contents |
+|---|---|
+| [Knowledge System Problem Statement](knowledge-system-problem-statement.md) | Domain model and ingestion flow for the knowledge/RAG pipeline; open question of whether `AI Knowledge Chunk` rows must be persisted in MariaDB or could live only in LanceDB |
 
 ## Decisions
 
@@ -147,6 +155,7 @@ docs/
 ├── specifications/            # NNN-topic.md — what the system does
 ├── decisions/                 # NNNN-slug.md — why it does it that way
 ├── progress/                  # feature-name.md — where the work stands
+├── to_do/                      # severity-slug.md — what still needs doing, and why
 └── learnings.md                # what surprised us, and why — a running log
 ```
 
@@ -160,6 +169,12 @@ Verification.
 
 **Progress** files are living documents, updated continuously during implementation rather
 than written once at the start or backfilled at the end.
+
+**To Do** items are named `severity-slug.md` (severity first, so priority is visible in a
+plain directory listing) and each states its type (bug / improvement / new feature),
+severity, why it needs doing, and a description. Unlike the other three categories, these
+are expected to be deleted once resolved — they are work items, not a permanent record.
+Promote anything worth keeping into a decision or progress note when a to-do closes.
 
 **Learnings** is a single running log (newest first) of things that surprised us while
 building this — an assumption that turned out wrong, an API that behaved differently than

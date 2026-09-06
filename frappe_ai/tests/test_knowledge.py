@@ -833,6 +833,7 @@ class TestIngest(IntegrationTestCase):
 		source.reload()
 		self.assertEqual(source.status, "Completed")
 		self.assertEqual(source.chunk_count, 0)
+		self.assertEqual(source.is_embedded, 0)
 		self.assertEqual(self._chunks(source.name), [])
 
 	def test_failed_source_marks_failed_and_raises(self):
@@ -842,6 +843,7 @@ class TestIngest(IntegrationTestCase):
 
 		source.reload()
 		self.assertEqual(source.status, "Failed")
+		self.assertEqual(source.is_embedded, 0)
 		self.assertIn("non-public", source.error_log or "")
 
 	def test_unavailable_embedding_service_marks_source_failed(self):
@@ -856,6 +858,7 @@ class TestIngest(IntegrationTestCase):
 
 		source.reload()
 		self.assertEqual(source.status, "Failed")
+		self.assertEqual(source.is_embedded, 0)
 		self.assertIn("Ollama embedding service is unavailable", source.error_log or "")
 
 	def test_reembedding_failure_preserves_previous_chunks(self):
@@ -863,6 +866,8 @@ class TestIngest(IntegrationTestCase):
 		self._ingest(source.name)
 		before_chunks = self._chunks(source.name)
 		before_lance_count = self._lance_count()
+		source.reload()
+		self.assertEqual(source.is_embedded, 1)
 
 		with (
 			patch("frappe_ai.knowledge.embedder._call_openai_compatible", side_effect=ConnectionError("refused")),
@@ -874,6 +879,8 @@ class TestIngest(IntegrationTestCase):
 
 		self.assertEqual(self._chunks(source.name), before_chunks)
 		self.assertEqual(self._lance_count(), before_lance_count)
+		source.reload()
+		self.assertEqual(source.is_embedded, 0)
 
 	def test_purge_source_is_safe_when_empty(self):
 		source = self._make_source(content="never ingested")
@@ -1084,6 +1091,7 @@ class TestDoctypeSync(IntegrationTestCase):
 		self.assertEqual(self._lance_ids(), {int(c["name"]) for c in self._chunks(src.name)})
 		src.reload()
 		self.assertEqual(src.chunk_count, len(self._chunks(src.name)))
+		self.assertEqual(src.is_embedded, 1)
 
 	def test_sync_due_sources_enqueues_only_auto_sync_doctypes(self):
 		auto = self._source()

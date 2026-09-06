@@ -6,6 +6,7 @@ from __future__ import annotations
 import asyncio
 import json
 import shlex
+import traceback
 from typing import Any
 
 import frappe
@@ -19,9 +20,7 @@ def check_connection(name: str) -> dict[str, Any]:
 	doc = frappe.get_doc("AI MCP Connection", name)
 	frappe.has_permission("AI MCP Connection", "read", doc.name, throw=True)
 	result = asyncio.run(_check_connection_async(doc))
-	_update_status(doc.name, result)
-	if result.get("is_connected"):
-		_sync_discovered_tools(doc, result.get("tools") or [])
+	_apply_result_to_doc(doc, result)
 	return result
 
 
@@ -31,9 +30,7 @@ def check_all_mcp_connections() -> list[dict[str, Any]]:
 	for name in frappe.get_all("AI MCP Connection", filters={"enabled": 1}, pluck="name"):
 		doc = frappe.get_doc("AI MCP Connection", name)
 		result = asyncio.run(_check_connection_async(doc))
-		_update_status(doc.name, result)
-		if result.get("is_connected"):
-			_sync_discovered_tools(doc, result.get("tools") or [])
+		_apply_result_to_doc(doc, result)
 		rows.append({"name": doc.name, **result})
 	return rows
 
@@ -99,11 +96,69 @@ def create_mcp_connection_from_json(json_config: str | dict[str, Any]) -> dict[s
 	return {"name": doc.name}
 
 
+def _flatten_exception_group(exc: BaseException) -> list[BaseException]:
+	"""Recursively unwrap BaseExceptionGroup / ExceptionGroup to its leaf causes.
+
+	``str(ExceptionGroup(...))`` returns the unhelpful
+	"unhandled errors in a TaskGroup (N sub-exceptions)" message and hides the
+	actual root cause (e.g. ``httpx.ConnectError``). This helper walks the
+	``exceptions`` tree so the caller can show the real error to the user and
+	to ``frappe.log_error``.
+	"""
+	leaves: list[BaseException] = []
+	stack: list[BaseException] = [exc]
+	while stack:
+		current = stack.pop()
+		if isinstance(current, BaseExceptionGroup):
+			stack.extend(current.exceptions)
+			continue
+		leaves.append(current)
+	return leaves
+
+
+def _format_failure(exc: BaseException) -> str:
+	"""Return a compact, user-readable description of an exception, unwrapping
+	any TaskGroup / ExceptionGroup so the actual cause is shown."""
+	parts: list[str] = []
+	seen: set[int] = set()
+	for leaf in _flatten_exception_group(exc):
+		if id(leaf) in seen:
+			continue
+		seen.add(id(leaf))
+		name = type(leaf).__name__
+		msg = str(leaf).strip() or repr(leaf)
+		parts.append(f"{name}: {msg}" if msg else name)
+	return "; ".join(parts) if parts else str(exc)
+
+
+def _apply_result_to_doc(doc, result: dict[str, Any]) -> None:
+	"""Persist a connection-check result onto ``doc`` correctly.
+
+	``doc.save()`` (called by ``_sync_discovered_tools``) writes **all** in-memory
+	fields back to the DB. If we wrote the new status with ``frappe.db.set_value``
+	first, that subsequent ``doc.save()`` would overwrite the freshly-written
+	``is_connected=1`` with the stale in-memory value (``0``). To avoid that, we
+	update the in-memory doc fields first and then do a single ``doc.save()`` via
+	``_sync_discovered_tools``. ``_update_status`` is kept as a safety net for the
+	failure path where no ``doc.save()`` happens.
+	"""
+	doc.is_connected = 1 if result.get("is_connected") else 0
+	doc.last_check_time = frappe.utils.now_datetime()
+	doc.status_message = (result.get("status_message") or "")[:140]
+	_update_status(doc.name, result)
+	if result.get("is_connected"):
+		_sync_discovered_tools(doc, result.get("tools") or [])
+
+
 async def _check_connection_async(doc) -> dict[str, Any]:
 	try:
 		toolkit = _build_toolkit(doc)
-	except Exception as e:
-		return {"is_connected": False, "status_message": str(e)}
+	except BaseException as e:
+		frappe.log_error(
+			title=f"AI MCP Connection build failed: {doc.name}",
+			message=traceback.format_exc(),
+		)
+		return {"is_connected": False, "status_message": _format_failure(e)}
 
 	try:
 		async with toolkit:
@@ -118,8 +173,12 @@ async def _check_connection_async(doc) -> dict[str, Any]:
 				"status_message": f"Connected ({len(toolkit.functions)} tools)",
 				"tools": _discover_tools(toolkit),
 			}
-	except Exception as e:
-		return {"is_connected": False, "status_message": str(e)}
+	except BaseException as e:
+		frappe.log_error(
+			title=f"AI MCP Connection check failed: {doc.name}",
+			message=traceback.format_exc(),
+		)
+		return {"is_connected": False, "status_message": _format_failure(e)}
 
 
 def _build_toolkit(doc):

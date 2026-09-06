@@ -584,7 +584,9 @@ frappe_ai/frappe_ai/doctype/ai_agent_tool/
 Update active runtime callers to prefer FAC bindings. Retain compatibility callers
 needed for migration, legacy UI, triggers, and existing records.
 `docs/specifications/003-doctype-reference.md` to drop the two DocTypes.
-`DOCTYPE_CLEANUP_PLAN.md` marked historical, pointing here.
+(`DOCTYPE_CLEANUP_PLAN.md`, which previously tracked this history, has been
+removed — its retracted recommendation and completed cleanup step carried no
+remaining action items; this spec is the current source of truth.)
 
 **Out** — deleting the two compatibility DocTypes and their data.
 
@@ -732,6 +734,4 @@ history) and were already deleted on 2026-08-19 — no migration needed.
 
 ## Related Documentation
 
-- [FRAPPE_ASSISTANT_CORE_INTEGRATION.md](./FRAPPE_ASSISTANT_CORE_INTEGRATION.md) - Architecture details
-- [MCP_INTEGRATION_SETUP_GUIDE.md](./MCP_INTEGRATION_SETUP_GUIDE.md) - Setup guide
-- [DOCTYPE_CLEANUP_PLAN.md](./DOCTYPE_CLEANUP_PLAN.md) - Cleanup overview
+- [FRAPPE_ASSISTANT_CORE_INTEGRATION.md](../FRAPPE_ASSISTANT_CORE_INTEGRATION.md) - Architecture details, plus the practical MCP setup guide

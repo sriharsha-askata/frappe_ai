@@ -63,8 +63,16 @@ def ingest_source(source: str, rebuild: bool = False) -> None:
 	rebuild forces a full re-chunk of a DocType source (purge + reset watermark) so
 	new chunk settings apply to rows whose content is otherwise unchanged. Single-doc
 	sources rebuild on every run regardless."""
+	from frappe_ai.frappe_ai.doctype.ai_knowledge_source.ai_knowledge_source import AIKnowledgeSource
+
 	doc = frappe.get_doc("AI Knowledge Source", source)
-	doc.db_set("status", "Processing", update_modified=False)
+	AIKnowledgeSource.log_event(
+		"start",
+		source=doc.name,
+		source_type=doc.source_type,
+		knowledge_base=doc.knowledge_base,
+	)
+	doc.db_set({"status": "Processing", "is_embedded": 0}, update_modified=False)
 	frappe.db.commit()
 
 	try:
@@ -76,17 +84,35 @@ def ingest_source(source: str, rebuild: bool = False) -> None:
 			_sync_doctype(doc, settings)
 		else:
 			_rebuild_single(doc, settings)
-	except Exception:
+	except Exception as exc:
 		frappe.db.rollback()
+		AIKnowledgeSource.log_event(
+			"failed",
+			source=source,
+			error=str(exc)[:500],
+			traceback=frappe.get_traceback()[:1000],
+		)
+		AIKnowledgeSource.on_index_failed(doc, exc)
 		_mark_failed(source)
 		raise
 
 	count = frappe.db.count(CHUNK_DOCTYPE, {"source": doc.name})
 	doc.db_set(
-		{"status": "Completed", "chunk_count": count, "error_log": None},
+		{
+			"status": "Completed",
+			"chunk_count": count,
+			"is_embedded": int(bool(count)),
+			"error_log": None,
+		},
 		update_modified=False,
 	)
 	frappe.db.commit()
+	AIKnowledgeSource.log_event(
+		"indexed",
+		source=doc.name,
+		chunk_count=count,
+		dimension=getattr(settings, "embedding_dimension", None),
+	)
 
 
 def purge_source(source: str) -> None:
@@ -313,14 +339,16 @@ def reconcile_source(source: str) -> None:
 		frappe.get_all(CHUNK_DOCTYPE, filters={"source": source}, pluck="reference_name", distinct=True)
 	)
 	indexed.discard(None)
-	if not indexed:
-		return
+	if indexed:
+		orphaned = list(indexed - _existing_names(doc.reference_doctype, indexed))
+		if orphaned:
+			_purge_refs(source, orphaned)
 
-	orphaned = list(indexed - _existing_names(doc.reference_doctype, indexed))
-	if orphaned:
-		_purge_refs(source, orphaned)
-		count = frappe.db.count(CHUNK_DOCTYPE, {"source": source})
-		doc.db_set("chunk_count", count, update_modified=False)
+	count = frappe.db.count(CHUNK_DOCTYPE, {"source": source})
+	doc.db_set(
+		{"chunk_count": count, "is_embedded": int(bool(count))},
+		update_modified=False,
+	)
 
 
 def _existing_names(doctype: str, names: set[str]) -> set[str]:
@@ -357,7 +385,7 @@ def _mark_failed(source: str) -> None:
 	frappe.db.set_value(
 		"AI Knowledge Source",
 		source,
-		{"status": "Failed", "error_log": error},
+		{"status": "Failed", "is_embedded": 0, "error_log": error},
 		update_modified=False,
 	)
 	frappe.db.commit()

@@ -1,0 +1,11 @@
+[
+  {
+    "doctype": "Custom Field",
+    "dt": "AI Knowledge Source",
+    "fieldname": "custom_consumer_field",
+    "fieldtype": "Data",
+    "label": "Consumer Field",
+    "insert_after": "title",
+    "name": "AI Knowledge Source-custom_consumer_field"
+  }
+]
