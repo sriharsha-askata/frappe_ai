@@ -59,7 +59,7 @@ marked done in the [progress tracker](../progress/flow-to-frappe-ai-migration.md
 | 2.5 | Permission gate in `assemble()` (agent enabled, `AI Model` read perm, model enabled) | same, in `AgentBuilder` | **Adapt** | Check happens in Frappe before config is released to the service. |
 | 2.6 | `_resolve_tools()` — missing tool logged + skipped, disabled skipped | same | **Port** | |
 | 2.7 | Bound tools: `search_knowledge`→KB list, `update_memory`→agent name | same | **Port** | Binding config-side, never model-side. |
-| 2.8 | `max_iterations` enforcement | same | **Port** | Enforced in the Agno loop. |
+| 2.8 | `max_iterations` enforcement | same | **Port** | Enforced in the Agno loop, as Agno's `tool_call_limit` (set in `AgentBuilder`). This row claimed enforcement before it existed — the value was fetched into the run config but never passed to Agno, leaving the loop unbounded until 2026-09-10. |
 | 2.9 | `Flow Agent Tool` child table | `AI Agent Tool` | **Port** | |
 | 2.10 | `Flow Agent Knowledge Base` child table | `AI Agent Knowledge Base` | **Port** | |
 | 2.11 | `is_system_generated` immutability guards | same | **Port** | Via `utils/system_generated.py`. |

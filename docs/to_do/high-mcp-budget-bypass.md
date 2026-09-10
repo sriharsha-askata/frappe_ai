@@ -49,13 +49,33 @@ relies on (confirmation, budgets) are both absent on this one path.
 
 ## Recommendation
 
-Needs explicit design input before implementation — the correct option depends on
-whether every MCP transport variant (stdio / SSE / streamable-http) round-trips
-through Frappe at any point, which this review did not resolve to the depth this
-decision needs. **Do not bundle this with any other to-do item** — it touches the
+**Update (production readiness review, 2026-09-10):** the open question below has
+been resolved. `service/builder.py:_build_mcp_tools` constructs `MCPTools` that
+execute **entirely inside the FastAPI process** — no MCP transport variant
+round-trips through Frappe at any point, and there is no `frappe.set_user` on the
+path. Option A therefore cannot be implemented as a check at the existing dispatch
+boundary, because MCP calls never reach that boundary; it would require routing
+MCP traffic back through Frappe, which
+[ADR 0019](../decisions/0019-mcp-acting-user-identity.md) considered and rejected
+as disproportionate.
+
+**Option B is the applicable design.** The service maintains its own counter for
+MCP calls and reports it to Frappe through the existing `persist_run_result`
+callback, enforcing on the next call. This is after-the-fact for the single call
+that first trips the limit, which is an accepted weakening — bounded overrun by
+one call is materially different from today's unbounded behaviour.
+
+This item also became more load-bearing: ADR 0019 accepts that MCP tools act as a
+shared connection identity rather than the acting user, which makes the volume
+ceiling the **only** remaining control on that path. Requirement 3 of that ADR
+depends on this item.
+
+**Do not bundle this with any other to-do item** — it touches the
 security-critical dispatch boundary and deserves its own focused review pass,
 ideally landing behind a settings-level toggle so it can be rolled back
 independently.
+
+### Original open question (now answered)
 
 ## What happens if we do nothing
 

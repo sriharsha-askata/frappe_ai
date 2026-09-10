@@ -116,6 +116,15 @@ resolve the question against it.
 
 Violating this collapses per-user permissions into a single service identity, which is the
 principal risk of the two-process design. See
+
+> **Scope — MCP is an explicit exception.** MCP tools execute *inside* the FastAPI
+> process and authenticate with a credential stored on the `AI MCP Connection`
+> row, so they act as the connection rather than as the run's user. The invariant
+> above holds for every tool that executes inside Frappe — builtins, `AI Tool`
+> rows, and FAC plugin tools — and does **not** hold on the MCP path. Binding an
+> MCP connection to an agent grants every user of that agent whatever that
+> credential can do. This is a deliberate, bounded trade-off; see
+> [ADR 0019](../decisions/0019-mcp-acting-user-identity.md).
 [ADR 0003](../decisions/0003-tools-execute-in-frappe.md).
 
 ---
@@ -304,7 +313,7 @@ persistence is an explicit call back to Frappe, so this class of bug does not ar
 |---|---|
 | FastAPI unreachable | `start_run` fails fast with a clear message; no orphaned `AI Run` |
 | Client disconnects mid-stream | Service cancels the run; marks the `AI Run` failed via callback |
-| Run exceeds `max_iterations` | Run marked `Failed` with an explicit error |
+| Run exceeds `max_iterations` | Agno stops issuing tool calls (`tool_call_limit`) and the model produces a final answer from what it has. The run completes rather than failing — it is a ceiling, not an error condition. |
 | Tool raises | Caught, returned to the model as `{"error": …}` truncated to 500 chars — a failing tool never kills the run |
 | Stale `Running` run | Auto-failed after `RUNNING_STALE_SECONDS` (300); also `recover_session` on reload and explicit `stop_run` |
 | LanceDB unavailable | `search_knowledge` fails closed with an error; the rest of the run continues |
