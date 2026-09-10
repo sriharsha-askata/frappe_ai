@@ -33,7 +33,7 @@ from frappe_ai.knowledge.ingest import (
 	sync_due_sources,
 )
 from frappe_ai.knowledge.migration import migrate_legacy_embedding_configuration, rebuild_knowledge_index
-from frappe_ai.knowledge.retriever import retrieve, retrieve_attachments
+from frappe_ai.knowledge.retriever import _permitted, retrieve, retrieve_attachments
 
 DIM = 4
 
@@ -1219,6 +1219,71 @@ class TestRetriever(IntegrationTestCase):
 		):
 			with self.assertRaisesRegex(frappe.ValidationError, "Ollama embedding service is unavailable"):
 				retrieve("laptop", kbs=[self.kb.name])
+
+
+class TestRetrieverSourceDocumentPermissions(IntegrationTestCase):
+	"""A knowledge base is the authorization boundary for content an admin chose
+	directly. It is not sufficient for `source_type = "DocType"`, where indexed
+	content is derived from documents that carry their own read permissions."""
+
+	UNPRIVILEGED = "test-knowledge-unprivileged@example.com"
+
+	def setUp(self):
+		if not frappe.db.exists("User", self.UNPRIVILEGED):
+			frappe.get_doc(
+				{
+					"doctype": "User",
+					"email": self.UNPRIVILEGED,
+					"first_name": "Knowledge Unprivileged",
+					"send_welcome_email": 0,
+					"roles": [],
+				}
+			).insert(ignore_permissions=True)
+		self.todo = frappe.get_doc(
+			{"doctype": "ToDo", "description": "confidential"}
+		).insert(ignore_permissions=True)
+
+	def tearDown(self):
+		frappe.set_user("Administrator")
+		frappe.db.rollback()
+
+	def _chunks(self):
+		return {
+			1: {
+				"name": "1",
+				"content": "confidential",
+				"source": "S-1",
+				"reference_doctype": "ToDo",
+				"reference_name": self.todo.name,
+			},
+			2: {
+				"name": "2",
+				"content": "curated handbook text",
+				"source": "S-2",
+				"reference_doctype": None,
+				"reference_name": None,
+			},
+		}
+
+	def test_chunk_from_unreadable_document_is_dropped(self):
+		frappe.set_user(self.UNPRIVILEGED)
+
+		permitted = _permitted(self._chunks())
+
+		self.assertNotIn(1, permitted)
+
+	def test_curated_chunk_without_provenance_is_kept(self):
+		"""The KB-as-boundary rule is unchanged for Text/File/URL sources."""
+		frappe.set_user(self.UNPRIVILEGED)
+
+		permitted = _permitted(self._chunks())
+
+		self.assertIn(2, permitted)
+
+	def test_readable_document_chunk_is_kept(self):
+		permitted = _permitted(self._chunks())
+
+		self.assertEqual(set(permitted), {1, 2})
 
 
 class TestKnowledgeBuilder(IntegrationTestCase):

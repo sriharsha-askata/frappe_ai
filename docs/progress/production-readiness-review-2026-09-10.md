@@ -61,9 +61,9 @@ applied, the remaining blockers are narrow and enumerable.
 | F-7 | `temperature` / `top_p` silently discarded | P1 | **Fixed** (`65e2fb9`) |
 | F-8 | Field rename fallout: zero tools in UI, empty audit snapshot | P1 | **Fixed** (`b25d09c`) |
 | F-9 | Test suite unable to create an agent; 62 broken tests | P1 | **Fixed** (`b25d09c`) |
-| F-10 | Knowledge retrieval performs no permission checks | P1 | **Open** |
+| F-10 | DocType-sourced knowledge readable without the source document's permission | P1 | **Fixed** (`aca4f21`) |
 | F-11 | MCP tool calls bypass execution budgets | P1 | **Open** (pre-existing) |
-| F-12 | `budgets.consume` is an unlocked read-modify-write | P1 | **Open** |
+| F-12 | `budgets.consume` is an unlocked read-modify-write | P1 | **Fixed** (`aca4f21`) |
 | F-13 | Error Log records tool arguments and prompt context | P1 | **Open** |
 | F-14 | Wildcard `doc_events` puts frappe_ai in every site write | P2 | **Open** |
 | F-15 | Trigger runs block an RQ worker polling SSE | P2 | **Open** (pre-existing) |
@@ -305,21 +305,46 @@ Suite is now 373 tests with 11 broken, all pre-existing and environment-dependen
 (7 from a Frappe core `ignore_user_permissions` change, also failing in `flow`'s
 suite; 4 requiring Ollama or a clean site).
 
-### F-10 — Knowledge retrieval performs no permission checks *(open)*
+### F-10 — DocType-sourced knowledge bypassed document permissions *(fixed)*
 
-Verified: the entire `frappe_ai/knowledge/` module contains **no**
-`frappe.has_permission` or `get_list` call. Retrieval is scoped to the agent's
-configured knowledge bases and to nothing else.
+**A correction to this review's first draft.** The initial finding was recorded as
+"knowledge retrieval performs no permission checks", implying an oversight. That
+was wrong. `knowledge/retriever.py` carries an explicit, reasoned permission
+model in its module docstring:
 
-Where a knowledge base was ingested from Frappe documents, a user can therefore
-retrieve content from documents they cannot read, by asking the agent. This does
-not require prompt injection — it is the normal behaviour of the feature. It is
-the one place where the ADR 0003 invariant is broken *inside* Frappe rather than
-at the MCP boundary.
+> the knowledge base is the boundary. KBs are admin-curated (System Manager-only
+> doctypes), bound to agents by admins, and the LLM cannot widen the scope.
+> Retrieval is therefore not re-checked per chunk against the running user; the
+> binding is the authorization.
 
-Recommended fix: record source document identity on each chunk at ingestion, and
-filter retrieved chunks through `has_permission` for the acting user before they
-reach the model.
+That model is verified accurate as far as it goes — `AI Knowledge Base` is indeed
+System Manager-only, scoping is fail-closed, and disabling a KB is a real
+off-switch.
+
+**The actual defect is narrower and real.** The reasoning holds for sources whose
+content an admin chose directly (`Text`, `File`, `URL`). It does not hold for
+`AI Knowledge Source.source_type = "DocType"`, which indexes documents selected
+by a *filter* (`reference_doctype` + `filters` + `content_fields`) and keeps
+pulling in more via `auto_sync`. Those documents carry their own per-user
+permissions, and the admin never chose them individually — so "the binding is the
+authorization" silently discards a permission model that genuinely exists.
+
+The practical consequence: an admin indexes a permissioned DocType into a KB,
+binds it to a broadly-available agent, and every user of that agent can read
+content from documents they cannot open — with no injection required and no
+failed-access trace, because no check was performed to fail.
+
+**Fix applied.** Chunks that name a source document are now filtered through that
+document's own read permission for the acting user; chunks without provenance
+keep the KB-as-boundary rule unchanged. Permissions resolve once per distinct
+document, since one document usually yields several chunks per result set. The
+module docstring now states both halves of the rule.
+
+**Lesson.** The first draft of this finding asserted a missing check without
+reading the module's stated design. The check was absent *deliberately*, for
+documented reasons that were sound in the cases they were written for. Reviewing
+the rationale before the code would have produced the correct — and narrower —
+finding immediately.
 
 ---
 
@@ -355,7 +380,7 @@ is the worse failure and deletion would discard existing configured values.
 |---|---|
 | Tool permission scoping (direct path) | **Correct.** `frappe.set_user(acting_user)` with restore in `finally`; permissions genuinely enforced. |
 | Tool permission scoping (MCP path) | **Broken by design** — F-4, now documented and bounded (ADR 0019). |
-| Knowledge retrieval | **Broken** — F-10, open. |
+| Knowledge retrieval | **Correct as of F-10 fix.** KB binding authorizes curated content; DocType-sourced chunks are additionally checked against the source document. |
 | Whitelisted method authorization | **Was broken** — F-1, F-3; now systematically checked. |
 | Service authentication | **Correct.** HMAC run tokens, 300s TTL, `compare_digest`; shared secret in `site_config.json`, not the DB. |
 | Secrets at rest | **Correct.** FastAPI holds no credential; secret is not in a DocType. |
@@ -373,11 +398,13 @@ is a local fix rather than a redesign.
 ## 9. Concurrency Review
 
 - **Agent construction is per-request**, not module-scope. No cross-user leakage.
-- **`budgets.consume` is an unlocked read-modify-write** (F-12, open):
+- **`budgets.consume` was an unlocked read-modify-write** (F-12, fixed):
   `frappe.get_doc` → mutate counters → `db_set`. Two concurrent tool calls on the
-  same run interleave and lose an increment, so a run can exceed its budget under
-  exactly the parallel-tool-call conditions budgets are meant to bound. Needs
-  `for update` row locking.
+  same run interleaved and lost an increment, so a run could exceed its budget
+  under exactly the parallel-tool-call conditions budgets are meant to bound. Now
+  reads with `for_update=True`, which Frappe documents as locking the affected
+  rows. The existing increment-then-compare ordering was already correct and is
+  unchanged.
 - **Scheduled trigger window claim** was a non-atomic read-then-write; now a
   compare-and-swap (F-5).
 - **Trigger runs block an RQ worker** synchronously polling the FastAPI stream
@@ -416,8 +443,11 @@ to verify any of it.
 **Phase 2 — P1 correctness *(complete, `65e2fb9`)*.** Scheduled triggers, atomic
 window claim, `max_iterations`, sampling.
 
-**Phase 3 — P1 remaining *(open)*.** Knowledge permission filtering (F-10),
-budget row locking (F-12), MCP budget enforcement (F-11), log hygiene (F-13).
+**Phase 3 — P1 correctness *(complete, `aca4f21`)*.** Knowledge permission
+filtering (F-10), budget row locking (F-12).
+
+**Phase 3b — P1 remaining *(open)*.** MCP budget enforcement (F-11), log
+hygiene (F-13).
 
 **Phase 4 — P2 hardening *(open)*.** SSE heartbeats, non-blocking trigger runs,
 LanceDB write guard, narrowing `doc_events`, correlation ids.
@@ -465,8 +495,12 @@ Already changed:
 | `service/builder.py` | `tool_call_limit`; agent sampling overlay |
 | `triggers/triggers.py` | Accept scheduled triggers; atomic window claim |
 
-Still to change: `knowledge/retriever.py` (permission filtering), `hooks.py`
-(narrow `doc_events`), `api/dispatch.py` + `triggers/triggers.py` (log hygiene).
+| `api/budgets.py` | Lock the run row for the read-modify-write |
+| `knowledge/retriever.py` | Filter DocType-sourced chunks by the source document's read permission |
+
+Still to change: `service/builder.py` + `service/routes/chat.py` (MCP budget
+counting), `hooks.py` (narrow `doc_events`), `api/dispatch.py` +
+`triggers/triggers.py` (log hygiene).
 
 ## 15. Files to Delete / Merge
 
@@ -489,11 +523,20 @@ Added in this branch:
 - `max_iterations` becomes Agno's `tool_call_limit`; agent sampling overrides
   model params.
 
+- Knowledge retrieval drops chunks whose source document the user cannot read,
+  and keeps curated chunks that have no document provenance.
+
 Still required:
 
-- Knowledge retrieval excludes chunks whose source document the user cannot read.
-- Concurrent tool calls on one run cannot exceed `max_tool_calls` (F-12).
+- Concurrent tool calls on one run cannot exceed `max_tool_calls`. The row lock
+  is in place, but it is **not covered by a test that exercises real
+  concurrency** — the current budget tests are sequential.
 - MCP tool calls appear in `budget_usage` (F-11).
+- **Fix the intermittent `TestDoctypeSync.test_insert_adds_only_new_row`.** It
+  passes reliably when its module runs alone and fails occasionally in a full
+  run, so state leaks between modules — most likely ToDo rows or LanceDB tables
+  surviving a rollback. Intermittent failures train reviewers to ignore red
+  suites, which is the habit that let F-8 and F-9 persist.
 - **Agno coupling regression tests** (§4): that `fc` is injected into the
   entrypoint, that `PendingConfirmation` survives `Function.aexecute`, and that
   `skip_entrypoint_processing` behaves as assumed. These are the tests that will
@@ -507,8 +550,8 @@ Still required:
 - [x] Scheduled triggers verified to actually execute
 - [x] Agent execution limits reach the model loop
 - [x] Test suite able to exercise its own integration paths
-- [ ] Knowledge retrieval permission-filtered (F-10)
-- [ ] Budget accounting safe under concurrent tool calls (F-12)
+- [x] Knowledge retrieval permission-filtered for DocType-sourced content (F-10)
+- [x] Budget accounting row-locked against concurrent tool calls (F-12)
 - [ ] MCP calls budgeted (F-11)
 - [ ] Tool arguments and prompt context kept out of Error Log (F-13)
 - [ ] Correlation id across both processes
@@ -538,27 +581,30 @@ reasons below remain open.
 3. **The test suite could not detect its own regressions.** 62 of 366 tests
    broken, agent creation impossible, and two real production bugs hiding behind
    that. A suite in this state provides no deployment confidence. *(Now fixed.)*
-4. **Knowledge retrieval ignores permissions entirely.** Users can read document
-   content they have no rights to, through normal use of the feature, with no
-   injection required. **Still open.**
-5. **Budget accounting is not concurrency-safe**, and MCP calls are not counted at
-   all — so the remaining ceiling is unreliable exactly when it matters. **Still
-   open.**
+4. **DocType-sourced knowledge ignored document permissions.** Users could read
+   content from documents they had no rights to, through normal use of the
+   feature, with no injection required. *(Now fixed.)*
+5. **The volume ceiling was unreliable exactly when it mattered** — budget
+   accounting was not concurrency-safe, and MCP calls are not counted at all.
+   *(Concurrency fixed; **MCP remains uncounted**.)*
 
 > **The smallest set of changes required before I would approve production
 > deployment is:**
 
 1. **F-1, F-2, F-3 — the P0 security fixes.** Done in `b25d09c`.
 2. **F-5, F-6 — scheduled triggers and `max_iterations`.** Done in `65e2fb9`.
-3. **F-10 — permission-filter knowledge retrieval.** Non-negotiable: it is
-   unauthorized data disclosure through intended functionality.
-4. **F-12 — row-lock `budgets.consume`.** Small change; without it the budget is
-   advisory under concurrency.
-5. **F-11 — count MCP tool calls against the budget**, or disable MCP connections
-   in production until it lands. With ADR 0019 accepting a shared identity on that
-   path, the volume ceiling is the only remaining control on it.
-6. **Keep `auto_approve` triggers off production data** until 3–5 are closed —
-   they remove the human backstop, and these are the machine backstops.
+3. **F-10, F-12 — knowledge permission filtering and budget row locking.** Done
+   in `aca4f21`.
+4. **F-11 — count MCP tool calls against the budget**, or disable MCP connections
+   in production until it lands. **This is the one remaining blocker.** With
+   ADR 0019 accepting a shared identity on that path, the volume ceiling is the
+   only control left on it, and it is currently absent.
+5. **Keep `auto_approve` triggers off production data** until 4 is closed — it
+   removes the human backstop, and the budget is the machine backstop.
+
+With 1–3 applied, the answer to the deployment question becomes **YES for
+deployments that do not use MCP connections**, and remains **NO** where MCP
+connections are bound to agents until F-11 lands.
 
 Everything else in this review — correlation ids, `chat.py` extraction, the
 wildcard `doc_events`, SSE heartbeats, LanceDB reconnects — is real work that

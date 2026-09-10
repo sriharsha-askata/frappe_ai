@@ -20,14 +20,26 @@ def consume(run: str | None, *, mutation: bool = False, records: int = 1) -> Non
 	# how the confirmation-approve path silently escaped accounting.
 	if not run:
 		raise BudgetExceeded(_("Tool dispatch requires a run to account against."))
-	doc = frappe.get_doc("AI Run", run)
-	if doc.status not in ("Running", "Paused"):
+	# Lock the run row for this read-modify-write. Without the lock two concurrent
+	# tool calls read the same counters, each increments from that same value, and
+	# the second write discards the first — so a model issuing parallel tool calls,
+	# the case budgets most need to bound, silently exceeds them.
+	row = frappe.db.get_value(
+		"AI Run",
+		run,
+		["status", "config_snapshot", "budget_usage", "creation"],
+		as_dict=True,
+		for_update=True,
+	)
+	if not row:
+		raise BudgetExceeded(_("Run {0} does not exist.").format(run))
+	if row.status not in ("Running", "Paused"):
 		raise BudgetExceeded(_("Run is no longer active."))
-	snapshot = json.loads(doc.config_snapshot or "{}")
+	snapshot = json.loads(row.config_snapshot or "{}")
 	limits = snapshot.get("budgets") or snapshot
-	if doc.creation and (now_datetime() - get_datetime(doc.creation)).total_seconds() > limits.get("max_runtime_seconds", 600):
+	if row.creation and (now_datetime() - get_datetime(row.creation)).total_seconds() > limits.get("max_runtime_seconds", 600):
 		raise BudgetExceeded(_("Run runtime budget exceeded."))
-	usage = json.loads(doc.budget_usage or "{}")
+	usage = json.loads(row.budget_usage or "{}")
 	usage.setdefault("tool_calls", 0)
 	usage.setdefault("mutations", 0)
 	usage.setdefault("records", 0)
@@ -41,4 +53,4 @@ def consume(run: str | None, *, mutation: bool = False, records: int = 1) -> Non
 	if usage["mutations"] > limits.get("max_mutations", 20):
 		raise BudgetExceeded(_("Mutation budget exceeded for this run."))
 	usage["records"] += records
-	doc.db_set("budget_usage", json.dumps(usage), update_modified=False)
+	frappe.db.set_value("AI Run", run, "budget_usage", json.dumps(usage), update_modified=False)

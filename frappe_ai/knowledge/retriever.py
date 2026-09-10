@@ -15,6 +15,15 @@ fail-closed (an empty scope is refused, never widened to the whole store), and
 only knowledge bases that currently exist and are enabled are searched, so
 disabling a KB is a real off-switch.
 
+That reasoning holds for sources whose content an admin chose directly — `Text`,
+`File`, `URL`. It does **not** hold for `source_type = "DocType"`, where the
+indexed content is derived from documents carrying their own per-user
+permissions, selected by a filter rather than individually, and kept growing by
+`auto_sync`. Treating the KB binding as authorization there would let any user of
+a bound agent read documents they have no permission for. So chunks that name a
+source document are additionally checked against that document's own read
+permission; chunks without provenance keep the KB-as-boundary rule unchanged.
+
 Ported verbatim from `flow.knowledge.retriever` (`apps/flow/flow/knowledge/retriever.py`).
 """
 
@@ -79,7 +88,7 @@ def retrieve(query: str, *, kbs: list[str], limit: int = DEFAULT_LIMIT) -> list[
 	if not hits:
 		return []
 
-	chunks = _hydrate({int(hit["id"]) for hit in hits})
+	chunks = _permitted(_hydrate({int(hit["id"]) for hit in hits}))
 	results: list[dict[str, Any]] = []
 	for hit in hits:
 		chunk = chunks.get(int(hit["id"]))
@@ -103,6 +112,30 @@ def _enabled_kbs(kbs: list[str]) -> list[str]:
 	"""Keep only knowledge bases that still exist and are enabled. Disabling or
 	deleting a KB removes it from every bound agent's reach without re-binding."""
 	return frappe.get_all(KB_DOCTYPE, filters={"name": ["in", kbs], "enabled": 1}, pluck="name")
+
+
+def _permitted(chunks: dict[int, dict[str, Any]]) -> dict[int, dict[str, Any]]:
+	"""Drop chunks whose source document the running user cannot read.
+
+	Only chunks that name a source document are checked — see this module's
+	docstring for why DocType-sourced content cannot rely on the KB binding as
+	its authorization. Permissions are resolved once per distinct document, since
+	a single document usually contributes several chunks to one result set.
+	"""
+	permitted: dict[int, dict[str, Any]] = {}
+	seen: dict[tuple[str, str], bool] = {}
+	for chunk_id, chunk in chunks.items():
+		doctype = chunk.get("reference_doctype")
+		name = chunk.get("reference_name")
+		if not doctype or not name:
+			permitted[chunk_id] = chunk
+			continue
+		key = (doctype, name)
+		if key not in seen:
+			seen[key] = bool(frappe.has_permission(doctype, "read", name))
+		if seen[key]:
+			permitted[chunk_id] = chunk
+	return permitted
 
 
 def _hydrate(ids: set[int]) -> dict[int, dict[str, Any]]:

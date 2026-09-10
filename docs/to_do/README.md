@@ -22,8 +22,6 @@ still pending.
 
 | File | Type | Severity | One-line summary |
 |---|---|---|---|
-| [high-knowledge-retrieval-permissions.md](high-knowledge-retrieval-permissions.md) | Bug / security gap | High | Knowledge retrieval returns chunks with no permission check at all |
-| [high-budget-consume-race.md](high-budget-consume-race.md) | Bug / concurrency | High | `budgets.consume` loses increments under parallel tool calls |
 | [high-mcp-budget-bypass.md](high-mcp-budget-bypass.md) | Bug / security gap | High | Remote MCP tool calls bypass all per-run execution budgets |
 | [high-chatpy-confirmation-extraction.md](high-chatpy-confirmation-extraction.md) | Improvement | High | Confirmation pause/resume logic should move out of the 860-line `chat.py` |
 | [medium-tool-migration-telemetry.md](medium-tool-migration-telemetry.md) | Improvement | Medium — do early | No usage data distinguishing legacy vs. FAC tool-call volume |
@@ -45,8 +43,10 @@ carry only what's needed to act on each one independently.
 The production readiness review found and fixed several items that would
 otherwise have been listed here — an authenticated RCE via MCP connection
 import, a budget bypass on the confirmation-approve path, unprotected
-whitelisted methods, scheduled triggers that had never run, and an inert
-`max_iterations`. They are recorded in that review rather than here because they
+whitelisted methods, scheduled triggers that had never run, an inert
+`max_iterations`, an unlocked read-modify-write in `budgets.consume`, and
+DocType-sourced knowledge chunks being retrievable without the source document's
+read permission. They are recorded in that review rather than here because they
 are already resolved; this directory tracks only open work.
 
 ## Sequencing note
@@ -63,7 +63,5 @@ the 2026-09-10 review (MCP tools execute wholly in the FastAPI process), and
 MCP tools acting as a shared connection identity, the budget is the only
 remaining control on that path.
 
-`high-knowledge-retrieval-permissions.md` is the highest-value open item. It is
-unauthorized data disclosure through intended functionality, requiring no
-injection and leaving no failed-access trace, and it is named in the 2026-09-10
-review as a deployment blocker.
+`high-mcp-budget-bypass.md` is now the highest-value open item, for the reason
+above: it is the last uncontrolled path in the system.
