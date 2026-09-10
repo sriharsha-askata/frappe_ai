@@ -10,6 +10,9 @@ from frappe import _
 @frappe.whitelist()
 def sync_fac_tools():
     """Sync FAC tools from Assistant Core registry to AI FAC Tool doctype."""
+    # Also an `after_migrate` hook target, which runs as Administrator and so
+    # short-circuits this check.
+    frappe.has_permission("AI FAC Tool", "write", throw=True)
     try:
         from frappe_assistant_core.core.tool_registry import get_tool_registry
     except ImportError:

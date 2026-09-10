@@ -15,6 +15,7 @@ import frappe
 from frappe import _
 from croniter import CroniterBadCronError, croniter
 
+from frappe_ai.api._service_url import get_service_url
 from frappe_ai.api.api import _check_agent_usable
 from frappe_ai.frappe_ai.doctype.ai_run.ai_run import create_run
 from frappe_ai.service.auth import mint_run_token
@@ -310,7 +311,7 @@ def _run_via_service(run: str, session: str, user: str) -> None:
 	secret = frappe.conf.get("frappe_ai_service_secret")
 	if not secret:
 		frappe.throw(_("frappe_ai_service_secret is not set in site_config.json."), title=_("Service Not Configured"))
-	service_base_url = frappe.get_cached_value("AI Settings", "AI Settings", "service_base_url")
+	service_url = get_service_url()
 	stream_timeout = frappe.get_cached_value("AI Settings", "AI Settings", "stream_timeout") or 600
 	token = mint_run_token(run=run, session=session, user=user, secret=secret)
 	frappe.log_error(
@@ -320,7 +321,7 @@ def _run_via_service(run: str, session: str, user: str) -> None:
 				"run": run,
 				"session": session,
 				"user": user,
-				"service_base_url": service_base_url,
+				"service_base_url": service_url,
 				"stream_timeout": stream_timeout,
 			}
 		),
@@ -328,7 +329,7 @@ def _run_via_service(run: str, session: str, user: str) -> None:
 
 	try:
 		response = requests.post(
-			f"{(service_base_url or '').rstrip('/')}/stream/{run}",
+			f"{service_url}/stream/{run}",
 			headers={"Authorization": f"Bearer {token}"},
 			json={},
 			stream=True,

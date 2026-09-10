@@ -100,7 +100,11 @@ class TestStreamChatProviderAndConfirmation(unittest.IsolatedAsyncioTestCase):
 				)
 			]
 
-		client.dispatch_tool.assert_awaited_once_with("create_record", "Administrator", {"title": "Created"})
+		# The run id must be passed through: budgets fail closed without it, and a
+		# confirmation-gated tool is exactly the mutating kind the budget bounds.
+		client.dispatch_tool.assert_awaited_once_with(
+			"create_record", "Administrator", {"title": "Created"}, "RUN-3"
+		)
 		payload = json.loads(frames[-1].split(b"data: ", 1)[1])
 		self.assertEqual(payload["status"], "Completed")
 		self.assertEqual(payload["output"], "The record is created.")

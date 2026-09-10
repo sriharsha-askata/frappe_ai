@@ -164,6 +164,7 @@ class AIKnowledgeSource(Document):
 	@staticmethod
 	@frappe.whitelist()
 	def get_file_status(file: str) -> dict:
+		frappe.has_permission("AI Knowledge Source", "read", throw=True)
 		try:
 			file_doc = AIKnowledgeSource._file_doc(file)
 			file_url = file_doc.file_url if file_doc else file
@@ -196,6 +197,7 @@ class AIKnowledgeSource(Document):
 	@staticmethod
 	@frappe.whitelist()
 	def get_knowledge_base_inventory(kb_name: str) -> dict:
+		frappe.has_permission("AI Knowledge Source", "read", throw=True)
 		try:
 			exists = bool(frappe.db.exists("AI Knowledge Base", kb_name))
 			enabled = frappe.db.get_value("AI Knowledge Base", kb_name, "enabled") if exists else None
@@ -305,6 +307,9 @@ class AIKnowledgeSource(Document):
 		existing chunks are stale."""
 		from frappe_ai.knowledge.ingest import enqueue_ingestion
 
+		# `run_doc_method` only enforces `read`, but re-ingestion re-chunks and
+		# re-embeds the whole source against the embedding service.
+		self.check_permission("write")
 		self.db_set("status", "Pending", update_modified=False)
 		enqueue_ingestion(self.name, rebuild=bool(rebuild))
 
@@ -312,4 +317,5 @@ class AIKnowledgeSource(Document):
 	def reconcile(self):
 		from frappe_ai.knowledge.ingest import enqueue_reconciliation
 
+		self.check_permission("write")
 		enqueue_reconciliation(self.name)

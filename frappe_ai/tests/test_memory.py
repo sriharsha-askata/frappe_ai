@@ -25,7 +25,7 @@ def _memory_agent(title: str = "Memory Test Agent") -> str:
 				"title": title,
 				"model": "Memory Test Model",
 				"instructions": "Remember facts.",
-				"tools": [{"tool": "update_memory"}],
+				"tools": [{"tool_name": "update_memory"}],
 			}
 		).insert(ignore_permissions=True)
 	return title

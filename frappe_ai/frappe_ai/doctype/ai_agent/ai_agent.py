@@ -120,7 +120,7 @@ class AIAgent(Document):
 			"title": self.title,
 			"model": model or self.model,
 			"instructions": self.instructions,
-			"tools": [],
+			"tools": [row.tool_name for row in getattr(self, "tools", []) if row.tool_name],
 			"mcp_connections": [row.mcp_connection for row in getattr(self, "mcp_connections", [])],
 			"plugin_tools": [row.fac_tool for row in getattr(self, "plugin_tools", [])],
 			"max_iterations": self.max_iterations or DEFAULT_MAX_ITERATIONS,

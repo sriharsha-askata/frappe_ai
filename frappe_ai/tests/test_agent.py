@@ -41,22 +41,22 @@ class TestAIAgentDefaults(IntegrationTestCase):
 	def tearDown(self):
 		frappe.db.rollback()
 
-	def test_default_tools_seeded_when_available(self):
-		# Builtins are synced via after_migrate in a real install; ensure at least
-		# the ones this test depends on exist so before_insert has something to seed.
+	def test_no_tools_seeded_by_default(self):
+		# Runtime tools come from `plugin_tools` (Assistant Core) since the FAC
+		# migration; the legacy `tools` table is compatibility-only and is no
+		# longer seeded with builtins on insert.
 		from frappe_ai.tools.builtins import sync_builtin_tools
 
 		sync_builtin_tools()
 		doc = frappe.get_doc(_agent(title="Default Tools Agent")).insert()
-		slugs = {row.tool for row in doc.tools}
-		self.assertEqual(slugs, {"describe", "read", "execute"})
+		self.assertEqual([row.tool_name for row in doc.tools], [])
 
 	def test_explicit_tools_not_overridden(self):
 		from frappe_ai.tools.builtins import sync_builtin_tools
 
 		sync_builtin_tools()
-		doc = frappe.get_doc(_agent(title="Explicit Tools Agent", tools=[{"tool": "read"}])).insert()
-		self.assertEqual([row.tool for row in doc.tools], ["read"])
+		doc = frappe.get_doc(_agent(title="Explicit Tools Agent", tools=[{"tool_name": "read"}])).insert()
+		self.assertEqual([row.tool_name for row in doc.tools], ["read"])
 
 
 class TestAIAgentMaxIterations(IntegrationTestCase):
@@ -85,7 +85,7 @@ class TestAIAgentKnowledgeSearchTool(IntegrationTestCase):
 		doc = frappe.get_doc(
 			_agent(
 				title="KB Agent",
-				tools=[{"tool": "read"}],
+				tools=[{"tool_name": "read"}],
 				knowledge_bases=[{"knowledge_base": "Nonexistent KB"}],
 			)
 		)
@@ -93,12 +93,12 @@ class TestAIAgentKnowledgeSearchTool(IntegrationTestCase):
 		# exercise _ensure_knowledge_search_tool's logic (a non-empty knowledge_bases
 		# table) without a real linkable KB doc to point at.
 		doc.insert(ignore_links=True)
-		slugs = {row.tool for row in doc.tools}
+		slugs = {row.tool_name for row in doc.tools}
 		self.assertIn("search_knowledge", slugs)
 
 	def test_no_knowledge_bases_no_search_tool_appended(self):
-		doc = frappe.get_doc(_agent(title="No KB Agent", tools=[{"tool": "read"}])).insert()
-		slugs = {row.tool for row in doc.tools}
+		doc = frappe.get_doc(_agent(title="No KB Agent", tools=[{"tool_name": "read"}])).insert()
+		slugs = {row.tool_name for row in doc.tools}
 		self.assertNotIn("search_knowledge", slugs)
 
 
@@ -107,7 +107,7 @@ class TestAIAgentSnapshot(IntegrationTestCase):
 		frappe.db.rollback()
 
 	def test_snapshot_shape(self):
-		doc = frappe.get_doc(_agent(title="Snapshot Agent", tools=[{"tool": "read"}])).insert()
+		doc = frappe.get_doc(_agent(title="Snapshot Agent", tools=[{"tool_name": "read"}])).insert()
 		snapshot = doc._snapshot()
 		self.assertEqual(snapshot["title"], "Snapshot Agent")
 		self.assertEqual(snapshot["tools"], ["read"])

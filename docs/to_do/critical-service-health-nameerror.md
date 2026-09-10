@@ -65,3 +65,14 @@ is unaffected for every path except the one that currently crashes.
 
 Call `service_health()` (or trigger it from the desk UI) with `service_base_url`
 unset. Confirm it returns the "not configured" message instead of raising.
+
+---
+
+## Resolution
+
+Resolved 2026-09-06 by the `service_health()` NameError + `AI Settings.service_base_url`
+removal plan. The dead `plugin_tools = _resolve_agent_plugin_tools(agent_doc, user)` line
+was deleted; the `service_base_url` field was removed from the `AI Settings` DocType
+and replaced with a `frappe_ai_service_url` key in `sites/<site>/site_config.json`,
+read by `frappe_ai/api/_service_url.get_service_url()`. Regression test:
+`frappe_ai/tests/test_service_api.py::TestServiceHealth::test_service_health_no_url_set_returns_friendly`.

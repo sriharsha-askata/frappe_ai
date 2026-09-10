@@ -12,7 +12,6 @@
   "column_break_chunking",
   "chunk_overlap",
   "section_break_service",
-  "service_base_url",
   "column_break_service",
   "request_timeout",
   "stream_timeout",
@@ -69,13 +68,6 @@
    "fieldname": "section_break_service",
    "fieldtype": "Section Break",
    "label": "Service"
-  },
-  {
-   "default": "http://127.0.0.1:8001",
-   "description": "Base URL of the frappe_ai FastAPI service.",
-   "fieldname": "service_base_url",
-   "fieldtype": "Data",
-   "label": "Service Base URL"
   },
   {
    "fieldname": "column_break_service",

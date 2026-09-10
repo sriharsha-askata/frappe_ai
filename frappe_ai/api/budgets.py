@@ -14,8 +14,12 @@ class BudgetExceeded(frappe.ValidationError):
 
 
 def consume(run: str | None, *, mutation: bool = False, records: int = 1) -> None:
+	# Fail closed. A tool call that cannot be attributed to a run cannot be
+	# counted against that run's budget, so allowing it through would make the
+	# budget optional for any caller that simply omits `run` — which is exactly
+	# how the confirmation-approve path silently escaped accounting.
 	if not run:
-		return
+		raise BudgetExceeded(_("Tool dispatch requires a run to account against."))
 	doc = frappe.get_doc("AI Run", run)
 	if doc.status not in ("Running", "Paused"):
 		raise BudgetExceeded(_("Run is no longer active."))

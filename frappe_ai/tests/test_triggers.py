@@ -29,7 +29,7 @@ def _trigger_agent(title: str = "Trigger Test Agent") -> str:
 				"title": title,
 				"model": "Trigger Test Model",
 				"instructions": "Be terse.",
-				"tools": [{"tool": "read"}],
+				"tools": [{"tool_name": "read"}],
 			}
 		).insert(ignore_permissions=True)
 	return title
@@ -170,7 +170,8 @@ class TestTriggers(IntegrationTestCase):
 			with (
 				patch("frappe_ai.triggers.triggers.mint_run_token", return_value="token"),
 				patch("frappe_ai.triggers.triggers.requests.post", return_value=Response()),
-				patch("frappe_ai.triggers.triggers.frappe.get_cached_value", return_value="http://service"),
+				patch("frappe_ai.triggers.triggers.get_service_url", return_value="http://service"),
+				patch("frappe_ai.triggers.triggers.frappe.get_cached_value", return_value=600),
 				patch("frappe_ai.triggers.triggers.frappe.db.get_value", return_value="Running"),
 				patch("frappe_ai.triggers.triggers.frappe.db.commit"),
 				patch("frappe_ai.triggers.triggers.TERMINAL_STATUS_WAIT_SECONDS", 0),
@@ -199,7 +200,8 @@ class TestTriggers(IntegrationTestCase):
 			with (
 				patch("frappe_ai.triggers.triggers.mint_run_token", return_value="token"),
 				patch("frappe_ai.triggers.triggers.requests.post", return_value=Response()),
-				patch("frappe_ai.triggers.triggers.frappe.get_cached_value", return_value="http://service"),
+				patch("frappe_ai.triggers.triggers.get_service_url", return_value="http://service"),
+				patch("frappe_ai.triggers.triggers.frappe.get_cached_value", return_value=600),
 				patch("frappe_ai.triggers.triggers.frappe.db.get_value", side_effect=["Running", "Completed"]),
 				patch("frappe_ai.triggers.triggers.frappe.db.commit") as commit,
 				patch("frappe_ai.triggers.triggers.time.sleep"),

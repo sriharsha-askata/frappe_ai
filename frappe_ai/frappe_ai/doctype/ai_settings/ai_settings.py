@@ -22,7 +22,6 @@ class AISettings(Document):
 		lancedb_path: DF.Data | None
 		request_timeout: DF.Int
 		search_type: DF.Literal["Hybrid", "Vector"]
-		service_base_url: DF.Data | None
 		service_status: DF.Data | None
 		stream_timeout: DF.Int
 	# end: auto-generated types

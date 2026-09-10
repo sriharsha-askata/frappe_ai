@@ -124,7 +124,6 @@ architecture requires.
 | `search_type` | Select `Hybrid`/`Vector` | default `Hybrid` | ported |
 | `chunk_size` | Int | default 1000 | ported |
 | `chunk_overlap` | Int | default 200 | ported |
-| `service_base_url` | Data | default `http://127.0.0.1:8001` | **new** |
 | `request_timeout` | Int | default 120 (seconds) | **new** |
 | `stream_timeout` | Int | default 600 (seconds) | **new** |
 | `lancedb_path` | Data | read-only, site private files path | **new** |

@@ -26,6 +26,11 @@ def check_connection(name: str) -> dict[str, Any]:
 
 @frappe.whitelist()
 def check_all_mcp_connections() -> list[dict[str, Any]]:
+	# Connecting a stdio connection spawns `command` as a subprocess of this
+	# process, so this must never be reachable by a caller who cannot already
+	# administer connections. The scheduler calls this as Administrator, which
+	# `has_permission` short-circuits, so the cron path is unaffected.
+	frappe.has_permission("AI MCP Connection", "write", throw=True)
 	rows = []
 	for name in frappe.get_all("AI MCP Connection", filters={"enabled": 1}, pluck="name"):
 		doc = frappe.get_doc("AI MCP Connection", name)
@@ -37,6 +42,7 @@ def check_all_mcp_connections() -> list[dict[str, Any]]:
 
 @frappe.whitelist()
 def get_mcp_health_dashboard() -> list[dict[str, Any]]:
+	frappe.has_permission("AI MCP Connection", "read", throw=True)
 	return frappe.get_all(
 		"AI MCP Connection",
 		fields=["name", "connection_name", "connection_type", "enabled", "is_connected", "last_check_time", "status_message"],
@@ -59,6 +65,11 @@ def get_mcp_connection_tools(name: str, refresh: bool = False) -> list[dict[str,
 
 @frappe.whitelist()
 def create_mcp_connection_from_json(json_config: str | dict[str, Any]) -> dict[str, Any]:
+	# `command`/`command_args`/`environment_variables` become the argv and
+	# environment of a subprocess spawned by whichever process later connects
+	# this row, so creating one is equivalent to arbitrary code execution on the
+	# server. It is gated on the same permission as creating the DocType by hand.
+	frappe.has_permission("AI MCP Connection", "create", throw=True)
 	if isinstance(json_config, str):
 		try:
 			json_config = json.loads(json_config)
@@ -76,23 +87,29 @@ def create_mcp_connection_from_json(json_config: str | dict[str, Any]) -> dict[s
 		connection_name = json_config.get("connection_name") or json_config.get("name")
 	connection_type = json_config.get("connection_type") or json_config.get("transport") or "stdio"
 	connection_type = {"sse": "SSE", "streamable-http": "streamable-http"}.get(connection_type, connection_type)
+	command = json_config.get("command")
 	command_args = json_config.get("args")
 	if command_args is None:
-		command_args = shlex.split(json_config.get("command") or "")
+		# A lone `command` carries the executable and its arguments in one string
+		# ("python -m example_mcp"). `StdioServerParameters` needs them separated,
+		# so split and keep only the executable in `command`.
+		parts = shlex.split(command or "")
+		command = parts[0] if parts else None
+		command_args = parts[1:]
 
 	doc = frappe.get_doc(
 		{
 			"doctype": "AI MCP Connection",
 			"connection_name": connection_name,
 			"connection_type": connection_type,
-			"command": json_config.get("command"),
+			"command": command,
 			"command_args": json.dumps(command_args),
 			"endpoint_url": json_config.get("endpoint_url") or json_config.get("url"),
 			"environment_variables": json.dumps(json_config.get("environment_variables") or json_config.get("env") or {}),
 			"mcp_config": json.dumps(raw_config),
 			"enabled": 1 if json_config.get("enabled", True) else 0,
 		}
-	).insert(ignore_permissions=True)
+	).insert()
 	return {"name": doc.name}
 
 

@@ -22,7 +22,6 @@ still pending.
 
 | File | Type | Severity | One-line summary |
 |---|---|---|---|
-| [critical-service-health-nameerror.md](critical-service-health-nameerror.md) | Bug | Critical | `service_health()` crashes with `NameError` on every unconfigured install |
 | [high-mcp-budget-bypass.md](high-mcp-budget-bypass.md) | Bug / security gap | High | Remote MCP tool calls bypass all per-run execution budgets |
 | [high-chatpy-confirmation-extraction.md](high-chatpy-confirmation-extraction.md) | Improvement | High | Confirmation pause/resume logic should move out of the 860-line `chat.py` |
 | [medium-tool-migration-telemetry.md](medium-tool-migration-telemetry.md) | Improvement | Medium — do early | No usage data distinguishing legacy vs. FAC tool-call volume |

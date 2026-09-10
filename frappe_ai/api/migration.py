@@ -80,4 +80,8 @@ def migrate_ai_tools() -> dict[str, Any]:
 
 @frappe.whitelist()
 def run_ai_tool_migration() -> dict[str, Any]:
+	# Rewrites tool bindings on every AI Agent, so it needs the same authority as
+	# editing those agents directly. `migrate_ai_tools` itself stays uncontrolled
+	# because `after_migrate` invokes it as Administrator.
+	frappe.has_permission("AI Agent", "write", throw=True)
 	return migrate_ai_tools()

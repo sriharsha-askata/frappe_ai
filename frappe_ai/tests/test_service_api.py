@@ -207,3 +207,71 @@ class TestGetRunConfigAuth(IntegrationTestCase):
 
 		self.assertEqual(result["agent"]["name"], agent)
 		self.assertEqual(json.loads(json.dumps(result["config_snapshot"])), {"auto_approve": False})
+
+
+class TestServiceHealth(IntegrationTestCase):
+	"""Regression tests for the unconfigured-`base_url` path of `service_health()`.
+
+	The original bug (see `apps/frappe_ai/docs/to_do/critical-service-health-nameerror.md`)
+	was a `NameError` from a dead reference to `_resolve_agent_plugin_tools(agent_doc, user)`
+	inside the `if not base_url:` branch of `service_health()`. The first test below
+	exercises that exact branch by mocking the URL helper to return an empty string
+	and asserts the friendly message comes back without an exception escaping.
+	"""
+
+	def tearDown(self):
+		frappe.db.rollback()
+
+	def test_service_health_no_url_set_returns_friendly(self):
+		with patch("frappe_ai.api.service.get_service_url", return_value=""):
+			result = service.service_health()
+
+		self.assertEqual(result["success"], False)
+		self.assertIn("not configured", result["message"])
+		self.assertEqual(result["data"], {})
+
+	def test_service_health_unreachable_service_returns_unreachable(self):
+		# Port 1 is reserved and won't accept connections — a guaranteed connection error
+		# without needing to spin up a real service. The helper still gets exercised so
+		# we exercise the same call path the desk UI uses.
+		with patch("frappe_ai.api.service.get_service_url", return_value="http://127.0.0.1:1"):
+			result = service.service_health()
+
+		self.assertEqual(result["success"], False)
+		self.assertEqual(result["data"], {})
+		self.assertTrue(result["message"])
+
+
+class TestGetServiceUrl(IntegrationTestCase):
+	"""Behaviour of `frappe_ai.api._service_url.get_service_url`.
+
+	The helper reads only `frappe.conf.frappe_ai_service_url` (set in
+	`site_config.json`); there is no file path code on the Frappe side.
+	"""
+
+	def setUp(self):
+		self._original_url = frappe.conf.get("frappe_ai_service_url")
+		frappe.conf.pop("frappe_ai_service_url", None)
+
+	def tearDown(self):
+		if self._original_url is None:
+			frappe.conf.pop("frappe_ai_service_url", None)
+		else:
+			frappe.conf.frappe_ai_service_url = self._original_url
+
+	def test_default_when_unset(self):
+		from frappe_ai.api._service_url import DEFAULT_SERVICE_URL, get_service_url
+
+		self.assertEqual(get_service_url(), DEFAULT_SERVICE_URL)
+
+	def test_explicit_value_used(self):
+		from frappe_ai.api._service_url import get_service_url
+
+		frappe.conf.frappe_ai_service_url = "http://svc.internal:9000"
+		self.assertEqual(get_service_url(), "http://svc.internal:9000")
+
+	def test_trailing_slash_stripped(self):
+		from frappe_ai.api._service_url import get_service_url
+
+		frappe.conf.frappe_ai_service_url = "http://svc.internal:9000/"
+		self.assertEqual(get_service_url(), "http://svc.internal:9000")

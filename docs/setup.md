@@ -37,6 +37,24 @@ with network policy, and use the Ollama host's health checks and resource monito
 Size CPU/GPU, memory, and request concurrency for the corpus and ingestion queue; a
 single embedding worker should write the LanceDB index at a time.
 
+## Site configuration
+
+Two keys live in `sites/<site>/site_config.json` (ADR 0011) and configure the
+FastAPI service from the Frappe side. They are deployment configuration, not
+desk-editable DocType fields:
+
+- `frappe_ai_service_secret` — shared HMAC secret. Required. Set with
+  `bench --site <site> set-config frappe_ai_service_secret <value>`.
+- `frappe_ai_service_url` — base URL of the FastAPI service. Optional; defaults
+  to `http://127.0.0.1:8001` (matching the Procfile's `uvicorn --port 8001`).
+  Set with `bench --site <site> set-config frappe_ai_service_url <value>` if
+  the service is reachable under a different host or port.
+
+The Frappe side reads both via `frappe.conf` (`frappe_ai/api/_service_url.get_service_url()`
+for the URL); no file path code is touched on the Frappe side. The FastAPI
+service reads the same files directly off disk in `frappe_ai/service/config.py`
+because that process never calls `frappe.init`/`frappe.connect`.
+
 ## Storage and backups
 
 MariaDB is authoritative for knowledge text and metadata. LanceDB is a disposable,

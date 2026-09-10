@@ -97,15 +97,33 @@ def ingest_source(source: str, rebuild: bool = False) -> None:
 		raise
 
 	count = frappe.db.count(CHUNK_DOCTYPE, {"source": doc.name})
+	empty = doc.source_type != "DocType" and not count
 	doc.db_set(
 		{
-			"status": "Completed",
+			"status": "Failed" if empty else "Completed",
 			"chunk_count": count,
-			"is_embedded": int(bool(count)),
-			"error_log": None,
+			"is_embedded": 0 if empty else int(bool(count)),
+			"error_log": None if not empty else "Extraction produced no embedded chunks.",
 		},
 		update_modified=False,
 	)
+	if empty:
+		frappe.log_error(
+			title=f"Knowledge: empty - {doc.name}",
+			message=frappe.as_json(
+				{
+					"event": "empty",
+					"source": doc.name,
+					"source_type": doc.source_type,
+					"knowledge_base": doc.knowledge_base,
+					"file": doc.file,
+					"url": doc.url,
+					"reference_doctype": doc.reference_doctype,
+				}
+			),
+			reference_doctype="AI Knowledge Source",
+			reference_name=doc.name,
+		)
 	frappe.db.commit()
 	AIKnowledgeSource.log_event(
 		"indexed",

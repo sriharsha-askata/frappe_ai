@@ -122,7 +122,7 @@ def _tool_summary_from_doc(tool_name: str) -> dict[str, Any] | None:
 
 
 def _tool_summary_from_row(row) -> dict[str, Any] | None:
-	tool_name = getattr(row, "tool", None)
+	tool_name = getattr(row, "tool_name", None)
 	if not tool_name:
 		return None
 	return _tool_summary_from_doc(tool_name)

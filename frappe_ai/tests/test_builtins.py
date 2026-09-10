@@ -170,7 +170,7 @@ class TestKnowledgeAndMemoryFailClosed(IntegrationTestCase):
 					"title": "Builtins Memory Agent",
 					"model": "Builtins Memory Model",
 					"instructions": "Remember useful facts.",
-					"tools": [{"tool": "update_memory"}],
+					"tools": [{"tool_name": "update_memory"}],
 				}
 			).insert(ignore_permissions=True)
 

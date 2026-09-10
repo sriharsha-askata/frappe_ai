@@ -38,6 +38,7 @@ from typing import Any
 import frappe
 from frappe import _
 
+from frappe_ai.api._service_url import get_service_url
 from frappe_ai.frappe_ai.doctype.ai_run.ai_run import assert_run_owner, create_run
 from frappe_ai.frappe_ai.doctype.ai_session.ai_session import assert_session_owner, derive_title
 from frappe_ai.frappe_ai.doctype.ai_session_attachment.ai_session_attachment import resolve_attachment
@@ -231,7 +232,7 @@ def get_agent_tools(agent: str) -> dict[str, bool]:
 	doc = frappe.get_doc("AI Agent", agent.strip())
 	frappe.has_permission("AI Agent", "read", doc.name, throw=True)
 
-	tool_names = [row.tool for row in doc.tools]
+	tool_names = [row.tool_name for row in doc.tools]
 	if not tool_names:
 		return {}
 	rows = frappe.get_all(
@@ -408,14 +409,14 @@ def _mint_stream_response(run: str, session: str, user: str) -> dict[str, Any]:
 		frappe.throw(
 			_("frappe_ai_service_secret is not set in site_config.json."), title=_("Service Not Configured")
 		)
-	service_base_url = frappe.get_cached_value("AI Settings", "AI Settings", "service_base_url")
+	service_url = get_service_url()
 	token = mint_run_token(run=run, session=session, user=user, secret=secret)
 
 	return {
 		"run": run,
 		"session": session,
 		"token": token,
-		"stream_url": f"{(service_base_url or '').rstrip('/')}/stream/{run}",
+		"stream_url": f"{service_url}/stream/{run}",
 		"expires_in": DEFAULT_TTL_SECONDS,
 	}
 

@@ -124,12 +124,22 @@ design created.
 
 ### Neutral
 
-- `AI Settings.service_base_url`, `request_timeout`, `stream_timeout`,
-  `lancedb_path`, `service_status` are unaffected — still DB fields, still
-  fetched lazily over HTTP via `get_service_config`, unchanged by this ADR.
+- `AI Settings.request_timeout`, `stream_timeout`, `lancedb_path`, `service_status`
+  are unaffected — still DB fields, still fetched lazily over HTTP via
+  `get_service_config`, unchanged by this ADR.
 - The wire-level auth mechanism (`X-Frappe-AI-Service-Secret` header, not
   `Authorization`) is unchanged — that was never about *where* the secret is
   stored, only how it's carried on the request.
+- The FastAPI service base URL follows the same pattern this ADR establishes for
+  the shared secret, added later (2026-09): `frappe_ai_service_url` lives in
+  `sites/<site>/site_config.json`, default `http://127.0.0.1:8001` (matching the
+  Procfile's `uvicorn --port 8001` bind). The Frappe side reads it via
+  `frappe.conf` (`frappe_ai/api/_service_url.get_service_url()`); the FastAPI
+  service still never opens a database connection. The `AI Settings.service_base_url`
+  field that originally held this value was removed because it was operator
+  configuration exposed as a user-editable desk field, the same class of mistake
+  this ADR exists to prevent. No superseding ADR is needed — the rationale here
+  covers the URL case directly.
 
 ---
 

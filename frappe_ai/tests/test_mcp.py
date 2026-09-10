@@ -10,6 +10,47 @@ from unittest.mock import patch
 from frappe_ai.api import mcp
 
 
+class TestMCPConnectionAuthorization(IntegrationTestCase):
+	"""`AI MCP Connection` is System Manager-only, and a stdio connection's
+	`command` is executed as a subprocess by whichever process connects it. The
+	whitelisted helpers must not be a way around that DocType permission."""
+
+	UNPRIVILEGED = "test-mcp-unprivileged@example.com"
+
+	def setUp(self):
+		if not frappe.db.exists("User", self.UNPRIVILEGED):
+			frappe.get_doc(
+				{
+					"doctype": "User",
+					"email": self.UNPRIVILEGED,
+					"first_name": "MCP Unprivileged",
+					"send_welcome_email": 0,
+					"roles": [],
+				}
+			).insert(ignore_permissions=True)
+
+	def tearDown(self):
+		frappe.set_user("Administrator")
+		frappe.db.rollback()
+
+	def test_unprivileged_user_cannot_create_connection(self):
+		frappe.set_user(self.UNPRIVILEGED)
+		with self.assertRaises(frappe.PermissionError):
+			mcp.create_mcp_connection_from_json(
+				{"name": "Escalation MCP", "transport": "stdio", "command": "/bin/sh -c whoami"}
+			)
+
+	def test_unprivileged_user_cannot_check_all_connections(self):
+		frappe.set_user(self.UNPRIVILEGED)
+		with self.assertRaises(frappe.PermissionError):
+			mcp.check_all_mcp_connections()
+
+	def test_unprivileged_user_cannot_read_health_dashboard(self):
+		frappe.set_user(self.UNPRIVILEGED)
+		with self.assertRaises(frappe.PermissionError):
+			mcp.get_mcp_health_dashboard()
+
+
 class TestMCP(IntegrationTestCase):
 	def tearDown(self):
 		frappe.db.rollback()

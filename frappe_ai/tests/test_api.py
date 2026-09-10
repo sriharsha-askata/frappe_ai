@@ -52,10 +52,27 @@ def _model_and_agent(title: str = "API Test Agent") -> str:
 				"title": title,
 				"model": "API Test Model",
 				"instructions": "You are helpful.",
-				"tools": [{"tool": "read"}],
+				"tools": [{"tool_name": "read"}],
 			}
 		).insert(ignore_permissions=True)
 	return title
+
+
+def _run_for(agent: str = "API Test Agent", **budget_overrides: int) -> str:
+	"""Create a real Running `AI Run` for dispatch tests to account against.
+
+	Budgets fail closed on a missing run, so a dispatch call that is supposed to
+	reach the tool needs a genuine run rather than a mocked `consume`.
+	"""
+	from frappe_ai.frappe_ai.doctype.ai_run.ai_run import create_run
+
+	_model_and_agent(agent)
+	session = frappe.get_doc(
+		{"doctype": "AI Session", "agent": agent, "source": "Manual"}
+	).insert(ignore_permissions=True)
+	snapshot = frappe.get_doc("AI Agent", agent)._snapshot()
+	snapshot.update(budget_overrides)
+	return create_run(source="Manual", input="hi", session=session.name, config_snapshot=snapshot).name
 
 
 class TestDispatchToolServiceSecretAuth(IntegrationTestCase):
@@ -112,18 +129,33 @@ class TestDispatchToolActingUserScoping(IntegrationTestCase):
 		frappe.db.rollback()
 
 	def test_unprivileged_user_refused_by_tool(self):
+		run = _run_for()
 		with patch("frappe.get_request_header", new=_patch_request_header(TEST_SECRET)):
 			result = dispatch.dispatch_tool(
 				tool="read",
 				user="test-dispatch-guest@example.com",
 				arguments={"doctype": "AI Provider"},
+				run=run,
 			)
 		self.assertIn("error", result)
 
 	def test_administrator_succeeds(self):
+		run = _run_for()
 		with patch("frappe.get_request_header", new=_patch_request_header(TEST_SECRET)):
-			result = dispatch.dispatch_tool(tool="read", user="Administrator", arguments={"doctype": "DocType"})
+			result = dispatch.dispatch_tool(
+				tool="read", user="Administrator", arguments={"doctype": "DocType"}, run=run
+			)
 		self.assertIn("result", result)
+
+	def test_dispatch_without_run_is_refused(self):
+		"""Budgets fail closed: a call that cannot be attributed to a run must not
+		reach the tool, or omitting `run` becomes a budget bypass."""
+		with patch("frappe.get_request_header", new=_patch_request_header(TEST_SECRET)):
+			result = dispatch.dispatch_tool(
+				tool="read", user="Administrator", arguments={"doctype": "DocType"}
+			)
+		self.assertIn("error", result)
+		self.assertIn("run", result["error"].lower())
 
 	def test_disabled_tool_rejected(self):
 		frappe.db.set_value("AI Tool", "read", "enabled", 0)
@@ -137,11 +169,27 @@ class TestDispatchToolActingUserScoping(IntegrationTestCase):
 				dispatch.dispatch_tool(tool="read", user="not-a-real-user@example.com", arguments={})
 
 	def test_tool_exception_returned_as_error_not_raised(self):
+		run = _run_for()
 		with patch("frappe.get_request_header", new=_patch_request_header(TEST_SECRET)):
 			result = dispatch.dispatch_tool(
-				tool="read", user="Administrator", arguments={"doctype": "Not A Real DocType"}
+				tool="read", user="Administrator", arguments={"doctype": "Not A Real DocType"}, run=run
 			)
 		self.assertIn("error", result)
+
+	def test_tool_call_budget_is_enforced(self):
+		"""The budget must actually stop the run, not just record usage."""
+		run = _run_for(max_tool_calls=2)
+		with patch("frappe.get_request_header", new=_patch_request_header(TEST_SECRET)):
+			for _ in range(2):
+				ok = dispatch.dispatch_tool(
+					tool="read", user="Administrator", arguments={"doctype": "DocType"}, run=run
+				)
+				self.assertIn("result", ok)
+			exceeded = dispatch.dispatch_tool(
+				tool="read", user="Administrator", arguments={"doctype": "DocType"}, run=run
+			)
+		self.assertIn("error", exceeded)
+		self.assertIn("budget", exceeded["error"].lower())
 
 
 class TestDispatchPluginToolScope(IntegrationTestCase):
@@ -411,8 +459,8 @@ class TestStopRunAndFeedback(IntegrationTestCase):
 		sync_builtin_tools()
 		agent = _model_and_agent("Feedback Memory Agent")
 		agent_doc = frappe.get_doc("AI Agent", agent)
-		if not any(row.tool == "update_memory" for row in agent_doc.tools):
-			agent_doc.append("tools", {"tool": "update_memory"})
+		if not any(row.tool_name == "update_memory" for row in agent_doc.tools):
+			agent_doc.append("tools", {"tool_name": "update_memory"})
 			agent_doc.save(ignore_permissions=True)
 		started = api.start_run(input="hello", agent=agent)
 		frappe.db.set_value("AI Run", started["run"], "status", "Completed")

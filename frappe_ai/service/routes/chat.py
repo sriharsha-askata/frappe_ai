@@ -282,7 +282,7 @@ async def stream_chat(
 			# directly rather than hoping the model asks again; this must match
 			# that. Pending-call arguments come from `config["questions"]` —
 			# `AI Run.questions` as persisted by the prior (Paused) segment.
-			approved_results = await _dispatch_approved(frappe_client, user, questions_by_id, approved_ids)
+			approved_results = await _dispatch_approved(frappe_client, user, questions_by_id, approved_ids, run)
 			for r in approved_results:
 				yield _frame("tool_started", {"id": r["id"], "name": r["name"], "arguments": r["arguments"]})
 				yield _frame("tool_ended", {"id": r["id"], "name": r["name"], "result": r["result"]})
@@ -536,6 +536,7 @@ async def _dispatch_approved(
 	user: str,
 	questions_by_id: dict[str, dict[str, Any]],
 	approved_ids: frozenset[str],
+	run: str,
 ) -> list[dict[str, Any]]:
 	"""Actually run each approved pending call, using the arguments it was
 	originally paused with.
@@ -555,6 +556,9 @@ async def _dispatch_approved(
 		questions_by_id (dict[str, dict[str, Any]]): `config["questions"]` keyed by
 			call id — each `{key, name, arguments, prompt}`.
 		approved_ids (frozenset[str]): Call ids answered `"Approve"` this resume.
+		run (str): `AI Run` these calls belong to. Required — dispatching without
+			it bypasses the run's execution budget, and confirmation-gated tools
+			are precisely the mutating ones the budget exists to bound.
 
 	Returns:
 		list[dict[str, Any]]: `[{"id", "name", "arguments", "result"}, ...]` for
@@ -567,7 +571,7 @@ async def _dispatch_approved(
 		question = questions_by_id.get(call_id)
 		if question is None:
 			continue
-		response = await frappe_client.dispatch_tool(question["name"], user, question.get("arguments") or {})
+		response = await frappe_client.dispatch_tool(question["name"], user, question.get("arguments") or {}, run)
 		result = response.get("result") if "error" not in response else {"error": response["error"]}
 		results.append({"id": call_id, "name": question["name"], "arguments": question.get("arguments") or {}, "result": result})
 	return results

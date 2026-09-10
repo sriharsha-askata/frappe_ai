@@ -40,6 +40,7 @@ import frappe
 from frappe import _
 from frappe.utils import cint
 
+from frappe_ai.api._service_url import get_service_url
 from frappe_ai.lib.model import ModelConfigurationError, get_default_model, resolve_model_config
 from frappe_ai.service.auth import DEFAULT_TTL_SECONDS, mint_run_token
 
@@ -104,13 +105,11 @@ def service_health() -> dict:
 		dict: `{"success": True, "data": {...health payload...}}` on a reachable
 			service, or `{"success": False, "message": ...}` if unreachable.
 	"""
-	settings = frappe.get_cached_doc("AI Settings")
-	base_url = settings.service_base_url
+	base_url = get_service_url()
 	if not base_url:
-		plugin_tools = _resolve_agent_plugin_tools(agent_doc, user)
 		return {
 			"success": False,
-			"message": _("AI Settings.service_base_url is not configured."),
+			"message": _("frappe_ai_service_url is not configured."),
 			"data": {},
 		}
 
