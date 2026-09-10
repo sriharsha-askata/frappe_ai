@@ -61,9 +61,9 @@ applied, the remaining blockers are narrow and enumerable.
 | F-7 | `temperature` / `top_p` silently discarded | P1 | **Fixed** (`65e2fb9`) |
 | F-8 | Field rename fallout: zero tools in UI, empty audit snapshot | P1 | **Fixed** (`b25d09c`) |
 | F-9 | Test suite unable to create an agent; 62 broken tests | P1 | **Fixed** (`b25d09c`) |
-| F-10 | DocType-sourced knowledge readable without the source document's permission | P1 | **Fixed** (`aca4f21`) |
+| F-10 | DocType-sourced knowledge readable without the source document's permission | P1 | **Fixed** (`feb3d88`) |
 | F-11 | MCP tool calls bypass execution budgets | P1 | **Open** (pre-existing) |
-| F-12 | `budgets.consume` is an unlocked read-modify-write | P1 | **Fixed** (`aca4f21`) |
+| F-12 | `budgets.consume` is an unlocked read-modify-write | P1 | **Fixed** (`feb3d88`) |
 | F-13 | Error Log records tool arguments and prompt context | P1 | **Open** |
 | F-14 | Wildcard `doc_events` puts frappe_ai in every site write | P2 | **Open** |
 | F-15 | Trigger runs block an RQ worker polling SSE | P2 | **Open** (pre-existing) |
@@ -443,7 +443,7 @@ to verify any of it.
 **Phase 2 — P1 correctness *(complete, `65e2fb9`)*.** Scheduled triggers, atomic
 window claim, `max_iterations`, sampling.
 
-**Phase 3 — P1 correctness *(complete, `aca4f21`)*.** Knowledge permission
+**Phase 3 — P1 correctness *(complete, `feb3d88`)*.** Knowledge permission
 filtering (F-10), budget row locking (F-12).
 
 **Phase 3b — P1 remaining *(open)*.** MCP budget enforcement (F-11), log
@@ -594,7 +594,7 @@ reasons below remain open.
 1. **F-1, F-2, F-3 — the P0 security fixes.** Done in `b25d09c`.
 2. **F-5, F-6 — scheduled triggers and `max_iterations`.** Done in `65e2fb9`.
 3. **F-10, F-12 — knowledge permission filtering and budget row locking.** Done
-   in `aca4f21`.
+   in `feb3d88`.
 4. **F-11 — count MCP tool calls against the budget**, or disable MCP connections
    in production until it lands. **This is the one remaining blocker.** With
    ADR 0019 accepting a shared identity on that path, the volume ceiling is the
