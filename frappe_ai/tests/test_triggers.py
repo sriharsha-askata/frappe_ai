@@ -11,7 +11,7 @@ from frappe.tests import IntegrationTestCase
 
 from frappe_ai.tools.builtins import sync_builtin_tools
 from frappe_ai.triggers import dispatch, dispatch_scheduled, fire, fire_manual_trigger
-from frappe_ai.triggers.triggers import _run_via_service
+from frappe_ai.triggers.triggers import _claim_scheduled_window, _run_via_service
 
 
 def _trigger_agent(title: str = "Trigger Test Agent") -> str:
@@ -104,6 +104,56 @@ class TestTriggers(IntegrationTestCase):
 			dispatch_scheduled()
 
 		enqueue.assert_called_once()
+
+	def _due_scheduled_trigger(self, agent_title: str, trigger_title: str):
+		agent = _trigger_agent(agent_title)
+		trig = frappe.get_doc(
+			_trigger(
+				agent,
+				title=trigger_title,
+				event="Scheduled",
+				target_doctype=None,
+				doc_event=None,
+				cron_expression="* * * * *",
+				prompt_template="run",
+			)
+		).insert(ignore_permissions=True)
+		past = frappe.utils.now_datetime() - timedelta(minutes=5)
+		frappe.db.set_value("AI Trigger", trig.name, "last_fired_at", past, update_modified=False)
+		return trig
+
+	def test_fire_creates_run_for_scheduled_trigger(self):
+		"""`dispatch_scheduled` enqueues `fire`, so `fire` must accept a scheduled
+		trigger. It used to reject anything that wasn't a DocType Event, which
+		made every scheduled trigger fail after its window had already been
+		marked as fired -- silently, and without retry."""
+		trig = self._due_scheduled_trigger("Trigger Scheduled Fire Agent", "Scheduled Fire Test")
+
+		with (
+			patch("frappe_ai.triggers.triggers._run_via_service"),
+			patch("frappe_ai.triggers.triggers.frappe.db.commit"),
+		):
+			run_name = fire(trig.name)
+
+		run = frappe.get_doc("AI Run", run_name)
+		self.assertEqual(run.source, "Trigger")
+		self.assertEqual(run.trigger, trig.name)
+		self.assertIsNone(run.reference_name)
+
+	def test_due_window_is_claimed_only_once(self):
+		"""Two schedulers observing the same `last_fired_at` must not both claim
+		the window: a duplicated agent run mutates data twice."""
+		trig = self._due_scheduled_trigger("Trigger Scheduled Claim Agent", "Scheduled Claim Test")
+		observed = frappe.db.get_value("AI Trigger", trig.name, "last_fired_at")
+		now = frappe.utils.now_datetime()
+
+		# Both callers read the window before either wrote it -- the race the
+		# compare-and-swap exists to resolve.
+		first = _claim_scheduled_window(trig.name, observed, now)
+		second = _claim_scheduled_window(trig.name, observed, now)
+
+		self.assertTrue(first)
+		self.assertFalse(second)
 
 	def test_manual_trigger_saves_without_event_fields(self):
 		agent = _trigger_agent("Trigger Manual Validation Agent")

@@ -4,11 +4,57 @@
 from __future__ import annotations
 
 import unittest
-from unittest.mock import patch
+from unittest.mock import AsyncMock, patch
 
 from agno.models.message import Message
 
 from frappe_ai.service.builder import AgentBuildError, AgentBuilder
+
+
+class TestAgentBudgets(unittest.IsolatedAsyncioTestCase):
+	"""`AI Agent.max_iterations` is documented as bounding the reasoning loop, but
+	was never passed to Agno, leaving the loop unbounded."""
+
+	def _client(self, agent_cfg):
+		client = AsyncMock()
+		client.get_run_config.return_value = {
+			"agent": agent_cfg,
+			"model": {
+				"transport": "openai_compatible",
+				"provider": "openai",
+				"model_id": "custom-model",
+				"api_key": "test",
+				"base_url": "https://example.com/v1",
+				"params": {},
+			},
+			"tools": [],
+			"mcp_connections": [],
+		}
+		return client
+
+	def _agent_cfg(self, **overrides):
+		cfg = {
+			"name": "Bounded Agent",
+			"markdown": True,
+			"reasoning": False,
+			"max_iterations": 4,
+		}
+		cfg.update(overrides)
+		return cfg
+
+	async def test_max_iterations_becomes_agno_tool_call_limit(self):
+		builder = AgentBuilder(frappe_client=self._client(self._agent_cfg()))
+
+		agent, _ = await builder.build(run="RUN-1", user="Administrator")
+
+		self.assertEqual(agent.tool_call_limit, 4)
+
+	async def test_unset_max_iterations_leaves_no_limit(self):
+		builder = AgentBuilder(frappe_client=self._client(self._agent_cfg(max_iterations=None)))
+
+		agent, _ = await builder.build(run="RUN-1", user="Administrator")
+
+		self.assertIsNone(agent.tool_call_limit)
 
 
 class TestAgentBuilder(unittest.TestCase):
@@ -59,6 +105,41 @@ class TestAgentBuilder(unittest.TestCase):
 		formatted = model._format_all_messages([Message(role="system", content="Be terse.")])
 
 		self.assertEqual(formatted[0]["role"], "system")
+
+	def _model_cfg(self, **overrides):
+		cfg = {
+			"transport": "openai_compatible",
+			"provider": "openai",
+			"model_id": "custom-model",
+			"api_key": "test",
+			"base_url": "https://example.com/v1",
+			"params": {},
+		}
+		cfg.update(overrides)
+		return cfg
+
+	def test_agent_sampling_overrides_model_params(self):
+		"""`AI Agent.temperature`/`top_p` were sent to the service and dropped:
+		Agno carries sampling on the model, not the Agent."""
+		builder = AgentBuilder(frappe_client=None)  # type: ignore[arg-type]
+
+		model = builder._build_model(
+			self._model_cfg(params={"temperature": 0.9}),
+			agent_cfg={"temperature": 0.1, "top_p": 0.5},
+		)
+
+		self.assertEqual(model.temperature, 0.1)
+		self.assertEqual(model.top_p, 0.5)
+
+	def test_model_params_kept_when_agent_sampling_unset(self):
+		builder = AgentBuilder(frappe_client=None)  # type: ignore[arg-type]
+
+		model = builder._build_model(
+			self._model_cfg(params={"temperature": 0.9}),
+			agent_cfg={"temperature": None, "top_p": None},
+		)
+
+		self.assertEqual(model.temperature, 0.9)
 
 	def test_build_mcp_tools_passes_include_tools(self):
 		builder = AgentBuilder(frappe_client=None)  # type: ignore[arg-type]

@@ -13,6 +13,7 @@ from requests import RequestException
 
 import frappe
 from frappe import _
+from frappe.utils import cint
 from croniter import CroniterBadCronError, croniter
 
 from frappe_ai.api._service_url import get_service_url
@@ -89,9 +90,38 @@ def dispatch_scheduled() -> None:
 		except (CroniterBadCronError, ValueError):
 			frappe.log_error(title=f"AI Trigger cron parse failed: {trigger.name}")
 			continue
-		if next_run <= now:
-			frappe.db.set_value("AI Trigger", trigger.name, "last_fired_at", now, update_modified=False)
+		if next_run <= now and _claim_scheduled_window(trigger.name, trigger.last_fired_at, now):
 			frappe.enqueue("frappe_ai.triggers.fire", trigger=trigger.name)
+
+
+def _claim_scheduled_window(trigger: str, last_fired_at: Any, now: Any) -> bool:
+	"""Claim this trigger's due window, returning False if someone else got it.
+
+	A plain read-then-write lets two schedulers (or one scheduler racing a
+	retry) both observe the same `last_fired_at` and both enqueue, firing an
+	agent twice for one window. A conditional update makes the claim atomic:
+	exactly one caller sees a row affected.
+
+	The window is claimed *before* the job runs, so a failing job forfeits its
+	turn rather than retrying. That is deliberate -- per ADR 0007 this system
+	prefers a skipped agent run over a duplicated one, since runs mutate data.
+	"""
+	if last_fired_at is None:
+		condition, values = "`last_fired_at` is null", {"now": now, "trigger": trigger}
+	else:
+		condition, values = "`last_fired_at` = %(last_fired_at)s", {
+			"now": now,
+			"trigger": trigger,
+			"last_fired_at": last_fired_at,
+		}
+
+	frappe.db.sql(
+		f"update `tabAI Trigger` set `last_fired_at` = %(now)s where `name` = %(trigger)s and {condition}",
+		values,
+	)
+	# `_cursor.rowcount` is how Frappe's own test harness counts affected rows
+	# (frappe/tests/classes/integration_test_case.py), per DB-API 2.0.
+	return bool(cint(frappe.db._cursor.rowcount))
 
 
 def fire(trigger: str, target_doctype: str | None = None, target_name: str | None = None) -> str | None:
@@ -99,8 +129,11 @@ def fire(trigger: str, target_doctype: str | None = None, target_name: str | Non
 	trigger_doc = frappe.get_doc("AI Trigger", trigger)
 	if not trigger_doc.enabled:
 		return None
-	if trigger_doc.event != "DocType Event":
-		frappe.throw(_("AI Trigger {0} is not a DocType Event trigger.").format(trigger_doc.name))
+	# Scheduled triggers reach this same worker from `dispatch_scheduled`; they
+	# simply arrive without a target document. Manual triggers have their own
+	# entry point (`fire_manual_trigger`) and must not be startable from here.
+	if trigger_doc.event not in ("DocType Event", "Scheduled"):
+		frappe.throw(_("AI Trigger {0} cannot be fired by the worker.").format(trigger_doc.name))
 
 	original_user = frappe.session.user
 	frappe.set_user(trigger_doc.run_as or trigger_doc.owner)

@@ -134,7 +134,7 @@ class AgentBuilder:
 			raise AgentBuildError(f"Could not fetch run config: {e}") from e
 
 		agent_cfg = config["agent"]
-		model = self._build_model(config["model"])
+		model = self._build_model(config["model"], agent_cfg=agent_cfg)
 		tools = [
 			self._build_tool(
 				t,
@@ -163,10 +163,15 @@ class AgentBuilder:
 			db=None,
 			add_history_to_context=False,
 			telemetry=False,
+			# `AI Agent.max_iterations` bounds the reasoning loop. Agno spells this
+			# as a cap on tool calls per run; without it the agent is free to loop
+			# until the model stops asking for tools, and the field is inert.
+			tool_call_limit=agent_cfg.get("max_iterations") or None,
 		)
 		return agent, config
 
-	def _build_model(self, model_cfg: dict[str, Any]):
+	def _build_model(self, model_cfg: dict[str, Any], *, agent_cfg: dict[str, Any] | None = None):
+		model_cfg = self._apply_agent_sampling(model_cfg, agent_cfg or {})
 		try:
 			return create_openai_compatible_model(model_cfg)
 		except (ModelConfigurationError, KeyError, TypeError, ValueError) as e:
@@ -176,6 +181,23 @@ class AgentBuilder:
 				model_id=model_cfg.get("model_id"),
 			)
 			raise AgentBuildError(error.message, code=error.code) from e
+
+	@staticmethod
+	def _apply_agent_sampling(model_cfg: dict[str, Any], agent_cfg: dict[str, Any]) -> dict[str, Any]:
+		"""Overlay the agent's sampling settings onto the model's own params.
+
+		`temperature`/`top_p` live on both `AI Model.params` and `AI Agent`. Agno
+		carries them on the model rather than the Agent, so the agent-level fields
+		were being sent to the service and silently dropped. The agent is the more
+		specific configuration, so it wins where set.
+		"""
+		overrides = {key: agent_cfg.get(key) for key in ("temperature", "top_p")}
+		overrides = {key: value for key, value in overrides.items() if value is not None}
+		if not overrides:
+			return model_cfg
+		merged = dict(model_cfg)
+		merged["params"] = {**(merged.get("params") or {}), **overrides}
+		return merged
 
 	def _build_tool(
 		self,
