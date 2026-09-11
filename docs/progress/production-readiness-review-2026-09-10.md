@@ -59,7 +59,7 @@ applied, the remaining blockers are narrow and enumerable.
 | F-5 | Scheduled triggers never ran, and consumed their window on failure | P1 | **Fixed** (`65e2fb9`) |
 | F-6 | `max_iterations` never reached Agno; loop unbounded | P1 | **Fixed** (`65e2fb9`) |
 | F-7 | `temperature` / `top_p` silently discarded | P1 | **Fixed** (`65e2fb9`) |
-| F-7b | Confirmation-approve path bypassed FAC role checks for FAC tools | P1 | **Fixed** (this commit) |
+| F-7b | Confirmation-approve path bypassed FAC role checks for FAC tools | P1 | **Fixed** (`ebcd3b0`) |
 | F-8 | Field rename fallout: zero tools in UI, empty audit snapshot | P1 | **Fixed** (`b25d09c`) |
 | F-9 | Test suite unable to create an agent; 62 broken tests | P1 | **Fixed** (`b25d09c`) |
 | F-10 | DocType-sourced knowledge readable without the source document's permission | P1 | **Fixed** (`feb3d88`) |
@@ -622,7 +622,7 @@ reasons below remain open.
 1. **F-1, F-2, F-3 — the P0 security fixes.** Done in `b25d09c`.
 2. **F-5, F-6, F-7 — scheduled triggers, `max_iterations`, `temperature`/`top_p`.** Done in `65e2fb9`.
 3. **F-7b — route confirmation-approved FAC tools through the FAC dispatcher.**
-   Done in `<this commit>`.
+   Done in `ebcd3b0`.
 4. **F-10, F-12 — knowledge permission filtering and budget row locking.** Done
    in `feb3d88`.
 4. **F-11 — count MCP tool calls against the budget**, or disable MCP connections
