@@ -59,6 +59,7 @@ applied, the remaining blockers are narrow and enumerable.
 | F-5 | Scheduled triggers never ran, and consumed their window on failure | P1 | **Fixed** (`65e2fb9`) |
 | F-6 | `max_iterations` never reached Agno; loop unbounded | P1 | **Fixed** (`65e2fb9`) |
 | F-7 | `temperature` / `top_p` silently discarded | P1 | **Fixed** (`65e2fb9`) |
+| F-7b | Confirmation-approve path bypassed FAC role checks for FAC tools | P1 | **Fixed** (this commit) |
 | F-8 | Field rename fallout: zero tools in UI, empty audit snapshot | P1 | **Fixed** (`b25d09c`) |
 | F-9 | Test suite unable to create an agent; 62 broken tests | P1 | **Fixed** (`b25d09c`) |
 | F-10 | DocType-sourced knowledge readable without the source document's permission | P1 | **Fixed** (`feb3d88`) |
@@ -346,6 +347,32 @@ documented reasons that were sound in the cases they were written for. Reviewing
 the rationale before the code would have produced the correct — and narrower —
 finding immediately.
 
+### F-7 — Confirmation-approve path bypassed FAC role checks *(fixed)*
+
+Resuming a paused run called `dispatch_tool` unconditionally, even for tools
+whose streaming path would have routed through `dispatch_plugin_tool` because
+their `tool_cfg["source"] == "fac"`. The two dispatchers resolve the tool name
+against different tables — `AI Tool` versus the FAC registry — that overlap on
+the mutating tool names (`create`, `update`, `delete`, `run_action`,
+`update_memory`, `load_full_document_text`, `search_knowledge`). Picking the
+wrong dispatcher therefore silently executed a *different* tool, and skipped
+both FAC's role-access and tool-permission checks (ADR 0003 / F-4), and the
+server-owned context `dispatch_plugin_tool` injects (`__frappe_ai_agent`,
+`__frappe_ai_knowledge_bases`, `__frappe_ai_source_run`).
+
+This is precisely where it would matter most: admins add `requires_confirmation`
+to mutating tools, and approval is the one moment the tool actually runs. On
+`tact.local` nothing was gated (every `plugin_tools` row had
+`requires_confirmation: 0`), so the bug was latent — turning confirmation on
+for any FAC tool would have activated it.
+
+**Fix applied.** `_dispatch_approved` now takes a `tool_sources` map and routes
+per call the same way `_build_tool` does. An approval for a tool the current
+`config["tools"]` no longer names is also refused — a resume cannot re-grant
+what the agent's current config withholds. Regression tests cover all three
+cases: FAC source → plugin path, legacy source → legacy path, unbound name →
+neither.
+
 ---
 
 ## 7. Maintainability / Architecture Findings
@@ -378,7 +405,7 @@ is the worse failure and deletion would discard existing configured values.
 
 | Area | Assessment |
 |---|---|
-| Tool permission scoping (direct path) | **Correct.** `frappe.set_user(acting_user)` with restore in `finally`; permissions genuinely enforced. |
+| Tool permission scoping (direct path) | **Correct.** `frappe.set_user(acting_user)` with restore in `finally`; permissions genuinely enforced. **Note:** FAC tools routed through the confirmation-approval path used to bypass FAC's role and permission checks (F-7b), since approval resolved to the legacy `AI Tool` doctype; now routed by source, matching the streaming path. |
 | Tool permission scoping (MCP path) | **Broken by design** — F-4, now documented and bounded (ADR 0019). |
 | Knowledge retrieval | **Correct as of F-10 fix.** KB binding authorizes curated content; DocType-sourced chunks are additionally checked against the source document. |
 | Whitelisted method authorization | **Was broken** — F-1, F-3; now systematically checked. |
@@ -552,6 +579,7 @@ Still required:
 - [x] Test suite able to exercise its own integration paths
 - [x] Knowledge retrieval permission-filtered for DocType-sourced content (F-10)
 - [x] Budget accounting row-locked against concurrent tool calls (F-12)
+- [x] Confirmation-approve path routes FAC tools through the FAC dispatcher (F-7b)
 - [ ] MCP calls budgeted (F-11)
 - [ ] Tool arguments and prompt context kept out of Error Log (F-13)
 - [ ] Correlation id across both processes
@@ -592,8 +620,10 @@ reasons below remain open.
 > deployment is:**
 
 1. **F-1, F-2, F-3 — the P0 security fixes.** Done in `b25d09c`.
-2. **F-5, F-6 — scheduled triggers and `max_iterations`.** Done in `65e2fb9`.
-3. **F-10, F-12 — knowledge permission filtering and budget row locking.** Done
+2. **F-5, F-6, F-7 — scheduled triggers, `max_iterations`, `temperature`/`top_p`.** Done in `65e2fb9`.
+3. **F-7b — route confirmation-approved FAC tools through the FAC dispatcher.**
+   Done in `<this commit>`.
+4. **F-10, F-12 — knowledge permission filtering and budget row locking.** Done
    in `feb3d88`.
 4. **F-11 — count MCP tool calls against the budget**, or disable MCP connections
    in production until it lands. **This is the one remaining blocker.** With
@@ -601,6 +631,10 @@ reasons below remain open.
    only control left on it, and it is currently absent.
 5. **Keep `auto_approve` triggers off production data** until 4 is closed — it
    removes the human backstop, and the budget is the machine backstop.
+6. **F-7b — configuration gap.** Until at least one `plugin_tools` row is marked
+   `requires_confirmation`, the misrouted confirmation path is not exercised in
+   production. Validating the route end-to-end with a single gated tool guards
+   against future drift re-introducing the routing.
 
 With 1–3 applied, the answer to the deployment question becomes **YES for
 deployments that do not use MCP connections**, and remains **NO** where MCP

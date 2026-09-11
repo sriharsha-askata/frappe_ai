@@ -282,7 +282,14 @@ async def stream_chat(
 			# directly rather than hoping the model asks again; this must match
 			# that. Pending-call arguments come from `config["questions"]` —
 			# `AI Run.questions` as persisted by the prior (Paused) segment.
-			approved_results = await _dispatch_approved(frappe_client, user, questions_by_id, approved_ids, run)
+			approved_results = await _dispatch_approved(
+				frappe_client,
+				user,
+				questions_by_id,
+				approved_ids,
+				run,
+				{tool["name"]: tool.get("source") for tool in (config.get("tools") or [])},
+			)
 			for r in approved_results:
 				yield _frame("tool_started", {"id": r["id"], "name": r["name"], "arguments": r["arguments"]})
 				yield _frame("tool_ended", {"id": r["id"], "name": r["name"], "result": r["result"]})
@@ -537,6 +544,7 @@ async def _dispatch_approved(
 	questions_by_id: dict[str, dict[str, Any]],
 	approved_ids: frozenset[str],
 	run: str,
+	tool_sources: dict[str, str | None],
 ) -> list[dict[str, Any]]:
 	"""Actually run each approved pending call, using the arguments it was
 	originally paused with.
@@ -559,6 +567,17 @@ async def _dispatch_approved(
 		run (str): `AI Run` these calls belong to. Required — dispatching without
 			it bypasses the run's execution budget, and confirmation-gated tools
 			are precisely the mutating ones the budget exists to bound.
+		tool_sources (dict[str, str | None]): Tool name → `source` from this run's
+			`config["tools"]`. Approval must pick the same dispatcher the streaming
+			path would have (`service/builder.py`'s `_build_tool`): an Assistant
+			Core tool routed to `dispatch_tool` resolves against the legacy `AI
+			Tool` doctype instead of the FAC registry, which silently skips FAC's
+			role access and tool permission checks and drops the server-owned
+			context `dispatch_plugin_tool` injects. Tool names overlap between the
+			two tables (`create`, `update`, `delete`, `run_action`, ...), so the
+			wrong route executes a *different* tool rather than failing loudly —
+			and it is exactly the confirmation-gated mutating calls that would
+			take it.
 
 	Returns:
 		list[dict[str, Any]]: `[{"id", "name", "arguments", "result"}, ...]` for
@@ -571,7 +590,17 @@ async def _dispatch_approved(
 		question = questions_by_id.get(call_id)
 		if question is None:
 			continue
-		response = await frappe_client.dispatch_tool(question["name"], user, question.get("arguments") or {}, run)
+		if question["name"] not in tool_sources:
+			# The tool was unbound from the agent between pause and resume, so this
+			# run may no longer call it — an approval cannot re-grant what the
+			# current config withholds.
+			continue
+		dispatch = (
+			frappe_client.dispatch_plugin_tool
+			if tool_sources[question["name"]] == "fac"
+			else frappe_client.dispatch_tool
+		)
+		response = await dispatch(question["name"], user, question.get("arguments") or {}, run)
 		result = response.get("result") if "error" not in response else {"error": response["error"]}
 		results.append({"id": call_id, "name": question["name"], "arguments": question.get("arguments") or {}, "result": result})
 	return results

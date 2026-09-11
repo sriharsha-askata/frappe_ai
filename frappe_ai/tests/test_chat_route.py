@@ -14,7 +14,7 @@ from agno.run.agent import RunErrorEvent, RunOutput, RunStatus
 from frappe_ai.service.routes.chat import stream_chat
 
 
-def _config(questions=None):
+def _config(questions=None, tools=None):
 	return {
 		"model": {"provider": "google", "model_id": "gemini-2.5-flash"},
 		"messages": [
@@ -22,6 +22,7 @@ def _config(questions=None):
 			{"role": "user", "content": "continue"},
 		],
 		"questions": questions or [],
+		"tools": tools if tools is not None else [{"name": "create_record", "source": "fac"}],
 	}
 
 
@@ -30,7 +31,17 @@ def _client():
 		persist_run_result=AsyncMock(),
 		fail_run=AsyncMock(),
 		dispatch_tool=AsyncMock(return_value={"result": {"ok": True}}),
+		dispatch_plugin_tool=AsyncMock(return_value={"result": {"ok": True}}),
 	)
+
+
+class _ResumingAgent:
+	async def arun(self, **_kwargs):
+		yield RunOutput(
+			content="The record is created.",
+			messages=[Message(role="assistant", content="The record is created.")],
+			status=RunStatus.completed,
+		)
 
 
 class TestStreamChatProviderAndConfirmation(unittest.IsolatedAsyncioTestCase):
@@ -80,16 +91,7 @@ class TestStreamChatProviderAndConfirmation(unittest.IsolatedAsyncioTestCase):
 
 	async def test_confirmation_approve_dispatches_and_resumes_model(self):
 		question = {"key": "call-1", "name": "create_record", "arguments": {"title": "Created"}, "prompt": "Create?"}
-
-		class ResumingAgent:
-			async def arun(self, **_kwargs):
-				yield RunOutput(
-					content="The record is created.",
-					messages=[Message(role="assistant", content="The record is created.")],
-					status=RunStatus.completed,
-				)
-
-		builder = SimpleNamespace(build=AsyncMock(return_value=(ResumingAgent(), _config([question]))))
+		builder = SimpleNamespace(build=AsyncMock(return_value=(_ResumingAgent(), _config([question]))))
 		client = _client()
 
 		with patch("frappe_ai.service.routes.chat.AgentBuilder", return_value=builder):
@@ -100,14 +102,61 @@ class TestStreamChatProviderAndConfirmation(unittest.IsolatedAsyncioTestCase):
 				)
 			]
 
-		# The run id must be passed through: budgets fail closed without it, and a
-		# confirmation-gated tool is exactly the mutating kind the budget bounds.
-		client.dispatch_tool.assert_awaited_once_with(
+		# An Assistant Core tool must resume through `dispatch_plugin_tool`, the same
+		# dispatcher the streaming path picks for `source == "fac"`. Routing it to
+		# `dispatch_tool` would resolve the legacy `AI Tool` of the same name and
+		# skip FAC's role access and permission checks. The run id must also be
+		# passed through: budgets fail closed without it, and a confirmation-gated
+		# tool is exactly the mutating kind the budget bounds.
+		client.dispatch_plugin_tool.assert_awaited_once_with(
 			"create_record", "Administrator", {"title": "Created"}, "RUN-3"
 		)
+		client.dispatch_tool.assert_not_awaited()
 		payload = json.loads(frames[-1].split(b"data: ", 1)[1])
 		self.assertEqual(payload["status"], "Completed")
 		self.assertEqual(payload["output"], "The record is created.")
+
+	async def test_approved_legacy_tool_still_uses_legacy_dispatch(self):
+		question = {"key": "call-1", "name": "create_record", "arguments": {"title": "Created"}, "prompt": "Create?"}
+		config = _config([question], tools=[{"name": "create_record", "source": "manual"}])
+		builder = SimpleNamespace(build=AsyncMock(return_value=(_ResumingAgent(), config)))
+		client = _client()
+
+		with patch("frappe_ai.service.routes.chat.AgentBuilder", return_value=builder):
+			[
+				frame
+				async for frame in stream_chat(
+					"RUN-4", "Administrator", "SES-1", client, answers={"call-1": "Approve"}
+				)
+			]
+
+		client.dispatch_tool.assert_awaited_once_with(
+			"create_record", "Administrator", {"title": "Created"}, "RUN-4"
+		)
+		client.dispatch_plugin_tool.assert_not_awaited()
+
+	async def test_approved_call_for_unbound_tool_is_not_dispatched(self):
+		"""An approval cannot re-grant a tool the agent no longer binds.
+
+		The pending call was recorded while the tool was bound; if it was unbound
+		before the resume, `config["tools"]` no longer lists it and neither
+		dispatcher may run it.
+		"""
+		question = {"key": "call-1", "name": "delete_record", "arguments": {"name": "DOC-1"}, "prompt": "Delete?"}
+		config = _config([question], tools=[{"name": "create_record", "source": "fac"}])
+		builder = SimpleNamespace(build=AsyncMock(return_value=(_ResumingAgent(), config)))
+		client = _client()
+
+		with patch("frappe_ai.service.routes.chat.AgentBuilder", return_value=builder):
+			[
+				frame
+				async for frame in stream_chat(
+					"RUN-5", "Administrator", "SES-1", client, answers={"call-1": "Approve"}
+				)
+			]
+
+		client.dispatch_tool.assert_not_awaited()
+		client.dispatch_plugin_tool.assert_not_awaited()
 
 
 if __name__ == "__main__":
