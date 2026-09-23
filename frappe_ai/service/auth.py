@@ -21,6 +21,7 @@ capability.
 
 from __future__ import annotations
 
+import base64
 import hashlib
 import hmac
 import time
@@ -97,11 +98,15 @@ def mint_run_token(
 			covering stream setup only, not stream duration.
 
 	Returns:
-		str: Opaque token string of the form `<run>.<session>.<user>.<expiry>.<signature>`.
+		str: Opaque base64url-encoded token. The signing payload uses `_FIELD_SEPARATOR`
+		internally; base64 encoding makes the token safe for HTTP `Authorization` headers
+		(h11/uvicorn reject control characters such as 0x1F with 400 before the ASGI app
+		runs, so the raw separator must never reach the wire).
 	"""
 	expiry = int(time.time()) + ttl_seconds
 	signature = _sign(secret, _signing_string(run, session, user, expiry))
-	return _FIELD_SEPARATOR.join((run, session, user, str(expiry), signature))
+	raw = _FIELD_SEPARATOR.join((run, session, user, str(expiry), signature))
+	return base64.urlsafe_b64encode(raw.encode("utf-8")).decode("ascii")
 
 
 def verify_run_token(token: str, secret: str) -> RunTokenPayload:
@@ -117,7 +122,12 @@ def verify_run_token(token: str, secret: str) -> RunTokenPayload:
 	Raises:
 		InvalidRunToken: If the token is malformed, tampered with, or expired.
 	"""
-	parts = token.split(_FIELD_SEPARATOR)
+	try:
+		padding = "=" * (-len(token) % 4)
+		raw = base64.urlsafe_b64decode(token + padding).decode("utf-8")
+	except Exception:
+		raise InvalidRunToken("Malformed token")
+	parts = raw.split(_FIELD_SEPARATOR)
 	if len(parts) != 5:
 		raise InvalidRunToken("Malformed token")
 

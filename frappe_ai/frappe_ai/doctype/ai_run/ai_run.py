@@ -182,8 +182,12 @@ def create_run(
 
 
 def _new_messages_for_session(session: str, full_transcript: list[dict[str, Any]]) -> list[dict[str, Any]]:
-	"""Return new messages produced by this run, excluding the session's prior history."""
-	existing = frappe.db.count("AI Session Message", {"parent": session})
+	"""Return messages produced by this run, excluding the session's prior non-system history.
+
+	`_messages()` in chat.py filters system rows from full_transcript, so the slice
+	offset must count only non-system existing messages to stay aligned.
+	"""
+	existing = frappe.db.count("AI Session Message", {"parent": session, "role": ["!=", "system"]})
 	return list(full_transcript[existing:])
 
 

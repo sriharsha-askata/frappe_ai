@@ -469,6 +469,41 @@ def _frame(event: str, payload: dict[str, Any]) -> bytes:
 	return f"event: {event}\ndata: {data}\n\n".encode()
 
 
+def _repair_orphaned_tool_results(messages: list[dict[str, Any]]) -> list[dict[str, Any]]:
+	"""Insert synthetic assistant tool_calls messages for any orphaned tool results.
+
+	If a stored session has a `role: "tool"` message whose tool_call_id has no
+	matching tool_use in any preceding assistant message's tool_calls list (caused
+	by an off-by-one in _new_messages_for_session that dropped the first assistant
+	message of a multi-tool run), Anthropic returns error 2013. This inserts a
+	minimal placeholder assistant message so the history is structurally valid.
+	"""
+	known_ids: set[str] = set()
+	for m in messages:
+		for tc in m.get("tool_calls") or []:
+			cid = tc.get("id") or tc.get("tool_call_id") or ""
+			if cid:
+				known_ids.add(cid)
+
+	out: list[dict[str, Any]] = []
+	for m in messages:
+		if m.get("role") == "tool":
+			cid = m.get("tool_call_id")
+			if cid and cid not in known_ids:
+				out.append({
+					"role": "assistant",
+					"content": None,
+					"tool_calls": [{
+						"id": cid,
+						"type": "function",
+						"function": {"name": "tool", "arguments": "{}"},
+					}],
+				})
+				known_ids.add(cid)
+		out.append(m)
+	return out
+
+
 def _to_agno_messages(
 	messages: list[dict[str, Any]],
 	*,
@@ -495,9 +530,15 @@ def _to_agno_messages(
 	bare `role: "tool"` response has no request to answer and most model APIs
 	reject it as malformed.
 	"""
+	messages = _repair_orphaned_tool_results(messages)
 	out: list[Message] = []
 	for m in messages:
-		out.append(Message(role=m["role"], content=m.get("content"), tool_call_id=m.get("tool_call_id")))
+		out.append(Message(
+			role=m["role"],
+			content=m.get("content"),
+			tool_call_id=m.get("tool_call_id"),
+			tool_calls=m.get("tool_calls"),
+		))
 	for r in approved_results or []:
 		out.append(_reconstructed_tool_call_message(r["id"], r["name"], r["arguments"]))
 		out.append(Message(role="tool", tool_call_id=r["id"], content=json.dumps(r["result"], default=str)))
