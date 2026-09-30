@@ -13,9 +13,7 @@ class BudgetExceeded(frappe.ValidationError):
 	pass
 
 
-def consume(run: str | None, *, mutation: bool = False, records: int = 1) -> None:
-	if not run:
-		return
+def consume(run: str, *, mutation: bool = False, records: int = 1) -> None:
 	doc = frappe.get_doc("AI Run", run)
 	if doc.status not in ("Running", "Paused"):
 		raise BudgetExceeded(_("Run is no longer active."))
