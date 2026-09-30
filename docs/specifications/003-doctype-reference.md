@@ -490,10 +490,13 @@ Model Context Protocol server connections. **Naming: `field:connection_name`**.
 | Field | Type | Attributes |
 |---|---|---|
 | `connection_name` | Data | reqd, unique |
-| `connection_type` | Select `stdio`/`SSE` | reqd |
-| `command` | Data | `depends_on: connection_type == 'stdio'` |
-| `endpoint_url` | Data | `depends_on: connection_type == 'SSE'` |
-| `environment_variables` | JSON | |
+| `connection_type` | Select `stdio`/`SSE`/`streamable-http` | reqd |
+| `command` | Data | stdio only; the executable alone (single token, no shell characters) |
+| `command_args` | JSON | stdio only; list of strings |
+| `endpoint_url` | Data | SSE / streamable-http; must be an `http(s)` URL |
+| `environment_variables` | JSON | object; names `[A-Za-z_][A-Za-z0-9_]*`, string values |
+| `api_key` / `api_secret` | Password | streamable-http auth |
+| `mcp_config` | JSON | import-only: folded into the fields above on save, then cleared |
 | `enabled` | Check | default 1 |
 | `is_connected` | Check | read-only |
 | `last_check_time` | Datetime | read-only |
@@ -504,9 +507,14 @@ Model Context Protocol server connections. **Naming: `field:connection_name`**.
 **Scheduler:** `*/5 * * * *` health probe updating the three status fields.
 Each check has a 5-second timeout.
 
-> **⚠ Privileged DocType.** A `stdio` connection executes a shell command stored in a
-> DocType field. Write permission is equivalent to server-script access. Restrict to
-> System Manager and treat changes as code changes.
+> **⚠ Privileged DocType.** A `stdio` connection launches the stored executable as a
+> child process. Write permission is equivalent to server-script access. Restrict to
+> System Manager and treat changes as code changes. `create_mcp_connection_from_json`
+> requires `create` permission and `check_all_mcp_connections` requires System Manager
+> (the scheduler runs it as Administrator). `validate` enforces the field formats above;
+> a legacy one-line `command` (`python -m pkg`) is split into executable + args on save,
+> and `patches/normalize_mcp_connections.py` does the same for existing rows and moves
+> plaintext `api_key` values into encrypted storage.
 
 ---
 

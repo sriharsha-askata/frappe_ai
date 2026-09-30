@@ -32,7 +32,6 @@ from __future__ import annotations
 
 import hmac
 import json
-import shlex
 
 import requests
 
@@ -40,6 +39,7 @@ import frappe
 from frappe import _
 from frappe.utils import cint
 
+from frappe_ai.frappe_ai.doctype.ai_mcp_connection.ai_mcp_connection import split_stdio_command
 from frappe_ai.lib.model import ModelConfigurationError, get_default_model, resolve_model_config
 from frappe_ai.service.auth import DEFAULT_TTL_SECONDS, mint_run_token
 
@@ -367,14 +367,20 @@ def _resolve_agent_mcp_connections(agent_doc, direct_tool_names: set[str] | None
 			continue
 		if not doc.enabled:
 			continue
-		command_parts = shlex.split(doc.command or "")
-		stored_args = json.loads(doc.command_args) if getattr(doc, "command_args", None) else None
+		try:
+			executable, command_args = split_stdio_command(doc.command, getattr(doc, "command_args", None))
+		except ValueError as e:
+			frappe.log_error(
+				title=f"AI Agent {agent_doc.name!r}: MCP connection {doc.name!r} has an invalid command, skipping",
+				message=str(e),
+			)
+			continue
 
 		connection_dict = {
 			"name": doc.name,
 			"connection_type": doc.connection_type,
-			"command": command_parts[0] if command_parts else doc.command,
-			"command_args": stored_args if stored_args is not None else command_parts[1:],
+			"command": executable or doc.command,
+			"command_args": command_args,
 			"endpoint_url": doc.endpoint_url,
 			"environment_variables": json.loads(doc.environment_variables) if doc.environment_variables else {},
 			"include_tools": json.loads(row.include_tools) if getattr(row, "include_tools", None) else None,
@@ -383,7 +389,7 @@ def _resolve_agent_mcp_connections(agent_doc, direct_tool_names: set[str] | None
 		}
 
 		if doc.connection_type == "streamable-http":
-			connection_dict["api_key"] = doc.get("api_key")
+			connection_dict["api_key"] = doc.get_password("api_key", raise_exception=False)
 			connection_dict["api_secret"] = doc.get_password("api_secret") if doc.get("api_secret") else None
 
 		include_tools = connection_dict["include_tools"]

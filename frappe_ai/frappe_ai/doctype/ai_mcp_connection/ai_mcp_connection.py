@@ -4,10 +4,56 @@
 from __future__ import annotations
 
 import json
+import re
+import shlex
+from typing import Any
+from urllib.parse import urlparse
 
 import frappe
 from frappe import _
 from frappe.model.document import Document
+
+# An executable is a single token. These characters only ever appear when a whole shell
+# line was pasted into `command` (`python -m x && ...`); nothing here runs through a shell,
+# so rejecting them turns a confusing runtime failure into a clear save-time error.
+_FORBIDDEN_EXECUTABLE_CHARS = frozenset(";&|`$<>()\"'\\\n\r\t *?{}[]!#")
+_ENV_NAME = re.compile(r"^[A-Za-z_][A-Za-z0-9_]*$")
+
+
+def _load_json(value: Any, label: str) -> Any:
+	if isinstance(value, str):
+		try:
+			return json.loads(value)
+		except ValueError as e:
+			frappe.throw(_("{0} must be valid JSON: {1}").format(label, e), title=_("Invalid JSON"))
+	return value
+
+
+def split_stdio_command(command: str | None, command_args: Any = None) -> tuple[str, list[str]]:
+	"""Resolve a stdio connection to `(executable, args)`.
+
+	Stored `command_args` win when present. Otherwise a legacy `command` holding a whole
+	line (`python -m pkg`) is split with `shlex`. A `command_args` that merely repeats the
+	whole split command (an old import path stored it that way) is treated as absent.
+
+	Raises:
+		ValueError: If `command` has unbalanced quotes or `command_args` isn't a list of strings.
+	"""
+	parts = shlex.split((command or "").strip())
+	if not parts:
+		return "", []
+	if command_args in (None, ""):
+		return parts[0], parts[1:]
+	args = json.loads(command_args) if isinstance(command_args, str) else command_args
+	if not isinstance(args, list) or not all(isinstance(a, str) for a in args):
+		raise ValueError("Command Arguments must be a JSON list of strings.")
+	if args == parts:
+		args = parts[1:]
+	return parts[0], args
+
+
+def is_masked(value: str | None) -> bool:
+	return bool(value) and set(value) == {"*"}
 
 
 class AIMCPConnection(Document):
@@ -19,7 +65,7 @@ class AIMCPConnection(Document):
 	if TYPE_CHECKING:
 		from frappe.types import DF
 
-		api_key: DF.Data | None
+		api_key: DF.Password | None
 		api_secret: DF.Password | None
 		command: DF.Data | None
 		command_args: DF.JSON | None
@@ -42,26 +88,63 @@ class AIMCPConnection(Document):
 		self.connection_name = (self.connection_name or "").strip()
 		self._normalize_mcp_config()
 		if self.connection_type == "stdio":
-			if not (self.command or "").strip():
-				frappe.throw(_("Command is required for stdio connections."), title=_("Missing Command"))
-			self.endpoint_url = None
-		elif self.connection_type == "SSE":
-			if not (self.endpoint_url or "").strip():
-				frappe.throw(_("Endpoint URL is required for SSE connections."), title=_("Missing Endpoint"))
-			self.command = None
-		elif self.connection_type == "streamable-http":
-			if not (self.endpoint_url or "").strip():
-				frappe.throw(_("Endpoint URL is required for streamable-http connections."), title=_("Missing Endpoint"))
-			self.command = None
+			self._validate_stdio()
+		elif self.connection_type in ("SSE", "streamable-http"):
+			self._validate_remote()
 		else:
 			frappe.throw(_("Connection Type must be stdio, SSE, or streamable-http."), title=_("Invalid Connection Type"))
-		if self.environment_variables:
-			try:
-				value = json.loads(self.environment_variables) if isinstance(self.environment_variables, str) else self.environment_variables
-			except (TypeError, ValueError) as e:
-				frappe.throw(_("Environment Variables must be valid JSON: {0}").format(e), title=_("Invalid JSON"))
-			if not isinstance(value, dict):
-				frappe.throw(_("Environment Variables must be a JSON object."), title=_("Invalid JSON"))
+		self._validate_environment_variables()
+		# `mcp_config` is import-only: it was folded into the structured fields above.
+		# Keeping a second copy would let the two drift apart.
+		self.mcp_config = None
+
+	def _validate_stdio(self):
+		if not (self.command or "").strip():
+			frappe.throw(_("Command is required for stdio connections."), title=_("Missing Command"))
+		try:
+			executable, args = split_stdio_command(self.command, self.command_args)
+		except ValueError as e:
+			frappe.throw(_("Invalid stdio command: {0}").format(e), title=_("Invalid Command"))
+		if bad := _FORBIDDEN_EXECUTABLE_CHARS.intersection(executable):
+			frappe.throw(
+				_("Command must be a single executable, without shell characters ({0}). Put arguments in Command Arguments.").format(
+					" ".join(sorted(bad, key=repr)).strip() or _("whitespace")
+				),
+				title=_("Invalid Command"),
+			)
+		self.command = executable
+		self.command_args = json.dumps(args)
+		self.endpoint_url = None
+
+	def _validate_remote(self):
+		url = (self.endpoint_url or "").strip()
+		if not url:
+			frappe.throw(
+				_("Endpoint URL is required for {0} connections.").format(self.connection_type),
+				title=_("Missing Endpoint"),
+			)
+		parsed = urlparse(url)
+		if parsed.scheme not in ("http", "https") or not parsed.netloc:
+			frappe.throw(_("Endpoint URL must be a valid http(s) URL."), title=_("Invalid Endpoint"))
+		self.endpoint_url = url
+		self.command = None
+		self.command_args = None
+
+	def _validate_environment_variables(self):
+		if not self.environment_variables:
+			return
+		value = _load_json(self.environment_variables, _("Environment Variables"))
+		if not isinstance(value, dict):
+			frappe.throw(_("Environment Variables must be a JSON object."), title=_("Invalid JSON"))
+		for key, item in value.items():
+			if not _ENV_NAME.match(str(key)):
+				frappe.throw(_("Invalid environment variable name: {0}").format(key), title=_("Invalid JSON"))
+			if not isinstance(item, str):
+				frappe.throw(
+					_("Environment variable {0} must be a string (quote the value).").format(key),
+					title=_("Invalid JSON"),
+				)
+		self.environment_variables = json.dumps(value)
 
 	def _normalize_mcp_config(self):
 		if not getattr(self, "mcp_config", None):
