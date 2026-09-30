@@ -1,4 +1,8 @@
-"""Bring existing `AI MCP Connection` rows to the structured field format.
+"""TEMPORARY ONE-TIME MIGRATION — TO BE REMOVED once every site has been migrated.
+
+To remove: delete this file and its line in `frappe_ai/patches.txt`.
+
+Bring existing `AI MCP Connection` rows to the structured field format.
 
 - stdio: `command` becomes the executable alone, `command_args` a JSON list of strings.
 - `environment_variables`: scalar values are stringified (subprocess environments are strings).
