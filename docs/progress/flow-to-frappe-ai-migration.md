@@ -200,7 +200,7 @@ migration plan for `frappe_ai`.
       chat/streaming belongs to Agno's `Agent` and model classes in Phase 3, not here
 - [x] Tests: `test_model.py` (rewritten for the reduced `lib/model.py` — provider-slug
       lookup and credential resolution, not chat/streaming), `test_safe_exec.py`,
-      `test_conditions.py`, `test_ai_provider.py`, `test_ai_model.py` — 69 tests total, 62
+      `test_conditions.py`, `tests/doctype/ai_provider/test_ai_provider.py`, `tests/doctype/ai_model/test_ai_model.py` — 69 tests total, 62
       passing
 
 ### Deviations from the original plan

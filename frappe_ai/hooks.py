@@ -7,6 +7,10 @@ app_license = "mit"
 
 import os as _os
 
+from frappe_ai.assistant_tools.fac_compat import install_fac_compatibility as _install_fac_compatibility
+
+_install_fac_compatibility()
+
 
 def _frappe_ai_panel_asset(filename: str) -> str:
 	path = _os.path.join(_os.path.dirname(__file__), "public", "frappe_ai_panel", filename)
@@ -207,6 +211,7 @@ scheduler_events = {
 # Phase 7's sync_builtin_assistant will also call this (see AI Model.after_insert's
 # ImportError guard); it runs independently here so builtins exist before Phase 7 lands.
 after_migrate = [
+	"frappe_ai.assistant_tools.sync.sync_decorated_tools",
 	"frappe_ai.tools.builtins.sync_builtin_tools",
 	"frappe_ai.api.fac_tools.sync_fac_tools",
 	"frappe_ai.api.migration.migrate_ai_tools",
@@ -249,13 +254,15 @@ ignore_links_on_delete = ["AI Knowledge Chunk", "AI Run", "AI Session"]
 
 # Request Events
 # ----------------
-# before_request = ["frappe_ai.utils.before_request"]
+before_request = ["frappe_ai.assistant_tools.fac_compat.ensure_fac_compatibility"]
 # after_request = ["frappe_ai.utils.after_request"]
 
 # Job Events
 # ----------
-# before_job = ["frappe_ai.utils.before_job"]
+before_job = ["frappe_ai.assistant_tools.fac_compat.ensure_fac_compatibility"]
 # after_job = ["frappe_ai.utils.after_job"]
+
+before_migrate = ["frappe_ai.assistant_tools.fac_compat.ensure_fac_compatibility"]
 
 # User Data Protection
 # --------------------

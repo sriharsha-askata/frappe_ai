@@ -109,7 +109,13 @@ def _tool_summary_from_doc(tool_name: str) -> dict[str, Any] | None:
 		return None
 	if not tool_doc.enabled:
 		return None
-	runtime_tool = tool_doc.to_tool()
+	try:
+		runtime_tool = tool_doc.to_tool()
+	except Exception:
+		# Legacy AI Tool rows can outlive the callable they imported. Frontend
+		# bootstrap is a read path and must not be taken down by one stale row;
+		# active runtime tools are resolved independently through FAC below.
+		return None
 	return {
 		"id": runtime_tool.name,
 		"name": runtime_tool.name,
@@ -130,10 +136,49 @@ def _tool_summary_from_row(row) -> dict[str, Any] | None:
 
 def _tool_summaries(agent_doc) -> list[dict[str, Any]]:
 	items: list[dict[str, Any]] = []
+	seen: set[str] = set()
+
+	plugin_rows = [
+		row
+		for row in getattr(agent_doc, "plugin_tools", []) or []
+		if getattr(row, "enabled", False) and getattr(row, "fac_tool", None)
+	]
+	if plugin_rows:
+		try:
+			from frappe_assistant_core.core.tool_registry import get_tool_registry
+
+			available = {
+				item.get("name"): item
+				for item in get_tool_registry().get_available_tools(user=frappe.session.user)
+				if item.get("name")
+			}
+		except Exception:
+			available = {}
+
+		for row in plugin_rows:
+			tool_name = row.fac_tool
+			metadata = available.get(tool_name)
+			if not metadata or tool_name in seen:
+				continue
+			description = metadata.get("description") or ""
+			items.append(
+				{
+					"id": tool_name,
+					"name": tool_name,
+					"display_name": tool_name.replace("_", " ").title(),
+					"description": description,
+					"requires_confirmation": bool(row.requires_confirmation),
+					"input_schema": metadata.get("inputSchema") or {},
+					"summary": _summarize_text(description, limit=120),
+				}
+			)
+			seen.add(tool_name)
+
 	for row in getattr(agent_doc, "tools", []) or []:
 		summary = _tool_summary_from_row(row)
-		if summary:
+		if summary and summary["name"] not in seen:
 			items.append(summary)
+			seen.add(summary["name"])
 	return items
 
 

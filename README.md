@@ -24,6 +24,14 @@ bench pip install "docling>=1.0.0"
 When Docling is present, PDF extraction uses it first and falls back to the default extractor if
 Docling is unavailable or fails.
 
+### Testing
+
+All bench tests live under `frappe_ai/tests/`:
+
+```bash
+bench --site tact.local run-tests --app frappe_ai
+```
+
 ### Contributing
 
 This app uses `pre-commit` for code formatting and linting. Please [install pre-commit](https://pre-commit.com/#installation) and enable it for this repository:
