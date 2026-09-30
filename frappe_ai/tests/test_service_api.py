@@ -101,6 +101,16 @@ class TestGetServiceConfigAuth(IntegrationTestCase):
 				get_service_config()
 
 
+class TestServiceHealth(IntegrationTestCase):
+	def test_unconfigured_base_url_reports_failure_instead_of_raising(self):
+		settings = frappe._dict(service_base_url="")
+		with patch.object(frappe, "get_cached_doc", return_value=settings):
+			result = service.service_health()
+
+		self.assertFalse(result["success"])
+		self.assertEqual(result["data"], {})
+
+
 class TestModelCallConfig(IntegrationTestCase):
 	"""Credential precedence and provider identity for the shared transport."""
 

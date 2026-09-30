@@ -107,7 +107,6 @@ def service_health() -> dict:
 	settings = frappe.get_cached_doc("AI Settings")
 	base_url = settings.service_base_url
 	if not base_url:
-		plugin_tools = _resolve_agent_plugin_tools(agent_doc, user)
 		return {
 			"success": False,
 			"message": _("AI Settings.service_base_url is not configured."),

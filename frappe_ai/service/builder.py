@@ -89,6 +89,35 @@ class PendingConfirmation(Exception):
 		return f"{PENDING_CONFIRMATION_MARKER}:{self.tool_call_id}:{self.name}:{json.dumps(self.arguments, default=str)}"
 
 
+#: `AI Agent.temperature`/`top_p` default to 1.0, which is every provider's own default.
+#: Only a value that differs is forwarded, so the defaults never reach models (e.g.
+#: reasoning models) that reject sampling parameters outright.
+_SAMPLING_DEFAULT = 1.0
+
+
+def _positive_int(value: Any) -> int | None:
+	try:
+		number = int(value)
+	except (TypeError, ValueError):
+		return None
+	return number if number > 0 else None
+
+
+def _with_generation_params(model_cfg: dict[str, Any], agent_cfg: dict[str, Any]) -> dict[str, Any]:
+	"""Apply the agent's sampling settings to the model call config.
+
+	`AI Model.params` wins when it already sets a key, so a model-level override is
+	never silently replaced by the agent's value.
+	"""
+	params = dict(model_cfg.get("params") or {})
+	for key in ("temperature", "top_p"):
+		value = agent_cfg.get(key)
+		if value is None or float(value) == _SAMPLING_DEFAULT:
+			continue
+		params.setdefault(key, float(value))
+	return {**model_cfg, "params": params}
+
+
 class AgentBuilder:
 	"""Builds one turn's Agno `Agent` from a run's Frappe-fetched config.
 
@@ -134,7 +163,7 @@ class AgentBuilder:
 			raise AgentBuildError(f"Could not fetch run config: {e}") from e
 
 		agent_cfg = config["agent"]
-		model = self._build_model(config["model"])
+		model = self._build_model(_with_generation_params(config["model"], agent_cfg))
 		tools = [
 			self._build_tool(
 				t,
@@ -156,6 +185,7 @@ class AgentBuilder:
 			instructions=None,
 			system_message_role="system",
 			tools=tools,
+			tool_call_limit=_positive_int(agent_cfg.get("max_iterations")),
 			markdown=agent_cfg["markdown"],
 			reasoning=agent_cfg["reasoning"],
 			# Agno's own session/db features are unused — Frappe (AI Session/AI Run) is

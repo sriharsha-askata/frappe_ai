@@ -8,7 +8,7 @@ from unittest.mock import patch
 
 from agno.models.message import Message
 
-from frappe_ai.service.builder import AgentBuildError, AgentBuilder
+from frappe_ai.service.builder import AgentBuildError, AgentBuilder, _positive_int, _with_generation_params
 
 
 class TestAgentBuilder(unittest.TestCase):
@@ -83,3 +83,26 @@ class TestAgentBuilder(unittest.TestCase):
 		self.assertEqual(kwargs["include_tools"], ["extract_tender_documents"])
 		self.assertEqual(kwargs["server_params"].command, connections[0]["command"])
 		self.assertEqual(kwargs["server_params"].env, connections[0]["environment_variables"])
+
+
+class TestGenerationSettings(unittest.TestCase):
+	def test_non_default_sampling_values_reach_model_params(self):
+		cfg = _with_generation_params({"params": {}}, {"temperature": 0.2, "top_p": 0.9})
+
+		self.assertEqual(cfg["params"], {"temperature": 0.2, "top_p": 0.9})
+
+	def test_default_sampling_values_are_not_forwarded(self):
+		cfg = _with_generation_params({"params": {}}, {"temperature": 1.0, "top_p": 1.0})
+
+		self.assertEqual(cfg["params"], {})
+
+	def test_model_level_params_win_over_agent_values(self):
+		cfg = _with_generation_params({"params": {"temperature": 0.0}}, {"temperature": 0.7})
+
+		self.assertEqual(cfg["params"]["temperature"], 0.0)
+
+	def test_positive_int_rejects_zero_and_garbage(self):
+		self.assertEqual(_positive_int("25"), 25)
+		self.assertIsNone(_positive_int(0))
+		self.assertIsNone(_positive_int(None))
+		self.assertIsNone(_positive_int("x"))
