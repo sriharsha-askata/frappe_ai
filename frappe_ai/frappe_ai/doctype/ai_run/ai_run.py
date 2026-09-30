@@ -38,8 +38,17 @@ from typing import Any
 import frappe
 from frappe import _
 from frappe.model.document import Document
+from frappe.utils import now_datetime
+
+#: A run in one of these states is finished; late or duplicate service callbacks must not
+#: rewrite it (a user's Stop must stay a Stop even if the model finishes afterwards).
+TERMINAL_STATUSES = ("Completed", "Failed")
 
 JSON_FIELDS = ("tool_calls", "questions", "usage", "config_snapshot", "budget_usage", "approvals")
+
+
+class RunAlreadyFinished(frappe.ValidationError):
+	"""Raised when a result or failure is applied to a run that is already Completed/Failed."""
 
 
 class AIRun(Document):
@@ -62,6 +71,7 @@ class AIRun(Document):
 		questions: DF.JSON | None
 		reference_doctype: DF.Link | None
 		reference_name: DF.DynamicLink | None
+		segment_started_at: DF.Datetime | None
 		session: DF.Link
 		source: DF.Literal["Manual", "Trigger"]
 		status: DF.Literal["Running", "Paused", "Completed", "Failed"]
@@ -102,7 +112,11 @@ class AIRun(Document):
 		Resume re-invokes this on the same run: `iterations` and `usage` **accumulate**
 		here rather than overwrite, so a paused-then-resumed run's counters reflect the
 		whole run, not just the latest segment.
+
+		Raises:
+			RunAlreadyFinished: If the run is already Completed or Failed.
 		"""
+		self._assert_not_finished()
 		self.status = result.get("status") or "Completed"
 		self.iterations = (self.iterations or 0) + int(result.get("iterations") or 0)
 		self.output = result.get("output")
@@ -118,8 +132,17 @@ class AIRun(Document):
 			session = frappe.get_doc("AI Session", self.session)
 			session.append_run_messages(new_messages, run=self.name)
 
+	def _assert_not_finished(self) -> None:
+		if self.status in TERMINAL_STATUSES:
+			raise RunAlreadyFinished(_("Run {0} is already {1}.").format(self.name, self.status))
+
 	def mark_failed(self, error: str) -> None:
-		"""Mark a run as failed with the given error message."""
+		"""Mark a run as failed with the given error message.
+
+		Raises:
+			RunAlreadyFinished: If the run is already Completed or Failed.
+		"""
+		self._assert_not_finished()
 		self.status = "Failed"
 		self.error = str(error)[:5000]
 		self.save(ignore_permissions=True)
@@ -229,6 +252,7 @@ def create_run(
 			"session": session,
 			"config_snapshot": _dump_json(config_snapshot) if config_snapshot else None,
 			"status": "Running",
+			"segment_started_at": now_datetime(),
 		}
 	).insert(ignore_permissions=True)
 	return doc

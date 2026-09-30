@@ -19,7 +19,10 @@ def consume(run: str, *, mutation: bool = False, records: int = 1) -> None:
 		raise BudgetExceeded(_("Run is no longer active."))
 	snapshot = json.loads(doc.config_snapshot or "{}")
 	limits = snapshot.get("budgets") or snapshot
-	if doc.creation and (now_datetime() - get_datetime(doc.creation)).total_seconds() > limits.get("max_runtime_seconds", 600):
+	# Active time in the current segment: a run resumed after a long wait for approval
+	# starts a fresh segment (`resume_run`), so the human's wait does not count.
+	segment_start = doc.segment_started_at or doc.creation
+	if segment_start and (now_datetime() - get_datetime(segment_start)).total_seconds() > limits.get("max_runtime_seconds", 600):
 		raise BudgetExceeded(_("Run runtime budget exceeded."))
 	usage = json.loads(doc.budget_usage or "{}")
 	usage.setdefault("tool_calls", 0)

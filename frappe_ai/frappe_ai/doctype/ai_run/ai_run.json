@@ -22,6 +22,7 @@
   "questions",
   "usage",
   "budget_usage",
+  "segment_started_at",
   "approvals",
   "config_snapshot",
   "section_break_error",
@@ -155,6 +156,14 @@
    "fieldtype": "JSON",
    "hidden": 1,
    "label": "Approvals",
+   "read_only": 1
+  },
+  {
+   "description": "Start of the current active segment (run creation, or the latest resume). The runtime budget is measured from here so time spent Paused does not count.",
+   "fieldname": "segment_started_at",
+   "fieldtype": "Datetime",
+   "hidden": 1,
+   "label": "Segment Started At",
    "read_only": 1
   },
   {

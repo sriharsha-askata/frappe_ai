@@ -630,6 +630,80 @@ class TestPersistenceCallbacks(IntegrationTestCase):
 		self.assertEqual(result["status"], "Completed")
 
 
+class TestFinishedRunGuards(IntegrationTestCase):
+	"""A Completed/Failed run is final: late or duplicate service callbacks are ignored."""
+
+	def setUp(self):
+		self._original_secret = frappe.conf.get("frappe_ai_service_secret")
+		frappe.conf.frappe_ai_service_secret = TEST_SECRET
+		frappe.set_user("Administrator")
+		agent = _model_and_agent("Finished Run Agent")
+		self.run_name = api.start_run(input="hello", agent=agent)["run"]
+
+	def tearDown(self):
+		if self._original_secret is None:
+			frappe.conf.pop("frappe_ai_service_secret", None)
+		else:
+			frappe.conf.frappe_ai_service_secret = self._original_secret
+		frappe.set_user("Administrator")
+		frappe.db.rollback()
+
+	def _persist(self, result):
+		with patch("frappe.get_request_header", new=_patch_request_header(TEST_SECRET)):
+			return api.persist_run_result(self.run_name, result)
+
+	def _fail(self, error="boom"):
+		with patch("frappe.get_request_header", new=_patch_request_header(TEST_SECRET)):
+			return api.fail_run(self.run_name, error)
+
+	def test_persist_after_completed_is_ignored(self):
+		self._persist({"status": "Completed", "iterations": 1, "output": "first", "messages": []})
+
+		result = self._persist({"status": "Completed", "iterations": 1, "output": "second", "messages": []})
+
+		self.assertTrue(result["ignored"])
+		self.assertEqual(frappe.db.get_value("AI Run", self.run_name, "output"), "first")
+
+	def test_fail_after_completed_is_ignored(self):
+		self._persist({"status": "Completed", "iterations": 1, "output": "done", "messages": []})
+
+		result = self._fail()
+
+		self.assertEqual(result, {"status": "Completed", "ignored": True})
+		self.assertFalse(frappe.db.get_value("AI Run", self.run_name, "error"))
+
+	def test_user_stop_is_not_overwritten_by_late_completion(self):
+		api.stop_run(self.run_name)
+
+		result = self._persist({"status": "Completed", "iterations": 1, "output": "late", "messages": []})
+
+		self.assertTrue(result["ignored"])
+		self.assertEqual(frappe.db.get_value("AI Run", self.run_name, "status"), "Failed")
+
+	def test_duplicate_fail_is_ignored(self):
+		self._fail("first")
+
+		result = self._fail("second")
+
+		self.assertTrue(result["ignored"])
+		self.assertEqual(frappe.db.get_value("AI Run", self.run_name, "error"), "first")
+
+	def test_paused_run_can_still_complete(self):
+		self._persist(
+			{
+				"status": "Paused",
+				"iterations": 1,
+				"messages": [],
+				"questions": [{"key": "c1", "name": "read", "arguments": {}, "prompt": "ok?"}],
+			}
+		)
+
+		result = self._persist({"status": "Completed", "iterations": 1, "output": "done", "messages": []})
+
+		self.assertEqual(result["status"], "Completed")
+		self.assertNotIn("ignored", result)
+
+
 class TestFrontendAPI(IntegrationTestCase):
 	def tearDown(self):
 		frappe.set_user("Administrator")
