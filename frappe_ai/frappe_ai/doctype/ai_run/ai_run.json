@@ -22,6 +22,7 @@
   "questions",
   "usage",
   "budget_usage",
+  "approvals",
   "config_snapshot",
   "section_break_error",
   "error",
@@ -146,6 +147,14 @@
    "fieldtype": "JSON",
    "hidden": 1,
    "label": "Token Usage",
+   "read_only": 1
+  },
+  {
+   "description": "User approvals for confirmation-required tool calls, keyed by tool call id. Written only by resume_run; consumed (single use) by tool dispatch.",
+   "fieldname": "approvals",
+   "fieldtype": "JSON",
+   "hidden": 1,
+   "label": "Approvals",
    "read_only": 1
   },
   {

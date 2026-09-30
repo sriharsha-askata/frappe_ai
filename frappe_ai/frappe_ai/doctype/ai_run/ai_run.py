@@ -31,6 +31,7 @@ work around.
 
 from __future__ import annotations
 
+import hashlib
 import json
 from typing import Any
 
@@ -38,7 +39,7 @@ import frappe
 from frappe import _
 from frappe.model.document import Document
 
-JSON_FIELDS = ("tool_calls", "questions", "usage", "config_snapshot", "budget_usage")
+JSON_FIELDS = ("tool_calls", "questions", "usage", "config_snapshot", "budget_usage", "approvals")
 
 
 class AIRun(Document):
@@ -50,6 +51,7 @@ class AIRun(Document):
 	if TYPE_CHECKING:
 		from frappe.types import DF
 
+		approvals: DF.JSON | None
 		config_snapshot: DF.JSON | None
 		error: DF.LongText | None
 		feedback_comment: DF.SmallText | None
@@ -121,6 +123,57 @@ class AIRun(Document):
 		self.status = "Failed"
 		self.error = str(error)[:5000]
 		self.save(ignore_permissions=True)
+
+
+def approval_hash(arguments: dict[str, Any] | None) -> str:
+	"""Stable digest of a tool call's arguments, so an approval covers exactly the
+	arguments the user was shown and nothing else."""
+	canonical = json.dumps(arguments or {}, sort_keys=True, separators=(",", ":"), default=str)
+	return hashlib.sha256(canonical.encode("utf-8")).hexdigest()
+
+
+def record_approvals(run: "AIRun", answers: dict[str, Any]) -> list[str]:
+	"""Record the user's `"Approve"` answers for this run's pending questions.
+
+	Called only from the user-authenticated `resume_run`, never from the service, so a
+	compromised service cannot approve its own calls. Each approval binds a tool call id
+	to the tool name and the argument digest stored with the question the user saw.
+
+	Args:
+		run: The Paused `AI Run`.
+		answers: `{call_id: "Approve" | "Deny" | feedback}` from the resume request.
+
+	Returns:
+		list[str]: Call ids recorded as approved.
+	"""
+	questions = {q.get("key"): q for q in json.loads(run.questions) if isinstance(q, dict)} if run.questions else {}
+	approvals = json.loads(run.approvals) if run.approvals else {}
+	recorded = []
+	for call_id, answer in answers.items():
+		question = questions.get(call_id)
+		if answer != "Approve" or question is None:
+			continue
+		approvals[call_id] = {"tool": question.get("name"), "args_hash": approval_hash(question.get("arguments"))}
+		recorded.append(call_id)
+	run.db_set("approvals", json.dumps(approvals), update_modified=False)
+	return recorded
+
+
+def consume_approval(run: str, call_id: str | None, tool: str, arguments: dict[str, Any] | None) -> bool:
+	"""Use up the approval for `call_id`, if one exists for exactly this tool and arguments.
+
+	Single use: a matching approval is removed, so an approved call cannot be replayed.
+	"""
+	if not call_id:
+		return False
+	doc = frappe.get_doc("AI Run", run, for_update=True)
+	approvals = json.loads(doc.approvals) if doc.approvals else {}
+	approval = approvals.get(call_id)
+	if not approval or approval.get("tool") != tool or approval.get("args_hash") != approval_hash(arguments):
+		return False
+	approvals.pop(call_id)
+	doc.db_set("approvals", json.dumps(approvals), update_modified=False)
+	return True
 
 
 def assert_run_owner(run) -> None:

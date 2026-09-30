@@ -582,7 +582,7 @@ async def _dispatch_approved(
 		dispatch = (
 			frappe_client.dispatch_plugin_tool if question["name"] in fac_tool_names else frappe_client.dispatch_tool
 		)
-		response = await dispatch(question["name"], user, question.get("arguments") or {}, run=run)
+		response = await dispatch(question["name"], user, question.get("arguments") or {}, run=run, call_id=call_id)
 		result = response.get("result") if "error" not in response else {"error": response["error"]}
 		results.append({"id": call_id, "name": question["name"], "arguments": question.get("arguments") or {}, "result": result})
 	return results

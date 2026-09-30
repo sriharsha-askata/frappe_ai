@@ -22,7 +22,7 @@ from frappe.tests import IntegrationTestCase
 
 from frappe_ai.api import api, dispatch, frontend
 from frappe_ai.assistant_tools.native import SearchKnowledgeTool, UpdateMemoryTool
-from frappe_ai.frappe_ai.doctype.ai_run.ai_run import create_run
+from frappe_ai.frappe_ai.doctype.ai_run.ai_run import create_run, record_approvals
 from frappe_ai.tools.builtins import sync_builtin_tools
 
 TEST_SECRET = "test-service-secret-for-dispatch-tests"
@@ -92,6 +92,90 @@ class TestDispatchToolServiceSecretAuth(IntegrationTestCase):
 		with patch("frappe.get_request_header", new=_patch_request_header("wrong")):
 			with self.assertRaises(frappe.AuthenticationError):
 				dispatch.dispatch_tool(tool="read", user="Administrator", arguments={"doctype": "DocType"})
+
+
+class TestDispatchConfirmationEnforcement(IntegrationTestCase):
+	"""Confirmation-required tools run only for a call the user approved (recorded by
+	`resume_run`), no matter what the service asks for."""
+
+	ARGS = {"doctype": "ToDo", "names": []}
+
+	def setUp(self):
+		self._original_secret = frappe.conf.get("frappe_ai_service_secret")
+		frappe.conf.frappe_ai_service_secret = TEST_SECRET
+		sync_builtin_tools()
+		self.run_name = _active_run_for("Administrator")
+		frappe.db.set_value(
+			"AI Run",
+			self.run_name,
+			"questions",
+			json.dumps([{"key": "call-1", "name": "delete", "arguments": self.ARGS, "prompt": "Delete?"}]),
+		)
+
+	def tearDown(self):
+		if self._original_secret is None:
+			frappe.conf.pop("frappe_ai_service_secret", None)
+		else:
+			frappe.conf.frappe_ai_service_secret = self._original_secret
+		frappe.set_user("Administrator")
+		frappe.db.rollback()
+
+	def _dispatch(self, call_id="call-1", arguments=None):
+		with patch("frappe.get_request_header", new=_patch_request_header(TEST_SECRET)):
+			return dispatch.dispatch_tool(
+				tool="delete",
+				user="Administrator",
+				arguments=self.ARGS if arguments is None else arguments,
+				run=self.run_name,
+				call_id=call_id,
+			)
+
+	def _approve(self, call_id="call-1"):
+		record_approvals(frappe.get_doc("AI Run", self.run_name), {call_id: "Approve"})
+
+	def test_unapproved_call_is_refused(self):
+		with self.assertRaises(frappe.PermissionError):
+			self._dispatch()
+
+	def test_approved_call_runs(self):
+		self._approve()
+		self.assertIsInstance(self._dispatch(), dict)
+
+	def test_approval_is_single_use(self):
+		self._approve()
+		self._dispatch()
+		with self.assertRaises(frappe.PermissionError):
+			self._dispatch()
+
+	def test_changed_arguments_are_refused(self):
+		self._approve()
+		with self.assertRaises(frappe.PermissionError):
+			self._dispatch(arguments={"doctype": "ToDo", "names": ["TODO-1"]})
+
+	def test_approval_for_another_call_id_is_refused(self):
+		self._approve()
+		with self.assertRaises(frappe.PermissionError):
+			self._dispatch(call_id="call-2")
+
+	def test_denied_or_redirected_answers_record_nothing(self):
+		record_approvals(frappe.get_doc("AI Run", self.run_name), {"call-1": "Deny"})
+		with self.assertRaises(frappe.PermissionError):
+			self._dispatch()
+
+	def test_auto_approve_run_skips_the_check(self):
+		frappe.db.set_value("AI Run", self.run_name, "config_snapshot", json.dumps({"auto_approve": True}))
+		self.assertIsInstance(self._dispatch(call_id=None), dict)
+
+	def test_non_confirmation_tool_needs_no_approval(self):
+		with patch("frappe.get_request_header", new=_patch_request_header(TEST_SECRET)):
+			result = dispatch.dispatch_tool(
+				tool="read",
+				user="Administrator",
+				arguments={"doctype": "DocType"},
+				run=self.run_name,
+				call_id=None,
+			)
+		self.assertIn("result", result)
 
 
 class TestDispatchToolActingUserScoping(IntegrationTestCase):
@@ -684,6 +768,9 @@ class TestFrontendAPI(IntegrationTestCase):
 		self.assertEqual(result["session"], started["session"])
 		self.assertIn("token", result)
 		self.assertIn("stream_url", result)
+		approvals = json.loads(frappe.db.get_value("AI Run", started["run"], "approvals"))
+		self.assertEqual(approvals["call_1"]["tool"], "read")
+		self.assertTrue(approvals["call_1"]["args_hash"])
 
 	def test_frontend_agent_tools_and_run_feedback_are_normalized(self):
 		agent = _model_and_agent("Frontend Tool Meta Agent")

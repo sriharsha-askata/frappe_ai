@@ -237,7 +237,7 @@ class AgentBuilder:
 				raise PendingConfirmation(tool_call_id=call_id or "", name=name, arguments=kwargs)
 
 			dispatch = self.frappe_client.dispatch_plugin_tool if tool_cfg.get("source") == "fac" else self.frappe_client.dispatch_tool
-			response = await dispatch(name, user, kwargs, run=run)
+			response = await dispatch(name, user, kwargs, run=run, call_id=call_id)
 			if "error" in response:
 				return {"error": response["error"]}
 			return response.get("result")

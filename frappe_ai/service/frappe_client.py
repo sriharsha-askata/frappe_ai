@@ -135,7 +135,7 @@ class FrappeClient:
 		"""
 		return await self._get_json(GET_FALLBACK_MODEL_CONFIG_METHOD, params={"user": user})
 
-	async def dispatch_tool(self, tool: str, user: str, arguments: dict[str, Any] | None = None, *, run: str) -> dict[str, Any]:
+	async def dispatch_tool(self, tool: str, user: str, arguments: dict[str, Any] | None = None, *, run: str, call_id: str | None = None) -> dict[str, Any]:
 		"""Execute one Frappe-touching tool call as `user` (ADR 0003).
 
 		Args:
@@ -144,6 +144,8 @@ class FrappeClient:
 			arguments (dict[str, Any] | None): Keyword arguments for the tool.
 			run (str): `AI Run` the call belongs to; Frappe rejects calls for runs that
 				are inactive or not owned by `user`.
+			call_id (str | None): Model tool-call id; Frappe matches it to the user's
+				approval for confirmation-required tools.
 
 		Returns:
 			dict[str, Any]: `{"result": ...}` on success or `{"error": "..."}` if the
@@ -156,15 +158,15 @@ class FrappeClient:
 		"""
 		return await self._post_json(
 			DISPATCH_TOOL_METHOD,
-			json={"tool": tool, "user": user, "arguments": arguments or {}, "run": run},
+			json={"tool": tool, "user": user, "arguments": arguments or {}, "run": run, "call_id": call_id},
 			timeout=TOOL_DISPATCH_TIMEOUT_SECONDS,
 		)
 
-	async def dispatch_plugin_tool(self, tool: str, user: str, arguments: dict[str, Any] | None = None, *, run: str) -> dict[str, Any]:
+	async def dispatch_plugin_tool(self, tool: str, user: str, arguments: dict[str, Any] | None = None, *, run: str, call_id: str | None = None) -> dict[str, Any]:
 		"""Execute a same-site Assistant Core tool through its registry."""
 		return await self._post_json(
 			DISPATCH_PLUGIN_TOOL_METHOD,
-			json={"tool": tool, "user": user, "arguments": arguments or {}, "run": run},
+			json={"tool": tool, "user": user, "arguments": arguments or {}, "run": run, "call_id": call_id},
 			timeout=TOOL_DISPATCH_TIMEOUT_SECONDS,
 		)
 

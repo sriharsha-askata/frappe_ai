@@ -28,11 +28,11 @@ Two things make that true here:
 Every call must also name a live run owned by the acting user (`_require_active_run`),
 so the secret alone cannot be used to act as an arbitrary user or to sidestep budgets.
 
-Confirmation (`requires_confirmation`) is decided by the service, not here: the
-service already has each tool's flag from `get_agent_tools` and only calls dispatch
-once a call is actually approved (or `auto_approve` is set). Dispatch always
-executes what it's asked to execute — it is not a confirmation gate, only a
-permission boundary.
+Confirmation (`requires_confirmation`) is enforced here too, not only in the service
+(`_enforce_confirmation`): a confirmation-required call runs only if the user's approval
+for that exact call id, tool and argument digest is on record on the `AI Run` (written by
+`resume_run`, single use), or the run was started with `auto_approve`. The service still
+raises `PendingConfirmation` to pause the UI, but a compromised service can no longer skip it.
 
 A tool that raises is caught and returned as `{"error": ...}` truncated to 500
 chars, exactly as `flow`'s in-process tool calls behave — a failing tool must never
@@ -51,7 +51,9 @@ _ERROR_LIMIT = 500
 
 
 @frappe.whitelist(allow_guest=True)
-def dispatch_tool(tool: str, user: str, arguments: dict | None = None, run: str | None = None) -> dict:
+def dispatch_tool(
+	tool: str, user: str, arguments: dict | None = None, run: str | None = None, call_id: str | None = None
+) -> dict:
 	"""Execute one `AI Tool` call on behalf of `user`, enforcing that user's permissions.
 
 	Args:
@@ -82,6 +84,7 @@ def dispatch_tool(tool: str, user: str, arguments: dict | None = None, run: str 
 	tool_doc = frappe.get_doc("AI Tool", tool)
 	if not tool_doc.enabled:
 		frappe.throw(_("Tool {0} is disabled.").format(tool), title=_("Tool Disabled"))
+	_enforce_confirmation(run, tool, call_id, arguments, bool(tool_doc.requires_confirmation))
 
 	previous_user = frappe.session.user
 	previous_local_user = getattr(frappe.local, "user", None)
@@ -101,7 +104,9 @@ def dispatch_tool(tool: str, user: str, arguments: dict | None = None, run: str 
 
 
 @frappe.whitelist(allow_guest=True)
-def dispatch_plugin_tool(tool: str, user: str, arguments: dict | None = None, run: str | None = None) -> dict:
+def dispatch_plugin_tool(
+	tool: str, user: str, arguments: dict | None = None, run: str | None = None, call_id: str | None = None
+) -> dict:
 	"""Execute a local Assistant Core tool under the run's acting user.
 
 	This is deliberately separate from ``dispatch_tool`` while existing sites are
@@ -113,6 +118,7 @@ def dispatch_plugin_tool(tool: str, user: str, arguments: dict | None = None, ru
 	if not frappe.db.exists("User", user):
 		frappe.throw(_("User {0} does not exist.").format(user), frappe.DoesNotExistError)
 	_require_active_run(run, user)
+	_enforce_confirmation(run, tool, call_id, arguments, _plugin_requires_confirmation(run, tool))
 
 	previous_user = frappe.session.user
 	previous_local_user = getattr(frappe.local, "user", None)
@@ -186,6 +192,53 @@ def _require_active_run(run: str | None, user: str) -> None:
 		frappe.throw(_("Run {0} is not active (status: {1}).").format(run, row.status), frappe.PermissionError)
 	if row.owner != user:
 		frappe.throw(_("Run {0} does not belong to {1}.").format(run, user), frappe.PermissionError)
+
+
+#: Tools whose scope (agent, knowledge bases, model) is injected server-side from the run
+#: (`_resolve_plugin_context`), so the model cannot aim them anywhere. They may run even when
+#: an agent has no explicit binding row for them.
+_RUN_SCOPED_TOOLS = frozenset({"search_knowledge", "update_memory", "load_full_document_text"})
+
+
+def _plugin_requires_confirmation(run: str, tool: str) -> bool:
+	"""Whether the run's agent requires approval for `tool`.
+
+	The agent's own binding row is authoritative. A tool the agent has not bound at all is
+	never one the model was offered, so it fails closed (approval required, which the
+	service cannot supply) unless it is a run-scoped internal tool.
+	"""
+	run_doc = frappe.get_doc("AI Run", run)
+	session_doc = frappe.get_doc("AI Session", run_doc.session)
+	agent_doc = frappe.get_doc("AI Agent", session_doc.agent)
+	rows = [row for row in agent_doc.get("plugin_tools") or [] if row.enabled and row.fac_tool == tool]
+	if rows:
+		return any(bool(row.requires_confirmation) for row in rows)
+	return tool not in _RUN_SCOPED_TOOLS
+
+
+def _enforce_confirmation(
+	run: str, tool: str, call_id: str | None, arguments: dict | None, requires_confirmation: bool
+) -> None:
+	"""Refuse a confirmation-required call unless the user approved exactly this call.
+
+	Approval is recorded on the `AI Run` by the user-authenticated `resume_run` and is
+	single-use (`consume_approval`), so the service cannot approve its own calls or replay
+	an approved one. Runs started with `auto_approve` (agent/trigger setting) skip the check.
+
+	Raises:
+		frappe.PermissionError: If approval is required and not on record for this call.
+	"""
+	if not requires_confirmation:
+		return
+	run_doc = frappe.get_doc("AI Run", run)
+	snapshot = frappe.parse_json(run_doc.config_snapshot) if run_doc.config_snapshot else {}
+	if snapshot.get("auto_approve"):
+		return
+	from frappe_ai.frappe_ai.doctype.ai_run.ai_run import consume_approval
+
+	if consume_approval(run, call_id, tool, arguments):
+		return
+	frappe.throw(_("Tool {0} needs the user's approval for this call.").format(tool), frappe.PermissionError)
 
 
 def _record_count(arguments: dict) -> int:

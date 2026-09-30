@@ -37,6 +37,7 @@ class TestFrappeClient(unittest.IsolatedAsyncioTestCase):
 				"user": "Administrator",
 				"arguments": {"enquiry": "E-1"},
 				"run": "RUN-1",
+				"call_id": None,
 			},
 			timeout=TOOL_DISPATCH_TIMEOUT_SECONDS,
 		)

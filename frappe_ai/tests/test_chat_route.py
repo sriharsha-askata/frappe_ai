@@ -101,7 +101,7 @@ class TestStreamChatProviderAndConfirmation(unittest.IsolatedAsyncioTestCase):
 			]
 
 		client.dispatch_tool.assert_awaited_once_with(
-			"create_record", "Administrator", {"title": "Created"}, run="RUN-3"
+			"create_record", "Administrator", {"title": "Created"}, run="RUN-3", call_id="call-1"
 		)
 		payload = json.loads(frames[-1].split(b"data: ", 1)[1])
 		self.assertEqual(payload["status"], "Completed")
