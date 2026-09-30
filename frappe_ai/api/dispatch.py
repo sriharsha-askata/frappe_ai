@@ -25,6 +25,9 @@ Two things make that true here:
    imply. This is the actual mechanism behind ADR 0003 — the secret authenticates
    the *process*, `set_user` scopes the *permissions*.
 
+Every call must also name a live run owned by the acting user (`_require_active_run`),
+so the secret alone cannot be used to act as an arbitrary user or to sidestep budgets.
+
 Confirmation (`requires_confirmation`) is decided by the service, not here: the
 service already has each tool's flag from `get_agent_tools` and only calls dispatch
 once a call is actually approved (or `auto_approve` is set). Dispatch always
@@ -74,6 +77,7 @@ def dispatch_tool(tool: str, user: str, arguments: dict | None = None, run: str 
 
 	if not frappe.db.exists("User", user):
 		frappe.throw(_("User {0} does not exist.").format(user), frappe.DoesNotExistError)
+	_require_active_run(run, user)
 
 	tool_doc = frappe.get_doc("AI Tool", tool)
 	if not tool_doc.enabled:
@@ -108,6 +112,7 @@ def dispatch_plugin_tool(tool: str, user: str, arguments: dict | None = None, ru
 	_verify_service_secret()
 	if not frappe.db.exists("User", user):
 		frappe.throw(_("User {0} does not exist.").format(user), frappe.DoesNotExistError)
+	_require_active_run(run, user)
 
 	previous_user = frappe.session.user
 	previous_local_user = getattr(frappe.local, "user", None)
@@ -159,6 +164,28 @@ def dispatch_plugin_tool(tool: str, user: str, arguments: dict | None = None, ru
 	finally:
 		frappe.set_user(previous_user)
 		frappe.local.user = previous_local_user
+
+
+def _require_active_run(run: str | None, user: str) -> None:
+	"""Bind a dispatch to a live run owned by the acting user.
+
+	The shared secret authenticates the *process*; without this check anyone holding it
+	could name any `user` and skip every per-run control (budgets, agent/KB scoping).
+	A call is only honoured for a run that is still active and belongs to `user`.
+
+	Raises:
+		frappe.PermissionError: If `run` is missing, not active, or owned by someone else.
+		frappe.DoesNotExistError: If `run` does not exist.
+	"""
+	if not run:
+		frappe.throw(_("A run is required to dispatch a tool call."), frappe.PermissionError)
+	row = frappe.db.get_value("AI Run", run, ["status", "owner"], as_dict=True)
+	if not row:
+		frappe.throw(_("Run {0} was not found.").format(run), frappe.DoesNotExistError)
+	if row.status not in ("Running", "Paused"):
+		frappe.throw(_("Run {0} is not active (status: {1}).").format(run, row.status), frappe.PermissionError)
+	if row.owner != user:
+		frappe.throw(_("Run {0} does not belong to {1}.").format(run, user), frappe.PermissionError)
 
 
 def _record_count(arguments: dict) -> int:

@@ -58,6 +58,17 @@ def _model_and_agent(title: str = "API Test Agent") -> str:
 	return title
 
 
+def _active_run_for(user: str) -> str:
+	"""An active `AI Run` owned by `user`, as dispatch now requires."""
+	agent = _model_and_agent("Dispatch Bind Agent")
+	session = frappe.get_doc(
+		{"doctype": "AI Session", "agent": agent, "source": "Manual", "title": "Dispatch Bind Session"}
+	).insert(ignore_permissions=True)
+	run = create_run(source="Manual", input="bind", session=session.name, config_snapshot={})
+	frappe.db.set_value("AI Run", run.name, "owner", user, update_modified=False)
+	return run.name
+
+
 class TestDispatchToolServiceSecretAuth(IntegrationTestCase):
 	def setUp(self):
 		self._original_secret = frappe.conf.get("frappe_ai_service_secret")
@@ -112,24 +123,61 @@ class TestDispatchToolActingUserScoping(IntegrationTestCase):
 		frappe.db.rollback()
 
 	def test_unprivileged_user_refused_by_tool(self):
+		run = _active_run_for("test-dispatch-guest@example.com")
 		with patch("frappe.get_request_header", new=_patch_request_header(TEST_SECRET)):
 			result = dispatch.dispatch_tool(
 				tool="read",
 				user="test-dispatch-guest@example.com",
 				arguments={"doctype": "AI Provider"},
+				run=run,
 			)
 		self.assertIn("error", result)
 
 	def test_administrator_succeeds(self):
+		run = _active_run_for("Administrator")
 		with patch("frappe.get_request_header", new=_patch_request_header(TEST_SECRET)):
-			result = dispatch.dispatch_tool(tool="read", user="Administrator", arguments={"doctype": "DocType"})
+			result = dispatch.dispatch_tool(
+				tool="read", user="Administrator", arguments={"doctype": "DocType"}, run=run
+			)
 		self.assertIn("result", result)
+
+	def test_missing_run_rejected(self):
+		with patch("frappe.get_request_header", new=_patch_request_header(TEST_SECRET)):
+			with self.assertRaises(frappe.PermissionError):
+				dispatch.dispatch_tool(tool="read", user="Administrator", arguments={"doctype": "DocType"})
+
+	def test_run_owned_by_someone_else_rejected(self):
+		run = _active_run_for("test-dispatch-guest@example.com")
+		with patch("frappe.get_request_header", new=_patch_request_header(TEST_SECRET)):
+			with self.assertRaises(frappe.PermissionError):
+				dispatch.dispatch_tool(
+					tool="read", user="Administrator", arguments={"doctype": "DocType"}, run=run
+				)
+
+	def test_finished_run_rejected(self):
+		run = _active_run_for("Administrator")
+		frappe.db.set_value("AI Run", run, "status", "Completed")
+		with patch("frappe.get_request_header", new=_patch_request_header(TEST_SECRET)):
+			with self.assertRaises(frappe.PermissionError):
+				dispatch.dispatch_tool(
+					tool="read", user="Administrator", arguments={"doctype": "DocType"}, run=run
+				)
+
+	def test_unknown_run_rejected(self):
+		with patch("frappe.get_request_header", new=_patch_request_header(TEST_SECRET)):
+			with self.assertRaises(frappe.DoesNotExistError):
+				dispatch.dispatch_tool(
+					tool="read", user="Administrator", arguments={}, run="no-such-run"
+				)
 
 	def test_disabled_tool_rejected(self):
 		frappe.db.set_value("AI Tool", "read", "enabled", 0)
+		run = _active_run_for("Administrator")
 		with patch("frappe.get_request_header", new=_patch_request_header(TEST_SECRET)):
 			with self.assertRaises(frappe.ValidationError):
-				dispatch.dispatch_tool(tool="read", user="Administrator", arguments={"doctype": "DocType"})
+				dispatch.dispatch_tool(
+					tool="read", user="Administrator", arguments={"doctype": "DocType"}, run=run
+				)
 
 	def test_unknown_user_rejected(self):
 		with patch("frappe.get_request_header", new=_patch_request_header(TEST_SECRET)):
@@ -137,9 +185,10 @@ class TestDispatchToolActingUserScoping(IntegrationTestCase):
 				dispatch.dispatch_tool(tool="read", user="not-a-real-user@example.com", arguments={})
 
 	def test_tool_exception_returned_as_error_not_raised(self):
+		run = _active_run_for("Administrator")
 		with patch("frappe.get_request_header", new=_patch_request_header(TEST_SECRET)):
 			result = dispatch.dispatch_tool(
-				tool="read", user="Administrator", arguments={"doctype": "Not A Real DocType"}
+				tool="read", user="Administrator", arguments={"doctype": "Not A Real DocType"}, run=run
 			)
 		self.assertIn("error", result)
 
