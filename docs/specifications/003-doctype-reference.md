@@ -605,3 +605,14 @@ The local catalogue of Assistant Core tools contributed by installed apps.
 | `hash` | Session, Run, Knowledge Source, Agent Memory | High volume, no natural key |
 | `autoincrement` | **Knowledge Chunk** | Integer name **is** the LanceDB row `id` |
 | Single | Settings | One global config |
+
+---
+
+## Knowledge access model
+
+A knowledge base is reachable only through the agents it is attached to
+(`AI Agent Knowledge Base`). Access to the agent is the permission: retrieval does not
+re-check per-document permissions on the records a DocType source was built from, so
+anyone who can use the agent can read everything indexed in its knowledge bases. Only
+index records that everyone with access to that agent may see. (Decision recorded
+2026-09-30; see the architecture review, C9.)
