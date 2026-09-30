@@ -20,7 +20,7 @@ Whitelisted methods:
   inferred from a Frappe session, since the service has none) so permission
   checks below run as that user.
 
-Shared secret: `frappe_ai_service_secret` in `site_config.json` (ADR 0010,
+Shared secret: `frappe_ai_service_secret` in `site_config.json` (ADR 0011,
 revised) — not a DocType field. This process reads it via `frappe.conf`, the
 same file every Frappe process already loads; the FastAPI service reads the
 same file directly off disk (`frappe_ai/service/config.py`), since it never

@@ -295,7 +295,7 @@ dispatch endpoint.
    service. Detection logic itself is unchanged.
 4. **Provider validation** (1.1, 1.2) — chat execution is resolved against Agno-supported
    provider slugs; litellm is used only for provider validation and model suggestions.
-   → [ADR 0009](../decisions/0009-no-litellm-agno-native-models.md),
+   → ADR 0009 (retired),
    [ADR 0013](../decisions/0013-litellm-for-provider-ux-agno-still-executes.md)
 5. **Model id composition** (1.5) — `model_id` is a bare id resolved via the linked
    `AI Provider`, not a litellm-parsed `provider/model` string. → ADR 0009
@@ -308,7 +308,7 @@ dispatch endpoint.
 Items 4–7 are all instances of the same underlying redesign — keeping Agno as the sole
 chat execution layer while narrowing litellm to provider/model UX and validation —
 counted separately here because each touches a distinct row above. The final split is
-documented in [ADR 0009](../decisions/0009-no-litellm-agno-native-models.md) and
+documented in ADR 0009 (retired) and
 [ADR 0013](../decisions/0013-litellm-for-provider-ux-agno-still-executes.md).
 
 > **Note:** an earlier draft planned a move to ChromaDB, which would have added four more

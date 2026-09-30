@@ -3,7 +3,7 @@
 **Status:** Accepted
 **Date:** 2026-08-06
 **Deciders:** Sri Harsha Dabbiru
-**Supersedes:** [ADR 0010](0010-service-bootstrap-via-env-vars.md)
+**Supersedes:** ADR 0010 (retired)
 **Prompted by:** A gap found after Phase 2 shipped — `bench start` alone did not
 boot the `ai` process; it required `FRAPPE_AI_SERVICE_SECRET` exported by hand
 first, which nothing automated.
@@ -189,7 +189,7 @@ a problem a config file already solves with zero new infrastructure.
 ## References
 
 - [001 — Architecture §6.2, §10](../specifications/001-architecture.md)
-- [ADR 0010 — Service bootstrap via environment variables](0010-service-bootstrap-via-env-vars.md) (superseded by this ADR)
+- ADR 0010 — Service bootstrap via environment variables (retired) (superseded by this ADR)
 - [ADR 0003 — Tools execute in Frappe](0003-tools-execute-in-frappe.md) — the acting-user
   identity this bootstrap auth is distinct from
 - [ADR 0004 — SSE direct from FastAPI](0004-sse-direct-from-fastapi.md) — the run-token

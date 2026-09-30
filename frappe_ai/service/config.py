@@ -9,7 +9,7 @@ opens a database connection of its own. That creates a bootstrap ordering proble
 the service's first call to Frappe must already be authenticated, so the shared
 secret cannot itself come from that first call.
 
-Resolution (ADR 0010, revised): the secret lives in `sites/<site>/site_config.json`
+Resolution (ADR 0011): the secret lives in `sites/<site>/site_config.json`
 as `frappe_ai_service_secret` — the same file every other Frappe process (web,
 worker, console) already reads via `frappe.conf`, so there is exactly one place the
 secret is configured, not two kept in sync by hand. The FastAPI process reads that

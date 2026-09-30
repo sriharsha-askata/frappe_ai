@@ -48,7 +48,7 @@ Per-provider credential store. **Naming: `field:provider`**, lowercased in `auto
 the docname matches the Agno provider slug (e.g. `openai`, `anthropic`, `ollama`).
 
 > Chat execution has no litellm dependency (Agno's native classes only) — see
-> [ADR 0009](../decisions/0009-no-litellm-agno-native-models.md). `provider` *validation*
+> ADR 0009 (retired). `provider` *validation*
 > and `AI Model` model-id suggestions use litellm as a UX-only helper — see
 > [ADR 0013](../decisions/0013-litellm-for-provider-ux-agno-still-executes.md).
 
@@ -74,7 +74,7 @@ A callable chat model. Embeddings are application-wide Ollama configuration; the
 not represented by this DocType. **Naming: `field:title`**. `track_changes: 1`.
 
 > Chat execution has no litellm dependency (Agno's native classes only) — see
-> [ADR 0009](../decisions/0009-no-litellm-agno-native-models.md). `get_provider_models`
+> ADR 0009 (retired). `get_provider_models`
 > uses litellm as a UX-only helper — see
 > [ADR 0013](../decisions/0013-litellm-for-provider-ux-agno-still-executes.md).
 

@@ -5,7 +5,7 @@
 
 Every call carries two things Frappe needs to authenticate and route it:
 - `X-Frappe-AI-Service-Secret: <service_secret>` — proves the call comes from the
-  service process (see ADR 0010; verified server-side against
+  service process (see ADR 0011; verified server-side against
   `site_config.json`'s `frappe_ai_service_secret`). Deliberately **not** the standard `Authorization`
   header: Frappe core's `validate_auth()` intercepts any `Authorization: Bearer ...`
   header itself (treating it as an OAuth bearer token) and raises

@@ -323,7 +323,7 @@ lazily over HTTP using the bootstrap secret as a shared-secret credential, per �
 one credential duplicated across two places (env var + `AI Settings.service_secret`),
 which turned out to be the actual problem — see ADR 0011's Context for why this failed
 in practice. Full original design and alternatives considered:
-[ADR 0010](../decisions/0010-service-bootstrap-via-env-vars.md).
+ADR 0010 (retired).
 
 </details>
 
@@ -428,7 +428,7 @@ running `bench start`. Nothing in this bench sourced those automatically. Plain
 etc. were unaffected — only `ai` crashed.
 
 **Fixed via [ADR 0011](../decisions/0011-service-secret-in-site-config.md)
-(supersedes [ADR 0010](../decisions/0010-service-bootstrap-via-env-vars.md)):**
+(supersedes ADR 0010 (retired)):**
 the secret moved from a DB field (`AI Settings.service_secret`, now removed) plus
 an env var, to `site_config.json`'s `frappe_ai_service_secret` — the one file
 every Frappe process already reads. The FastAPI service reads that file directly
@@ -683,7 +683,7 @@ already exist from Phase 3, forward-built for this phase — `ai_session_attachm
 already calls `frappe_ai.knowledge.embedder.probe_dimension` behind an `ImportError` guard.
 `frappe_ai/utils/system_generated.py` (guards for `is_system_generated` rows) is also
 already ported and used as-is, no changes needed. See
-[ADR 0012](../decisions/0012-embeddings-direct-provider-sdk.md) for why embeddings call
+ADR 0012 (retired) for why embeddings call
 provider SDKs directly instead of routing through Agno (no `agno.embedder` exists) or
 litellm (ADR 0009).
 
@@ -819,7 +819,7 @@ Depends on: 4a (writes `AI Knowledge Chunk` rows), 4b (extraction/chunking), 4c/
   `libglib2.0-0` apt deploy deps RapidOCR needs. All were already present in this
   bench's shared venv (residual from `flow`'s install) — declaring them makes
   `frappe_ai` correct as a standalone install, not just working by inherited accident.
-- New [ADR 0012](../decisions/0012-embeddings-direct-provider-sdk.md): embeddings call
+- New ADR 0012 (retired): embeddings call
   provider SDKs directly (`EMBEDDING_CALLERS`, ships `openai` only), since neither
   litellm (ADR 0009) nor Agno (no `agno.embedder` package in the installed version)
   cover embeddings calls.

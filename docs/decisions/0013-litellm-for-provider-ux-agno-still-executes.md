@@ -3,7 +3,7 @@
 **Status:** Accepted
 **Date:** 2026-08-08
 **Deciders:** Sri Harsha Dabbiru
-**Amends:** [ADR 0009](0009-no-litellm-agno-native-models.md) (does not reverse it — see
+**Amends:** ADR 0009 (retired) (does not reverse it — see
 below)
 **Prompted by:** `AI Model.model_id` had zero autocomplete suggestions and
 `AI Model.provider` had drifted to an `Autocomplete` bare-string field (an
@@ -228,7 +228,7 @@ around the Link-existence requirement this ADR removes anyway.
 
 ## References
 
-- [ADR 0009 — No litellm, Agno native models](0009-no-litellm-agno-native-models.md)
+- ADR 0009 — No litellm, Agno native models (retired)
   (amended by this ADR, not reversed — chat execution stays Agno-only)
 - [ADR 0016 — Fixed Ollama embeddings](0016-fixed-ollama-embeddings.md)
   (current embedding configuration; independent of chat provider UX)

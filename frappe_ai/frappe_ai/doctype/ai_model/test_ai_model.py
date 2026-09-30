@@ -229,7 +229,7 @@ class TestContextWindow(IntegrationTestCase):
 		frappe.db.rollback()
 
 	def test_context_window_is_user_editable(self):
-		# No auto-detection (ADR 0009) — the value the user sets is what's persisted.
+		# No auto-detection — the value the user sets is what's persisted.
 		doc = frappe.get_doc(_model(context_window=128000)).insert()
 		self.assertEqual(doc.context_window, 128000)
 

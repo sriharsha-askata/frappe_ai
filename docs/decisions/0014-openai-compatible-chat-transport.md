@@ -2,7 +2,7 @@
 
 **Status:** Accepted
 **Date:** 2026-08-23
-**Amends:** [ADR 0009](0009-no-litellm-agno-native-models.md) and [ADR 0013](0013-litellm-for-provider-ux-agno-still-executes.md)
+**Amends:** ADR 0009 (retired) and [ADR 0013](0013-litellm-for-provider-ux-agno-still-executes.md)
 
 ## Context
 
