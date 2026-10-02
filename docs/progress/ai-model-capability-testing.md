@@ -1,28 +1,24 @@
-# Progress — AI Model Capability Testing
+# Progress — model capability testing
 
-## Overall status
+Behaviour: [011](../specifications/011-ai-model-capability-testing.md). Decision: [ADR 0015](../decisions/0015-configuration-time-model-capability-tests.md).
 
-Complete in code; focused mocked transport and runtime regression tests pass.
+## Status
 
-## Completed
+Complete in code. Focused tests with mocked transport and runtime regression tests pass.
 
-- Replaced the single Test Connection ping with a fresh Chat capability suite.
-- Added strict core checks, advisory warnings, and blocked dependent checks.
-- Restricted tool testing to a synthetic no-op function.
-- Added per-check UI rendering for saved AI Model forms.
-- Preserved Agno/provider diagnostics on runtime SSE error events.
-- Verified runtime AgentBuilder construction does not invoke the configuration suite.
+## What was done
 
-## Verification
+- Replaced the single "ping" with a fresh set of chat checks on every **Test Connection** click.
+- Required checks, advisory warnings, and blocked follow-up checks after a base failure.
+- Only a fake no-op tool is offered during the test.
+- Per-check results shown on the saved `AI Model` form.
+- Provider and Agno diagnostics are kept on runtime `error` events.
+- Confirmed that building an agent at run time never runs the suite.
 
-- Mocked OpenAI-compatible Chat suite: basic, streaming, tool declaration/call,
-  structured output, and bounded input request shapes.
-- Embedding capability testing is now separate from `AI Model`; all AI Model rows are chat models.
-- AI Model integration tests cover fresh invocations, warnings, blocked failures, and result contracts.
-- Existing transport, builder, and SSE route tests remain covered.
+## Checks
+
+Mocked OpenAI-compatible requests for basic, streaming, tool declaration and call, structured output, and larger input. `AI Model` integration tests cover fresh runs, warnings, blocked checks and the result format. Existing transport, builder and stream-route tests still cover their areas.
 
 ## Known environment issue
 
-The local `tact.local` database contains an unrelated enabled default AI Model,
-so the pre-existing `test_get_default_model_returns_none_when_none_set` fixture
-fails outside a clean test database.
+A site with an unrelated enabled default model makes the test `test_get_default_model_returns_none_when_none_set` fail. Run the tests on a clean test database.
