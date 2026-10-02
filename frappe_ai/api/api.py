@@ -37,9 +37,15 @@ from typing import Any
 
 import frappe
 from frappe import _
+from frappe.utils import now_datetime
 
 from frappe_ai.api._service_url import get_service_url
-from frappe_ai.frappe_ai.doctype.ai_run.ai_run import assert_run_owner, create_run
+from frappe_ai.frappe_ai.doctype.ai_run.ai_run import (
+	RunAlreadyFinished,
+	assert_run_owner,
+	create_run,
+	record_approvals,
+)
 from frappe_ai.frappe_ai.doctype.ai_session.ai_session import assert_session_owner, derive_title
 from frappe_ai.frappe_ai.doctype.ai_session_attachment.ai_session_attachment import resolve_attachment
 from frappe_ai.service.auth import DEFAULT_TTL_SECONDS, mint_run_token
@@ -110,7 +116,7 @@ def resume_run(run_name: str, answers: dict[str, Any] | str) -> dict[str, Any]:
 	Returns:
 		dict[str, Any]: Same shape as `start_run` — a fresh token and stream URL.
 	"""
-	_parse_answers(answers)  # validated here so a malformed payload fails before minting a token
+	parsed_answers = _parse_answers(answers)  # validated here so a malformed payload fails before minting a token
 
 	run = frappe.get_doc("AI Run", run_name)
 	assert_run_owner(run)
@@ -119,6 +125,12 @@ def resume_run(run_name: str, answers: dict[str, Any] | str) -> dict[str, Any]:
 			_("Only Paused runs can be resumed (this run is {0}).").format(run.status),
 			title=_("Cannot Resume"),
 		)
+
+	# The approval is recorded here, by the logged-in user, so dispatch can enforce it in
+	# Frappe instead of trusting the service to have asked.
+	record_approvals(run, parsed_answers)
+	# The runtime budget measures active time: a resume starts a fresh segment.
+	run.db_set("segment_started_at", now_datetime(), update_modified=False)
 
 	return _mint_stream_response(run.name, run.session, frappe.session.user)
 
@@ -285,8 +297,11 @@ def persist_run_result(run: str, result: dict | str) -> dict[str, str]:
 	original_user = frappe.session.user
 	frappe.set_user("Administrator")
 	try:
-		doc = frappe.get_doc("AI Run", run)
-		doc.apply_result(result)
+		doc = frappe.get_doc("AI Run", run, for_update=True)
+		try:
+			doc.apply_result(result)
+		except RunAlreadyFinished:
+			return {"status": doc.status, "ignored": True}
 		return {"status": doc.status}
 	finally:
 		frappe.set_user(original_user)
@@ -313,8 +328,11 @@ def fail_run(run: str, error: str) -> dict[str, str]:
 	original_user = frappe.session.user
 	frappe.set_user("Administrator")
 	try:
-		doc = frappe.get_doc("AI Run", run)
-		doc.mark_failed(error)
+		doc = frappe.get_doc("AI Run", run, for_update=True)
+		try:
+			doc.mark_failed(error)
+		except RunAlreadyFinished:
+			return {"status": doc.status, "ignored": True}
 		return {"status": doc.status}
 	finally:
 		frappe.set_user(original_user)

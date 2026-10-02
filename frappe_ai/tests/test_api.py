@@ -22,7 +22,7 @@ from frappe.tests import IntegrationTestCase
 
 from frappe_ai.api import api, dispatch, frontend
 from frappe_ai.assistant_tools.native import SearchKnowledgeTool, UpdateMemoryTool
-from frappe_ai.frappe_ai.doctype.ai_run.ai_run import create_run
+from frappe_ai.frappe_ai.doctype.ai_run.ai_run import create_run, record_approvals
 from frappe_ai.tools.builtins import sync_builtin_tools
 
 TEST_SECRET = "test-service-secret-for-dispatch-tests"
@@ -58,11 +58,12 @@ def _model_and_agent(title: str = "API Test Agent") -> str:
 	return title
 
 
-def _run_for(agent: str = "API Test Agent", **budget_overrides: int) -> str:
+def _run_for(agent: str = "API Test Agent", owner: str = "Administrator", **budget_overrides: int) -> str:
 	"""Create a real Running `AI Run` for dispatch tests to account against.
 
-	Budgets fail closed on a missing run, so a dispatch call that is supposed to
-	reach the tool needs a genuine run rather than a mocked `consume`.
+	Dispatch requires a live run owned by the acting user, and budgets fail closed on
+	a missing run, so a call that is supposed to reach the tool needs a genuine run
+	(owned by `owner`) rather than a mocked `consume`.
 	"""
 	from frappe_ai.frappe_ai.doctype.ai_run.ai_run import create_run
 
@@ -72,7 +73,10 @@ def _run_for(agent: str = "API Test Agent", **budget_overrides: int) -> str:
 	).insert(ignore_permissions=True)
 	snapshot = frappe.get_doc("AI Agent", agent)._snapshot()
 	snapshot.update(budget_overrides)
-	return create_run(source="Manual", input="hi", session=session.name, config_snapshot=snapshot).name
+	run = create_run(source="Manual", input="hi", session=session.name, config_snapshot=snapshot).name
+	if owner != "Administrator":
+		frappe.db.set_value("AI Run", run, "owner", owner, update_modified=False)
+	return run
 
 
 class TestDispatchToolServiceSecretAuth(IntegrationTestCase):
@@ -98,6 +102,90 @@ class TestDispatchToolServiceSecretAuth(IntegrationTestCase):
 		with patch("frappe.get_request_header", new=_patch_request_header("wrong")):
 			with self.assertRaises(frappe.AuthenticationError):
 				dispatch.dispatch_tool(tool="read", user="Administrator", arguments={"doctype": "DocType"})
+
+
+class TestDispatchConfirmationEnforcement(IntegrationTestCase):
+	"""Confirmation-required tools run only for a call the user approved (recorded by
+	`resume_run`), no matter what the service asks for."""
+
+	ARGS = {"doctype": "ToDo", "names": []}
+
+	def setUp(self):
+		self._original_secret = frappe.conf.get("frappe_ai_service_secret")
+		frappe.conf.frappe_ai_service_secret = TEST_SECRET
+		sync_builtin_tools()
+		self.run_name = _run_for()
+		frappe.db.set_value(
+			"AI Run",
+			self.run_name,
+			"questions",
+			json.dumps([{"key": "call-1", "name": "delete", "arguments": self.ARGS, "prompt": "Delete?"}]),
+		)
+
+	def tearDown(self):
+		if self._original_secret is None:
+			frappe.conf.pop("frappe_ai_service_secret", None)
+		else:
+			frappe.conf.frappe_ai_service_secret = self._original_secret
+		frappe.set_user("Administrator")
+		frappe.db.rollback()
+
+	def _dispatch(self, call_id="call-1", arguments=None):
+		with patch("frappe.get_request_header", new=_patch_request_header(TEST_SECRET)):
+			return dispatch.dispatch_tool(
+				tool="delete",
+				user="Administrator",
+				arguments=self.ARGS if arguments is None else arguments,
+				run=self.run_name,
+				call_id=call_id,
+			)
+
+	def _approve(self, call_id="call-1"):
+		record_approvals(frappe.get_doc("AI Run", self.run_name), {call_id: "Approve"})
+
+	def test_unapproved_call_is_refused(self):
+		with self.assertRaises(frappe.PermissionError):
+			self._dispatch()
+
+	def test_approved_call_runs(self):
+		self._approve()
+		self.assertIsInstance(self._dispatch(), dict)
+
+	def test_approval_is_single_use(self):
+		self._approve()
+		self._dispatch()
+		with self.assertRaises(frappe.PermissionError):
+			self._dispatch()
+
+	def test_changed_arguments_are_refused(self):
+		self._approve()
+		with self.assertRaises(frappe.PermissionError):
+			self._dispatch(arguments={"doctype": "ToDo", "names": ["TODO-1"]})
+
+	def test_approval_for_another_call_id_is_refused(self):
+		self._approve()
+		with self.assertRaises(frappe.PermissionError):
+			self._dispatch(call_id="call-2")
+
+	def test_denied_or_redirected_answers_record_nothing(self):
+		record_approvals(frappe.get_doc("AI Run", self.run_name), {"call-1": "Deny"})
+		with self.assertRaises(frappe.PermissionError):
+			self._dispatch()
+
+	def test_auto_approve_run_skips_the_check(self):
+		frappe.db.set_value("AI Run", self.run_name, "config_snapshot", json.dumps({"auto_approve": True}))
+		self.assertIsInstance(self._dispatch(call_id=None), dict)
+
+	def test_non_confirmation_tool_needs_no_approval(self):
+		with patch("frappe.get_request_header", new=_patch_request_header(TEST_SECRET)):
+			result = dispatch.dispatch_tool(
+				tool="read",
+				user="Administrator",
+				arguments={"doctype": "DocType"},
+				run=self.run_name,
+				call_id=None,
+			)
+		self.assertIn("result", result)
 
 
 class TestDispatchToolActingUserScoping(IntegrationTestCase):
@@ -129,7 +217,7 @@ class TestDispatchToolActingUserScoping(IntegrationTestCase):
 		frappe.db.rollback()
 
 	def test_unprivileged_user_refused_by_tool(self):
-		run = _run_for()
+		run = _run_for(owner="test-dispatch-guest@example.com")
 		with patch("frappe.get_request_header", new=_patch_request_header(TEST_SECRET)):
 			result = dispatch.dispatch_tool(
 				tool="read",
@@ -148,20 +236,42 @@ class TestDispatchToolActingUserScoping(IntegrationTestCase):
 		self.assertIn("result", result)
 
 	def test_dispatch_without_run_is_refused(self):
-		"""Budgets fail closed: a call that cannot be attributed to a run must not
-		reach the tool, or omitting `run` becomes a budget bypass."""
+		"""A call that cannot be attributed to a run must not reach the tool, or omitting
+		`run` becomes a way around both budgets and run ownership."""
 		with patch("frappe.get_request_header", new=_patch_request_header(TEST_SECRET)):
-			result = dispatch.dispatch_tool(
-				tool="read", user="Administrator", arguments={"doctype": "DocType"}
-			)
-		self.assertIn("error", result)
-		self.assertIn("run", result["error"].lower())
+			with self.assertRaises(frappe.PermissionError):
+				dispatch.dispatch_tool(tool="read", user="Administrator", arguments={"doctype": "DocType"})
+
+	def test_run_owned_by_someone_else_is_refused(self):
+		run = _run_for(owner="test-dispatch-guest@example.com")
+		with patch("frappe.get_request_header", new=_patch_request_header(TEST_SECRET)):
+			with self.assertRaises(frappe.PermissionError):
+				dispatch.dispatch_tool(
+					tool="read", user="Administrator", arguments={"doctype": "DocType"}, run=run
+				)
+
+	def test_finished_run_is_refused(self):
+		run = _run_for()
+		frappe.db.set_value("AI Run", run, "status", "Completed")
+		with patch("frappe.get_request_header", new=_patch_request_header(TEST_SECRET)):
+			with self.assertRaises(frappe.PermissionError):
+				dispatch.dispatch_tool(
+					tool="read", user="Administrator", arguments={"doctype": "DocType"}, run=run
+				)
+
+	def test_unknown_run_is_refused(self):
+		with patch("frappe.get_request_header", new=_patch_request_header(TEST_SECRET)):
+			with self.assertRaises(frappe.DoesNotExistError):
+				dispatch.dispatch_tool(tool="read", user="Administrator", arguments={}, run="no-such-run")
 
 	def test_disabled_tool_rejected(self):
 		frappe.db.set_value("AI Tool", "read", "enabled", 0)
+		run = _run_for()
 		with patch("frappe.get_request_header", new=_patch_request_header(TEST_SECRET)):
 			with self.assertRaises(frappe.ValidationError):
-				dispatch.dispatch_tool(tool="read", user="Administrator", arguments={"doctype": "DocType"})
+				dispatch.dispatch_tool(
+					tool="read", user="Administrator", arguments={"doctype": "DocType"}, run=run
+				)
 
 	def test_unknown_user_rejected(self):
 		with patch("frappe.get_request_header", new=_patch_request_header(TEST_SECRET)):
@@ -545,6 +655,80 @@ class TestPersistenceCallbacks(IntegrationTestCase):
 		self.assertEqual(result["status"], "Completed")
 
 
+class TestFinishedRunGuards(IntegrationTestCase):
+	"""A Completed/Failed run is final: late or duplicate service callbacks are ignored."""
+
+	def setUp(self):
+		self._original_secret = frappe.conf.get("frappe_ai_service_secret")
+		frappe.conf.frappe_ai_service_secret = TEST_SECRET
+		frappe.set_user("Administrator")
+		agent = _model_and_agent("Finished Run Agent")
+		self.run_name = api.start_run(input="hello", agent=agent)["run"]
+
+	def tearDown(self):
+		if self._original_secret is None:
+			frappe.conf.pop("frappe_ai_service_secret", None)
+		else:
+			frappe.conf.frappe_ai_service_secret = self._original_secret
+		frappe.set_user("Administrator")
+		frappe.db.rollback()
+
+	def _persist(self, result):
+		with patch("frappe.get_request_header", new=_patch_request_header(TEST_SECRET)):
+			return api.persist_run_result(self.run_name, result)
+
+	def _fail(self, error="boom"):
+		with patch("frappe.get_request_header", new=_patch_request_header(TEST_SECRET)):
+			return api.fail_run(self.run_name, error)
+
+	def test_persist_after_completed_is_ignored(self):
+		self._persist({"status": "Completed", "iterations": 1, "output": "first", "messages": []})
+
+		result = self._persist({"status": "Completed", "iterations": 1, "output": "second", "messages": []})
+
+		self.assertTrue(result["ignored"])
+		self.assertEqual(frappe.db.get_value("AI Run", self.run_name, "output"), "first")
+
+	def test_fail_after_completed_is_ignored(self):
+		self._persist({"status": "Completed", "iterations": 1, "output": "done", "messages": []})
+
+		result = self._fail()
+
+		self.assertEqual(result, {"status": "Completed", "ignored": True})
+		self.assertFalse(frappe.db.get_value("AI Run", self.run_name, "error"))
+
+	def test_user_stop_is_not_overwritten_by_late_completion(self):
+		api.stop_run(self.run_name)
+
+		result = self._persist({"status": "Completed", "iterations": 1, "output": "late", "messages": []})
+
+		self.assertTrue(result["ignored"])
+		self.assertEqual(frappe.db.get_value("AI Run", self.run_name, "status"), "Failed")
+
+	def test_duplicate_fail_is_ignored(self):
+		self._fail("first")
+
+		result = self._fail("second")
+
+		self.assertTrue(result["ignored"])
+		self.assertEqual(frappe.db.get_value("AI Run", self.run_name, "error"), "first")
+
+	def test_paused_run_can_still_complete(self):
+		self._persist(
+			{
+				"status": "Paused",
+				"iterations": 1,
+				"messages": [],
+				"questions": [{"key": "c1", "name": "read", "arguments": {}, "prompt": "ok?"}],
+			}
+		)
+
+		result = self._persist({"status": "Completed", "iterations": 1, "output": "done", "messages": []})
+
+		self.assertEqual(result["status"], "Completed")
+		self.assertNotIn("ignored", result)
+
+
 class TestFrontendAPI(IntegrationTestCase):
 	def tearDown(self):
 		frappe.set_user("Administrator")
@@ -683,6 +867,9 @@ class TestFrontendAPI(IntegrationTestCase):
 		self.assertEqual(result["session"], started["session"])
 		self.assertIn("token", result)
 		self.assertIn("stream_url", result)
+		approvals = json.loads(frappe.db.get_value("AI Run", started["run"], "approvals"))
+		self.assertEqual(approvals["call_1"]["tool"], "read")
+		self.assertTrue(approvals["call_1"]["args_hash"])
 
 	def test_frontend_agent_tools_and_run_feedback_are_normalized(self):
 		agent = _model_and_agent("Frontend Tool Meta Agent")

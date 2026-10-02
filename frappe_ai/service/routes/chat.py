@@ -641,7 +641,7 @@ async def _dispatch_approved(
 			if tool_sources[question["name"]] == "fac"
 			else frappe_client.dispatch_tool
 		)
-		response = await dispatch(question["name"], user, question.get("arguments") or {}, run)
+		response = await dispatch(question["name"], user, question.get("arguments") or {}, run, call_id)
 		result = response.get("result") if "error" not in response else {"error": response["error"]}
 		results.append({"id": call_id, "name": question["name"], "arguments": question.get("arguments") or {}, "result": result})
 	return results

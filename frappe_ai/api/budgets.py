@@ -27,7 +27,7 @@ def consume(run: str | None, *, mutation: bool = False, records: int = 1) -> Non
 	row = frappe.db.get_value(
 		"AI Run",
 		run,
-		["status", "config_snapshot", "budget_usage", "creation"],
+		["status", "config_snapshot", "budget_usage", "creation", "segment_started_at"],
 		as_dict=True,
 		for_update=True,
 	)
@@ -37,7 +37,10 @@ def consume(run: str | None, *, mutation: bool = False, records: int = 1) -> Non
 		raise BudgetExceeded(_("Run is no longer active."))
 	snapshot = json.loads(row.config_snapshot or "{}")
 	limits = snapshot.get("budgets") or snapshot
-	if row.creation and (now_datetime() - get_datetime(row.creation)).total_seconds() > limits.get("max_runtime_seconds", 600):
+	# Active time in the current segment: a run resumed after a long wait for approval
+	# starts a fresh segment (`resume_run`), so the human's wait does not count.
+	segment_start = row.segment_started_at or row.creation
+	if segment_start and (now_datetime() - get_datetime(segment_start)).total_seconds() > limits.get("max_runtime_seconds", 600):
 		raise BudgetExceeded(_("Run runtime budget exceeded."))
 	usage = json.loads(row.budget_usage or "{}")
 	usage.setdefault("tool_calls", 0)

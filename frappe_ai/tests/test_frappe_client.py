@@ -27,7 +27,7 @@ class TestFrappeClient(unittest.IsolatedAsyncioTestCase):
 		)
 		client._post_json = AsyncMock(return_value={"result": "ok"})
 
-		result = await client.dispatch_tool("load_spec_review_context", "Administrator", {"enquiry": "E-1"})
+		result = await client.dispatch_tool("load_spec_review_context", "Administrator", {"enquiry": "E-1"}, "RUN-1", "call-1")
 
 		self.assertEqual(result, {"result": "ok"})
 		client._post_json.assert_awaited_once_with(
@@ -36,6 +36,8 @@ class TestFrappeClient(unittest.IsolatedAsyncioTestCase):
 				"tool": "load_spec_review_context",
 				"user": "Administrator",
 				"arguments": {"enquiry": "E-1"},
+				"run": "RUN-1",
+				"call_id": "call-1",
 			},
 			timeout=TOOL_DISPATCH_TIMEOUT_SECONDS,
 		)

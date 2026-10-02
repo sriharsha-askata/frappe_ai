@@ -109,7 +109,7 @@ class TestStreamChatProviderAndConfirmation(unittest.IsolatedAsyncioTestCase):
 		# passed through: budgets fail closed without it, and a confirmation-gated
 		# tool is exactly the mutating kind the budget bounds.
 		client.dispatch_plugin_tool.assert_awaited_once_with(
-			"create_record", "Administrator", {"title": "Created"}, "RUN-3"
+			"create_record", "Administrator", {"title": "Created"}, "RUN-3", "call-1"
 		)
 		client.dispatch_tool.assert_not_awaited()
 		payload = json.loads(frames[-1].split(b"data: ", 1)[1])
@@ -131,7 +131,7 @@ class TestStreamChatProviderAndConfirmation(unittest.IsolatedAsyncioTestCase):
 			]
 
 		client.dispatch_tool.assert_awaited_once_with(
-			"create_record", "Administrator", {"title": "Created"}, "RUN-4"
+			"create_record", "Administrator", {"title": "Created"}, "RUN-4", "call-1"
 		)
 		client.dispatch_plugin_tool.assert_not_awaited()
 

@@ -135,13 +135,24 @@ class FrappeClient:
 		"""
 		return await self._get_json(GET_FALLBACK_MODEL_CONFIG_METHOD, params={"user": user})
 
-	async def dispatch_tool(self, tool: str, user: str, arguments: dict[str, Any] | None = None, run: str | None = None) -> dict[str, Any]:
+	async def dispatch_tool(
+		self,
+		tool: str,
+		user: str,
+		arguments: dict[str, Any] | None = None,
+		run: str | None = None,
+		call_id: str | None = None,
+	) -> dict[str, Any]:
 		"""Execute one Frappe-touching tool call as `user` (ADR 0003).
 
 		Args:
 			tool (str): `AI Tool` slug.
 			user (str): The Frappe user originating this call.
 			arguments (dict[str, Any] | None): Keyword arguments for the tool.
+			run (str | None): `AI Run` the call belongs to. Frappe refuses a call whose run
+				is missing, finished, or owned by someone other than `user`.
+			call_id (str | None): The model's tool-call id. For tools that need approval,
+				Frappe matches it to the user's recorded approval for that exact call.
 
 		Returns:
 			dict[str, Any]: `{"result": ...}` on success or `{"error": "..."}` if the
@@ -154,15 +165,22 @@ class FrappeClient:
 		"""
 		return await self._post_json(
 			DISPATCH_TOOL_METHOD,
-			json={"tool": tool, "user": user, "arguments": arguments or {}, "run": run},
+			json={"tool": tool, "user": user, "arguments": arguments or {}, "run": run, "call_id": call_id},
 			timeout=TOOL_DISPATCH_TIMEOUT_SECONDS,
 		)
 
-	async def dispatch_plugin_tool(self, tool: str, user: str, arguments: dict[str, Any] | None = None, run: str | None = None) -> dict[str, Any]:
+	async def dispatch_plugin_tool(
+		self,
+		tool: str,
+		user: str,
+		arguments: dict[str, Any] | None = None,
+		run: str | None = None,
+		call_id: str | None = None,
+	) -> dict[str, Any]:
 		"""Execute a same-site Assistant Core tool through its registry."""
 		return await self._post_json(
 			DISPATCH_PLUGIN_TOOL_METHOD,
-			json={"tool": tool, "user": user, "arguments": arguments or {}, "run": run},
+			json={"tool": tool, "user": user, "arguments": arguments or {}, "run": run, "call_id": call_id},
 			timeout=TOOL_DISPATCH_TIMEOUT_SECONDS,
 		)
 

@@ -22,6 +22,8 @@
   "questions",
   "usage",
   "budget_usage",
+  "approvals",
+  "segment_started_at",
   "config_snapshot",
   "section_break_error",
   "error",
@@ -146,6 +148,22 @@
    "fieldtype": "JSON",
    "hidden": 1,
    "label": "Token Usage",
+   "read_only": 1
+  },
+  {
+   "description": "User approvals for confirmation-required tool calls, keyed by tool call id. Written only by resume_run; consumed (single use) by tool dispatch.",
+   "fieldname": "approvals",
+   "fieldtype": "JSON",
+   "hidden": 1,
+   "label": "Approvals",
+   "read_only": 1
+  },
+  {
+   "description": "Start of the current active segment (run creation, or the latest resume). The runtime budget is measured from here so time spent Paused does not count.",
+   "fieldname": "segment_started_at",
+   "fieldtype": "Datetime",
+   "hidden": 1,
+   "label": "Segment Started At",
    "read_only": 1
   },
   {
