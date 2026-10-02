@@ -1,142 +1,55 @@
-# ADR 0007 — Fail-and-retry instead of durable mid-run execution
+# ADR 0007 — A restart fails a run cleanly; runs are not resumed mid-way
 
-**Status:** Accepted
-**Date:** 2026-08-05
-**Deciders:** Sri Harsha Dabbiru
-**Prompted by:** production-readiness review, which listed "no durable execution model" as
-its top P0 concern
+**Status:** Accepted · **Date:** 2026-08-05
 
----
+## The problem
 
-## Context
+With the agent loop in a separate service ([ADR 0001](0001-agno-fastapi-over-frappe-native.md)), a restart of that service (deploy, crash, out of memory) can end many runs at once, and the browser's stream dies without Frappe necessarily knowing why. A production review asked for **durable execution**: save the state after each step so a restarted service can pick the run up where it stopped.
 
-Moving orchestration into a separate FastAPI process
-([ADR 0001](0001-agno-fastapi-over-frappe-native.md)) raises a question `flow` never had to
-answer: what happens to an in-flight agent run when the service restarts?
+## The decision
 
-In `flow`, a run lived inside a Frappe web worker. A restart killed it and the run was
-simply lost — but the blast radius was one worker among many, and the failure was visible
-to the user immediately because their HTTP request died with it.
+**A run that is cut off fails cleanly. It is not resumed.** The user retries, which starts a new run in the same session. The conversation history is kept (messages are saved in Frappe as they are produced), so only the unfinished turn is lost.
 
-With a separate service, a restart (deploy, crash, OOM, autoscale event) can terminate many
-concurrent runs at once, and the browser's SSE connection dies without the Frappe side
-necessarily knowing why.
+Three mechanisms make the failure visible instead of silent:
 
-A production-readiness review flagged this as critical, recommending a durable execution
-model — checkpointing run state after each iteration so a restarted process can resume
-mid-conversation.
-
----
-
-## Decision
-
-**Runs fail cleanly on process loss. They are not resumed mid-flight.**
-
-Three existing mechanisms, all ported from `flow`, make failure clean rather than silent:
-
-| Mechanism | Behaviour |
+| Mechanism | What it does |
 |---|---|
-| `RUNNING_STALE_SECONDS = 300` | A run still `Running` after 300s with no progress is auto-failed |
-| `recover_session` | On session reload, any orphaned `Running` runs are marked `Failed` |
-| `stop_run` | The user can terminate a run explicitly |
+| Stale check (`RUNNING_STALE_SECONDS = 300`) | When the user sends the next turn, a run still *Running* after 300 s is marked Failed instead of blocking the session |
+| `recover_session` | When a session is reloaded, any run still *Running* is marked Failed |
+| `stop_run` | The user can end a run explicitly |
 
-The user's recovery path is to retry, which starts a fresh run against the same session.
-Conversation history is preserved (messages persist to Frappe as they are produced), so a
-retry does not lose context — only the incomplete turn.
+The service also marks a run Failed itself when the browser disconnects or an error is caught.
 
-### Where durability *is* provided
+**Note:** these run when someone touches the session. There is no background sweeper, so an abandoned run can stay *Running* in the database until its session is used again. A scheduled sweeper would be a simple improvement ([010](../specifications/010-review-topics.md)).
 
-**Trigger runs are durable**, because they are the case with no human watching. They are
-dispatched with `frappe.enqueue(..., enqueue_after_commit=True)`, so RQ provides
-at-least-once delivery and retry. A worker dying mid-trigger results in redelivery, not a
-lost automation.
+Trigger runs are started from background jobs (`frappe.enqueue(..., enqueue_after_commit=True)`), so they get Frappe's normal job handling. I could not verify redelivery behaviour after a worker crash from the code alone; check the job queue's settings if this matters to you.
 
-This is the deliberate split: **durability where nobody is watching, fast failure where
-someone is.**
+## What follows
 
----
+**Good**
+- No checkpointing machinery. The real difficulty is not storing state but **not repeating side effects**: resuming after a tool call whose result was not recorded either re-runs it (duplicate records, emails, submissions) or skips it (lost work). That needs every tool to be idempotent or journaled.
+- Retrying a chat is cheap: a few seconds and one model call.
+- The service stays stateless, so scaling is just adding instances.
 
-## Consequences
+**Costs**
+- A long run killed near the end starts over, wasting tokens and time. A retry pays again for the whole conversation so far.
+- Deploying mid-conversation fails those runs; drain connections first and deploy off-peak.
+- The 300 s window is a setting, not a law: it is also how long a dead run can look *Running* before being cleaned up.
 
-### Positive
+## Alternatives rejected
 
-- **No checkpointing machinery.** Persisting and restoring mid-run state is not merely
-  storage — a resumed run must not re-execute tool calls whose side effects already
-  landed. Getting that wrong means duplicate records, duplicate submissions, duplicate
-  emails. Avoiding the problem entirely is worth a great deal.
-- **Retry is cheap and obvious.** For interactive chat, re-asking is a few seconds and one
-  LLM call. Resume machinery would cost far more than it saves.
-- **Failures are visible, never silent.** The three mechanisms above guarantee no run sits
-  in `Running` forever. A user always learns their request failed.
-- **The unattended path is already durable.** The case that genuinely needs delivery
-  guarantees has them, via infrastructure Frappe already runs.
-- **Statelessness is preserved.** The service holds no run state between requests, which is
-  what makes horizontal scaling a matter of adding instances.
+| Alternative | Why not |
+|---|---|
+| Checkpoint and resume mid-run | The side-effect problem above, across every tool, for a rare event. Revisit if long unattended runs become the main workload |
+| Send all runs through background jobs (RQ) | Brings back a fixed worker pool and breaks direct streaming ([ADR 0004](0004-sse-direct-from-fastapi.md)) |
+| An external workflow engine (Temporal, Restate) | A large piece of infrastructure for one workload |
 
-### Negative
+## How we check
 
-- **Long runs lose work on restart.** A 40-iteration assistant run killed at iteration 38
-  restarts from zero — wasted tokens and wasted time.
-- **Deploys interrupt users.** Rolling the service mid-conversation fails those runs.
-  Mitigation is operational: drain connections before restart, deploy off-peak.
-- **Token cost of retries.** A retried run re-pays for the whole conversation prefix.
-  Cost accounting (Phase 8.3) will make this visible.
-- **Interactive and trigger paths differ.** Two behaviours to explain and to test.
+- Stop the service during a run: the run is marked Failed, the session stays usable, and a retry starts with the earlier messages intact.
+- Reload a session that has an orphaned *Running* run: `recover_session` fails it and reports the count.
+- No run stays *Running* forever once its session is used again.
 
-### Neutral
+## Related
 
-- The 300-second staleness window is a tunable, not a law. If runs legitimately exceed it,
-  raise it — but note it is also the ceiling on how long a dead run stays `Running`.
-
----
-
-## Alternatives Considered
-
-### Mid-run checkpoint and resume (the review's recommendation)
-Persist message history, tool-call state, and iteration count after each step; on restart,
-reload and continue.
-**Rejected for now.** The hard part is not persistence, it is **side-effect idempotency**.
-Resuming after a tool call whose result was not recorded means either re-executing it
-(duplicate writes) or skipping it (lost work), and distinguishing the two requires every
-tool to be idempotent or transactionally journalled. That is a large, invasive change
-across all ten builtins for a benefit — saving a retry on an uncommon event — that does not
-justify it at current scale.
-
-Revisit if unattended long-running agents become the dominant workload, or if runs routinely
-exceed several minutes.
-
-### Route all runs through RQ
-Interactive chat also goes through `frappe.enqueue`, giving uniform durability.
-**Rejected.** It reintroduces a fixed worker pool — the exact ceiling
-[ADR 0001](0001-agno-fastapi-over-frappe-native.md) exists to remove — and breaks streaming,
-since the process producing tokens would no longer be the one holding the browser's SSE
-connection. That would force either Redis pub/sub relay or polling, both of which
-[ADR 0004](0004-sse-direct-from-fastapi.md) rejected.
-
-### External workflow engine (Temporal, Restate)
-Purpose-built durable execution with correct replay semantics.
-**Rejected as disproportionate.** It adds a major piece of infrastructure to a Frappe bench
-for one workload. Worth reconsidering only if durable execution becomes a hard requirement
-across several features rather than a nice-to-have for one.
-
----
-
-## Verification
-
-- Kill the FastAPI service mid-run → the run is marked `Failed` within
-  `RUNNING_STALE_SECONDS`; the UI reflects the failure and the session remains usable.
-- Reload a session with an orphaned `Running` run → `recover_session` fails it and reports
-  the count.
-- Retry after a failure → a new run starts with prior conversation history intact.
-- Kill an RQ worker mid-trigger → the job is redelivered and the trigger completes exactly
-  once (the condition is re-evaluated in `fire`, guarding against state drift).
-- No run remains `Running` indefinitely under any kill scenario.
-
----
-
-## References
-
-- [001 — Architecture §9](../specifications/001-architecture.md) — failure handling table
-- [ADR 0001 — Agno + FastAPI](0001-agno-fastapi-over-frappe-native.md)
-- [ADR 0004 — SSE direct from FastAPI](0004-sse-direct-from-fastapi.md)
-- [Progress tracker — Phase 8](../progress/flow-to-frappe-ai-migration.md)
+[001 §8](../specifications/001-architecture.md), [ADR 0004](0004-sse-direct-from-fastapi.md).
