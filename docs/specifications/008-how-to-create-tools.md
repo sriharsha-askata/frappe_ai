@@ -1,540 +1,114 @@
-# How to Create Tools and Plugins for Assistant Core
+# 008 — How to create a tool for an agent
 
-> Complete guide to extending Frappe Assistant Core with custom tools and plugins.
+A **tool** is an action the model can ask for: "read these records", "send this email", "look up a tender". The model only *requests* it. Frappe runs it, as the user, after checking permissions, approvals and limits ([001](001-architecture.md) §4).
 
----
+This page shows the ways to add one. Pick the first that fits.
 
-## Quick Summary
+| Way | Use when | Effort |
+|---|---|---|
+| **A. Assistant Core tool class** (recommended) | You want a real tool in code, with tests | Low |
+| **B. Script `AI Tool`** | You want an admin to write a small tool in the Desk, no deploy | Low, but the code runs in a sandbox with limited functions |
+| **C. MCP server** | The tool already exists in another program | See [007](007-mcp-integration-and-cleanup.md) |
 
-| Approach | When to Use | Effort |
-|----------|-------------|--------|
-| **Tool only** | Simple tool, no complex setup | Low |
-| **Plugin** | Multiple tools, need enable/disable, lifecycle hooks | Medium |
-| **External App** | Tools in separate app, shared across installations | High |
+## A. Assistant Core tool class
 
----
-
-## Part 1: Creating a Simple Tool (Quickest)
-
-### Option A: Via Hooks (Recommended for External Apps)
-
-This is the easiest way - just create a tool class and register it.
-
-#### Step 1: Create Tool Class
+Assistant Core (FAC, the `frappe_assistant_core` app) keeps a registry of tools. `frappe_ai` agents use tools from that registry. This app registers its own in `hooks.py`:
 
 ```python
-# your_app/utils/assistant_tools.py
+assistant_tools = [
+    "frappe_ai.assistant_tools.native.ExecuteTool",
+    "frappe_ai.assistant_tools.native.SearchKnowledgeTool",
+    ...
+]
+```
 
-from typing import Any, Dict
+### Step 1: write the class
+
+Subclass `BaseTool`, give it a name, a description the model will read, an input schema, and an `execute` method. A minimal example in the style of `frappe_ai/assistant_tools/native.py`:
+
+```python
+from typing import Any
+
 import frappe
 from frappe_assistant_core.core.base_tool import BaseTool
 
 
-class MyTool(BaseTool):
-    """Custom tool for my app"""
-
+class CountOpenTasksTool(BaseTool):
     def __init__(self):
         super().__init__()
-        self.name = "my_tool"
-        self.description = "Does something useful"
+        self.name = "count_open_tasks"
+        self.description = "Count open Tasks, optionally for one project."
         self.inputSchema = {
             "type": "object",
-            "properties": {
-                "doctype": {"type": "string", "description": "DocType name"}
-            },
-            "required": ["doctype"]
+            "properties": {"project": {"type": "string", "description": "Project name"}},
         }
-
-    def execute(self, arguments: Dict[str, Any]) -> Dict[str, Any]:
-        doctype = arguments.get("doctype")
-        return {"success": True, "result": f"Processed {doctype}"}
-
-
-# Required for discovery
-my_tool = MyTool
-```
-
-#### Step 2: Register in hooks.py
-
-```python
-# your_app/hooks.py
-
-def get_app_utils():
-    """Register tools with Assistant Core"""
-    return {
-        "assistant_tools": [
-            "your_app.utils.assistant_tools.MyTool"
-        ]
-    }
-```
-
-That's it! The tool is automatically discovered.
-
----
-
-## Part 2: Creating a Full Plugin (Recommended for Feature Sets)
-
-### Plugin Structure
-
-```
-your_app/
-├── assistant_core/
-│   ├── __init__.py
-│   └── plugins/
-│       └── your_plugin/
-│           ├── __init__.py
-│           ├── plugin.py          ← Plugin class
-│           └── tools/
-│               ├── __init__.py
-│               ├── tool_one.py    ← Tool classes
-│               └── tool_two.py
-└── hooks.py                      ← Register plugin
-```
-
-### Step 1: Create Plugin Class
-
-```python
-# your_app/assistant_core/plugins/your_plugin/plugin.py
-
-from typing import Any, Dict, List, Tuple, Optional
-
-import frappe
-from frappe_assistant_core.plugins.base_plugin import BasePlugin
-
-
-class YourPlugin(BasePlugin):
-    """Plugin for your custom functionality"""
-
-    def get_info(self) -> Dict[str, Any]:
-        return {
-            "name": "your_plugin",
-            "display_name": "Your Plugin",
-            "description": "Description of what your plugin does",
-            "version": "1.0.0",
-            "author": "Your Name",
-            "category": "Custom",  # e.g., Integration, Automation, Custom
-            "dependencies": [],     # Python packages needed
-            "requires_restart": False,
-        }
-
-    def get_tools(self) -> List[str]:
-        """Return tool class names from tools/ directory"""
-        return [
-            "tool_one",
-            "tool_two",
-        ]
-
-    def validate_environment(self) -> Tuple[bool, Optional[str]]:
-        """Validate plugin can be enabled"""
-        # Check dependencies
-        can_enable, error = self._check_dependencies(self.get_info()["dependencies"])
-        if not can_enable:
-            return False, error
-        
-        # Check permissions
-        can_enable, error = self._check_permissions(["Your DocType"])
-        if not can_enable:
-            return False, error
-        
-        return True, None
-
-    def on_enable(self) -> None:
-        """Called when plugin is enabled"""
-        frappe.logger("your_plugin").info("Plugin enabled!")
-
-    def on_disable(self) -> None:
-        """Called when plugin is disabled"""
-        frappe.logger("your_plugin").info("Plugin disabled!")
-```
-
-### Step 2: Create Tool Classes
-
-```python
-# your_app/assistant_core/plugins/your_plugin/tools/tool_one.py
-
-from typing import Any, Dict
-from frappe_assistant_core.core.base_tool import BaseTool
-
-
-class ToolOne(BaseTool):
-    """First tool in your plugin"""
-
-    def __init__(self):
-        super().__init__()
-        self.name = "tool_one"
-        self.description = "Does first thing"
-        self.category = "Your Plugin"
         self.source_app = "your_app"
-        
-        self.inputSchema = {
-            "type": "object",
-            "properties": {
-                "name": {"type": "string", "description": "Document name"}
-            },
-            "required": ["name"]
-        }
+        self.category = "read_only"
 
-    def execute(self, arguments: Dict[str, Any]) -> Dict[str, Any]:
-        try:
-            # Your logic here
-            return {"success": True, "result": "Done"}
-        except Exception as e:
-            return {"success": False, "error": str(e)}
-
-
-# Required for discovery
-tool_one = ToolOne
+    def execute(self, arguments: dict[str, Any]) -> Any:
+        filters = {"status": "Open"}
+        if arguments.get("project"):
+            filters["project"] = arguments["project"]
+        # frappe.get_list applies the current user's permissions
+        return {"count": len(frappe.get_list("Task", filters=filters, limit=1000))}
 ```
 
-### Step 3: Register Plugin via Hook
+### Step 2: register it
 
 In your app's `hooks.py`:
 
 ```python
-# your_app/hooks.py
-
-def get_app_utils():
-    return {
-        "assistant_plugins": [
-            "your_app.assistant_core.plugins.your_plugin.plugin.YourPlugin"
-        ]
-    }
+assistant_tools = ["your_app.assistant_tools.CountOpenTasksTool"]
 ```
 
-Or for a simpler approach, add tools directly:
-
-```python
-def get_app_utils():
-    return {
-        "assistant_tools": [
-            "your_app.assistant_core.plugins.your_plugin.tools.tool_one.ToolOne",
-            "your_app.assistant_core.plugins.your_plugin.tools.tool_two.ToolTwo",
-        ]
-    }
-```
-
----
-
-## Part 3: Enabling and Configuring
-
-### Enable Plugin
-
-1. Go to **Assistant Core Settings**
-2. Find your plugin in the list
-3. Enable it
-
-### Configure Tools
-
-Go to **FAC Tool Configuration** to:
-- Enable/disable individual tools
-- Set tool categories
-- Configure role-based access
-
----
-
-## Part 4: Plugin Lifecycle Hooks
-
-```python
-class YourPlugin(BasePlugin):
-    
-    def on_enable(self):
-        """Called when enabled - setup resources"""
-        # Create custom tables
-        # Initialize services
-        pass
-
-    def on_disable(self):
-        """Called when disabled - cleanup resources"""
-        # Close connections
-        # Clear caches
-        pass
-
-    def on_server_start(self):
-        """Called when MCP server starts"""
-        # Start background tasks
-        # Warm up caches
-        pass
-
-    def on_server_stop(self):
-        """Called when MCP server stops"""
-        # Stop background tasks
-        # Save state
-        pass
-```
-
----
-
-## Part 5: Best Practices
-
-### Tool Naming
-
-```python
-# Good - clear, specific names
-self.name = "search_items_by_sku"
-self.name = "get_production_order_status"
-self.name = "calculate_material_shortage"
-
-# Bad - too generic
-self.name = "search"
-self.name = "get_data"
-```
-
-### Descriptions
-
-```python
-# Good - tells AI when to use this tool
-self.description = """
-Search items by SKU or name. Use when user wants to find 
-specific items or list items matching criteria.
-Do NOT use for getting item details (use get_item instead).
-"""
-
-# Bad
-self.description = "Search items"
-```
-
-### Error Handling
-
-```python
-def execute(self, arguments):
-    try:
-        # Your business logic
-        return {"success": True, "result": data}
-    
-    except frappe.DoesNotExistError:
-        return {"success": False, "error": "Document not found"}
-    
-    except frappe.PermissionError:
-        return {"success": False, "error": "Permission denied"}
-    
-    except Exception as e:
-        # Log but don't expose internals
-        frappe.log_error(f"Tool error: {str(e)}", "My Tool Error")
-        return {"success": False, "error": "An error occurred"}
-```
-
-### Input Schema
-
-```python
-# Good - specific, with examples
-self.inputSchema = {
-    "type": "object",
-    "properties": {
-        "customer_id": {
-            "type": "string",
-            "description": "Customer ID (e.g., CUST-00001)"
-        },
-        "include_history": {
-            "type": "boolean",
-            "description": "Include transaction history",
-            "default": False
-        },
-        "limit": {
-            "type": "integer",
-            "description": "Max records to return",
-            "default": 10,
-            "minimum": 1,
-            "maximum": 100
-        }
-    },
-    "required": ["customer_id"]
-}
-```
-
----
-
-## Part 6: Complete Example - Tender Automation Plugin
-
-### File Structure
-
-```
-tender_automation/
-├── assistant_core/
-│   ├── __init__.py
-│   └── plugins/
-│       ├── __init__.py
-│       └── tender_tools/
-│           ├── __init__.py
-│           ├── plugin.py
-│           └── tools/
-│               ├── __init__.py
-│               ├── search_tenders.py
-│               ├── get_tender_details.py
-│               └── create_tender.py
-└── hooks.py
-```
-
-### plugin.py
-
-```python
-# tender_automation/assistant_core/plugins/tender_tools/plugin.py
-
-from typing import Any, Dict, List, Tuple, Optional
-
-import frappe
-from frappe import _
-from frappe_assistant_core.plugins.base_plugin import BasePlugin
-
-
-class TenderToolsPlugin(BasePlugin):
-    """Plugin for tender management operations"""
-
-    def get_info(self) -> Dict[str, Any]:
-        return {
-            "name": "tender_tools",
-            "display_name": "Tender Tools",
-            "description": "Tools for managing tenders, bids, and procurement",
-            "version": "1.0.0",
-            "author": "Your Company",
-            "category": "Procurement",
-            "dependencies": [],
-            "requires_restart": False,
-        }
-
-    def get_tools(self) -> List[str]:
-        return [
-            "search_tenders",
-            "get_tender_details",
-            "create_tender",
-        ]
-
-    def validate_environment(self) -> Tuple[bool, Optional[str]]:
-        # Check if Tender DocType exists
-        if not frappe.db.table_exists("Tender"):
-            return False, "Tender DocType not found"
-        
-        # Check permissions
-        can_enable, error = self._check_permissions(["Tender"])
-        return can_enable, error
-```
-
-### tools/search_tenders.py
-
-```python
-# tender_automation/assistant_core/plugins/tender_tools/tools/search_tenders.py
-
-from typing import Any, Dict
-import frappe
-from frappe_assistant_core.core.base_tool import BaseTool
-
-
-class SearchTenders(BaseTool):
-    """Search tenders by various criteria"""
-
-    def __init__(self):
-        super().__init__()
-        self.name = "search_tenders"
-        self.description = """
-Search tenders by status, date range, or keyword.
-Use when user wants to find tenders or list all tenders.
-Returns tender names, titles, status, and deadlines.
-        """.strip()
-        self.category = "Tender Tools"
-        self.source_app = "tender_automation"
-
-        self.inputSchema = {
-            "type": "object",
-            "properties": {
-                "status": {
-                    "type": "string",
-                    "description": "Filter by status",
-                    "enum": ["Open", "Closed", "Draft", "Cancelled"]
-                },
-                "keyword": {
-                    "type": "string",
-                    "description": "Search in title and description"
-                },
-                "from_date": {
-                    "type": "string",
-                    "description": "Start date (YYYY-MM-DD)"
-                },
-                "to_date": {
-                    "type": "string",
-                    "description": "End date (YYYY-MM-DD)"
-                },
-                "limit": {
-                    "type": "integer",
-                    "description": "Max results",
-                    "default": 20,
-                    "minimum": 1,
-                    "maximum": 100
-                }
-            }
-        }
-
-    def execute(self, arguments: Dict[str, Any]) -> Dict[str, Any]:
-        filters = {}
-
-        if arguments.get("status"):
-            filters["status"] = arguments["status"]
-
-        if arguments.get("from_date"):
-            filters["submission_date"] = [">=", arguments["from_date"]]
-
-        if arguments.get("to_date"):
-            filters["submission_date"] = ["<=", arguments["to_date"]]
-
-        try:
-            tenders = frappe.get_all(
-                "Tender",
-                filters=filters,
-                fields=["name", "title", "status", "submission_date", "estimated_value"],
-                limit=arguments.get("limit", 20)
-            )
-
-            # Apply keyword filter if provided
-            if arguments.get("keyword"):
-                keyword = arguments["keyword"].lower()
-                tenders = [
-                    t for t in tenders
-                    if keyword in (t.get("title") or "").lower()
-                ]
-
-            return {
-                "success": True,
-                "count": len(tenders),
-                "tenders": tenders
-            }
-
-        except Exception as e:
-            return {"success": False, "error": str(e)}
-
-
-search_tenders = SearchTenders
-```
-
-### hooks.py
-
-```python
-# tender_automation/hooks.py
-
-def get_app_utils():
-    return {
-        "assistant_plugins": [
-            "tender_automation.assistant_core.plugins.tender_tools.plugin.TenderToolsPlugin"
-        ]
-    }
-```
-
----
-
-## Summary
-
-| Approach | Best For | Steps |
-|----------|----------|-------|
-| **Simple Tool** | Single tool, quick addition | 1. Create class → 2. Register in hooks |
-| **Plugin** | Multiple related tools | 1. Create plugin.py → 2. Create tools → 3. Register |
-
-### Key Files to Remember
-
-- **Tool**: Inherits from `BaseTool`, implements `execute()`
-- **Plugin**: Inherits from `BasePlugin`, implements `get_info()`, `get_tools()`, `validate_environment()`
-- **Registration**: `get_app_utils()` in `hooks.py`
-
----
-
-## Related Documentation
-
-- [MCP Integration Guide](../MCP_INTEGRATION_SETUP_GUIDE.md)
-- [007-mcp-integration-and-cleanup.md](./007-mcp-integration-and-cleanup.md)
-- Assistant Core source: `frappe_assistant_core/plugins/`
+Then run `bench --site <site> migrate` (or the Assistant Core registry refresh your FAC version provides) and `frappe_ai.api.fac_tools.sync_fac_tools` to copy the registry into `AI FAC Tool` records for the Desk.
+
+### Step 3: give it to an agent
+
+Open the agent and add the tool under **Plugin Tools**. Each binding has:
+
+- **Enabled**
+- **Requires confirmation** (default **on**). If on, the run pauses and the user must approve every call. Frappe reads this value from the binding when it decides whether to accept a call, so it cannot be skipped from the service. Turn it off only for read-only tools.
+
+A tool is offered to the model only when Assistant Core reports it enabled and accessible to that user.
+
+### What you get for free (and what you must do)
+
+| Handled for you | Still your job |
+|---|---|
+| Running as the acting user | Use permission-aware calls inside `execute`: `frappe.get_list`, `doc.check_permission(...)`, never `ignore_permissions=True` or raw SQL on user data |
+| The run must be live and owned by that user | Return JSON-safe values |
+| Approval check and the per-run limits (`api/budgets.py`) | Raise a clear `frappe.throw` message on bad input |
+| Errors returned to the model as `{"error": "..."}` (cut to 500 characters) | Keep results small; the model has to read them |
+
+Tool calls count against the run budget. Calls named `create_document`, `update_document`, `delete_document`, `run_workflow` (and tools needing confirmation) count as changes. Large results are shortened to fit the model's context.
+
+## B. Script `AI Tool` (admin-written)
+
+Create an `AI Tool` with type **Script**. The code must:
+
+- define a top-level function `main(...)` with typed arguments (the types become the JSON Schema; the code is read, not run, to build it);
+- not use `*args` or `**kwargs`, and not call `main()` itself.
+
+Script tools run in the `safe_exec` sandbox ([ADR 0006](../decisions/0006-unified-safe-exec-namespace.md)), where only permission-checked helpers such as `frappe.get_list`, `frappe.get_doc` and `frappe.db.get_value` exist; raw SQL and the query builder are removed. See the `execute` tool in `frappe_ai/tools/builtins.py` for the available names. Slug rules: lowercase, digits and underscores, starting with a letter. The `description` is what the model reads, so say when to use it. `AI Tool` is the older path: new tools should normally be class tools (A), bound as Plugin Tools.
+
+## Writing tools that models use well
+
+- **Name** by verb and object: `count_open_tasks`, not `tool1`. Lowercase with underscores.
+- **Description:** one or two sentences on *what it does and when to use it*, and what it will not do. The model chooses tools from this text.
+- **Input schema:** mark `required` fields; describe each property; use `enum` for fixed choices; keep arguments few.
+- **Results:** small, structured, no secrets. Include an identifier so the model can refer back.
+- **Errors:** explain what to fix ("Project 'X' not found"), not a stack trace.
+- **Dangerous actions:** require confirmation, and describe in the prompt what will happen in plain words.
+
+## Test it
+
+- Unit-test `execute` directly with a user who lacks permission and check it refuses.
+- Add your tool to a test agent and run a chat; check the `AI Run` shows the call in `tool_calls`.
+- Dispatch tests in `frappe_ai/tests/test_api.py` show how to call `dispatch_plugin_tool` with a live run.
+
+## Where this plugs into the code
+
+`api/service.py::_resolve_agent_plugin_tools` (what the model is offered) → `service/builder.py::_build_tool` (the wrapper that pauses or calls Frappe) → `api/dispatch.py::dispatch_plugin_tool` (checks, then `get_tool_registry().execute_tool`).
+
+*Not verified here:* the full plugin mechanism of Assistant Core (plugin classes with enable/disable and lifecycle hooks) lives in that app; see its own documentation.
