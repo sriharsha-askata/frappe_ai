@@ -1,169 +1,131 @@
-# frappe_ai Documentation
+# frappe_ai documentation
 
-AI agent capabilities for Frappe — conversational agents with tools, retrieval-augmented
-knowledge, event-driven automation, persistent memory, and a full audit trail.
+This is the map. If you are new, read **[Start here](#start-here)**, then follow the **[reading order](#reading-order-for-a-new-developer)**.
 
-**Architecture:** Frappe (config, persistence, permissions) + FastAPI (async orchestration)
-+ Agno (agent framework) + LanceDB (vectors).
+## Start here
 
-**Current status (2026-08-21):** Core runtime/parity phases 1–5 are implemented, and
-the Phase 6 React frontend runtime is in place. Remaining frontend work is dedicated
-page-shell layout and end-to-end parity verification. Current implementation work is
-the Assistant Core/FAC migration: direct plugin bindings are implemented, while tender
-workflow verification and the final legacy-tool audit remain. Production hardening is
-still incomplete. See the [migration progress tracker](progress/flow-to-frappe-ai-migration.md)
-and the [Assistant Core migration tracker](progress/ai-tool-retirement-via-assistant-core.md).
+`frappe_ai` lets users chat with AI agents inside Frappe. Agents can search knowledge, use tools that read and change records, remember things, and be started by triggers.
 
-> ⚠️ **Parity work does not imply production readiness.** SSE heartbeats, rate limiting,
-> bounded LLM retries, observability, and equivalent budget handling for remote MCP
-> remain in **Phase 8.1**, which is a hard gate before any production traffic. Direct
-> Frappe/FAC budget accounting exists, but the complete hardening gate is not met. Details in the
-> [progress tracker](progress/flow-to-frappe-ai-migration.md#parity--production-ready).
+The app is split into two programs:
 
----
+- **Frappe** keeps all configuration and data, checks permissions, and **runs every tool**.
+- A small **FastAPI service** talks to the language model and streams the answer to the browser. It keeps no data of its own.
 
-## Start Here
+Four rules explain most of the design. When something is unclear, decide it against these.
 
-| If you want to… | Read |
-|---|---|
-| Set up Ollama embeddings or migrate an existing index | [Setup](setup.md) and [fixed Ollama embeddings progress](progress/fixed-ollama-embeddings.md) |
-| Understand how the system fits together | [001 — Architecture](specifications/001-architecture.md) |
-| Know what feature lives where | [002 — Feature Mapping](specifications/002-feature-mapping.md) |
-| Look up a DocType or field | [003 — DocType Reference](specifications/003-doctype-reference.md) |
-| Implement or review a custom frontend client | [005 — Frontend Contract](specifications/005-frontend-contract.md) |
-| Know where the work stands | [Migration progress](progress/flow-to-frappe-ai-migration.md) and [Assistant Core/FAC migration progress and deletion plan](progress/ai-tool-retirement-via-assistant-core.md) |
-| Understand *why* something is the way it is | [Decisions](#decisions) below |
-| See what surprised us while building this, and why | [Learnings](learnings.md) |
+1. **Frappe authorizes, FastAPI orchestrates.** The service never reads Frappe's database. Each tool call goes back to Frappe and runs as the user who started the run, so Frappe's normal permission checks apply. [ADR 0003](decisions/0003-tools-execute-in-frappe.md)
+2. **MariaDB is the truth, LanceDB is a cache.** Knowledge text lives in `AI Knowledge Chunk`. LanceDB only holds search vectors and can always be rebuilt. [ADR 0002](decisions/0002-lancedb-vector-store.md)
+3. **All generated code runs in one hardened sandbox.** `execute`, script tools and trigger conditions all use `frappe_ai/utils/safe_exec.py`. [ADR 0006](decisions/0006-unified-safe-exec-namespace.md)
+4. **Permissions limit *what*, budgets limit *how much*.** Even a permitted agent should not make unlimited calls. [ADR 0008](decisions/0008-execution-budgets.md)
 
----
+## Life of one chat message
 
-## Specifications
+1. The browser calls `start_run` (Frappe). Frappe saves the user's message, creates an `AI Run` and returns a short-lived **run token** and the service URL.
+2. The browser opens a streaming request to the service (`POST /stream/{run}`) with that token.
+3. The service checks the token, then asks Frappe for the run's configuration (agent, model, tools, conversation so far).
+4. It builds an agent and calls the model. Text streams to the browser as it arrives.
+5. If the model wants a tool, the service asks Frappe to run it (`dispatch_plugin_tool`). Frappe checks the run, the user, any needed approval and the budgets, then runs the tool as that user and returns the result.
+6. If the tool needs the user's approval, the run **pauses**. The user clicks Approve or Deny (`resume_run`) and the stream continues.
+7. At the end the service sends the final result back to Frappe (`persist_run_result`), which stores messages, usage and status on the `AI Run`.
+
+## Reading order for a new developer
+
+About 2–3 hours for the core path. Each step lists what to open and what you should understand afterwards.
+
+| # | Read | You will learn |
+|---|---|---|
+| 1 | This page, then [001 Architecture](specifications/001-architecture.md) | The two programs and how a request flows |
+| 2 | `frappe_ai/api/api.py` (`start_run`, `resume_run`, `stop_run`) | How a run starts and how tokens are issued |
+| 3 | `frappe_ai/service/main.py`, `service/auth.py` | How the service accepts a stream |
+| 4 | `frappe_ai/api/service.py` (`get_run_config`) | Everything the service is told about one run |
+| 5 | `frappe_ai/service/builder.py` | How config becomes an agent, and how approval pauses work |
+| 6 | `frappe_ai/service/routes/chat.py` | The run loop and the streaming events |
+| 7 | `frappe_ai/api/dispatch.py`, `api/budgets.py` | The security boundary for tool calls |
+| 8 | `frappe_ai/frappe_ai/doctype/ai_run/ai_run.py`, `ai_session/ai_session.py` | How results are stored |
+| 9 | [003 DocTypes](specifications/003-doctype-reference.md) | The data model |
+| 10 | [008 Creating tools](specifications/008-how-to-create-tools.md), `tools/builtins.py`, `utils/safe_exec.py` | Tools and the sandbox |
+| 11 | [007 MCP and Assistant Core](specifications/007-mcp-integration-and-cleanup.md), `api/mcp.py` | External tools |
+| 12 | `frappe_ai/knowledge/` in the order `ingest → chunker → embedder → store → retriever`, plus `memory/memory.py` | Knowledge search and memory |
+| 13 | `frappe_ai/triggers/triggers.py`, `hooks.py` | Starting agents without a browser |
+| 14 | [005 Frontend contract](specifications/005-frontend-contract.md), `frontend/src/` | How the UI uses the API |
+| 15 | `frappe_ai/tests/` (`test_chat_route.py`, `test_builder.py`, `test_api.py`) | The intended behaviour, as executable examples |
+
+To make it stick, trace one scenario: *a user asks the agent to delete a record*. Follow it from `start_run` through the pause in `chat.py`, the approval stored by `resume_run`, and the check in `dispatch_plugin_tool`.
+
+## Specifications (what the system does)
 
 | Doc | Contents |
 |---|---|
-| [001 — Architecture](specifications/001-architecture.md) | Component boundaries, request lifecycles, auth model, data architecture, streaming protocol, failure handling, deployment |
-| [002 — Feature Mapping](specifications/002-feature-mapping.md) | Every `flow` capability and its `frappe_ai` equivalent, marked Port / Adapt / Redesign / New / Drop. The parity checklist. |
-| [003 — DocType Reference](specifications/003-doctype-reference.md) | All 22 current DocTypes: fields, types, naming rules, controllers, permissions |
-| [006 — Dynamic MCP Server Profiles](specifications/006-dynamic-mcp-server-profiles.md) | Archived earlier profile proposal; current MCP work is tracked in 007 |
-| [005 — Frontend Contract](specifications/005-frontend-contract.md) | Stable same-origin JSON endpoints, SSE stream protocol, host adapter boundaries, and end-to-end client flows for the standalone SPA or any custom frontend |
-| [DocType Cleanup Plan](DOCTYPE_CLEANUP_PLAN.md) | Which DocTypes are genuinely dead vs. load-bearing; corrects an earlier premise that MCP had already replaced the builtin tool system |
-| [007 — MCP Integration & Cleanup](specifications/007-mcp-integration-and-cleanup.md) | Verified plan to integrate with Assistant Core/FAC, migrate runtime authority, and retain `ai_tool`/`ai_agent_tool` as compatibility records |
-| [011 — AI Model Capability Testing](specifications/011-ai-model-capability-testing.md) | Explicit saved-model Chat capability suite and result contract |
+| [001 Architecture](specifications/001-architecture.md) | Components, request lifecycle, authentication, streaming format, failures, deployment |
+| [002 Feature map](specifications/002-feature-mapping.md) | Which module and DocType implements each feature |
+| [003 DocType reference](specifications/003-doctype-reference.md) | Every DocType, its fields and purpose |
+| [004 Session and model switching](specifications/004-session-model-switching.md) | Locking an agent to a session, changing the model |
+| [005 Frontend contract](specifications/005-frontend-contract.md) | Endpoints, streaming events, host adapters for the UI |
+| [006 Dynamic MCP profiles](specifications/006-dynamic-mcp-server-profiles.md) | An old proposal that was **not** built |
+| [007 MCP and Assistant Core](specifications/007-mcp-integration-and-cleanup.md) | How external tools are connected |
+| [008 Creating tools](specifications/008-how-to-create-tools.md) | Step-by-step recipe |
+| [009 FAC admin-style UI](specifications/009-fac-admin-style-ui-guide.md) | UI conventions for the admin screens |
+| [010 Known gaps](specifications/010-review-topics.md) | Open questions and unfinished items |
+| [011 Model capability tests](specifications/011-ai-model-capability-testing.md) | The "Test Connection" check on `AI Model` |
 
-## Decisions
+## Decisions (why it is this way)
 
-| ADR | Decision | Why it matters |
-|---|---|---|
-| [0001](decisions/0001-agno-fastapi-over-frappe-native.md) | Agno + FastAPI instead of a Frappe-native runtime | The reason this project exists — `flow` blocks a worker per run |
-| [0002](decisions/0002-lancedb-vector-store.md) | LanceDB as the vector store | Preserves hybrid search and BM25 memory recall; ChromaDB rejected |
-| [0003](decisions/0003-tools-execute-in-frappe.md) | Tools execute inside Frappe, as the acting user | **The security decision.** Keeps per-user permissions intact across the process split |
-| [0004](decisions/0004-sse-direct-from-fastapi.md) | Stream SSE directly from FastAPI | Without this, Frappe workers stay blocked and ADR 0001 buys nothing |
-| [0005](decisions/0005-greenfield-no-migration.md) | Greenfield; no data migration from `flow` | Sets scope — `flow` is a spec, not a source of data |
-| [0006](decisions/0006-unified-safe-exec-namespace.md) | One hardened `safe_exec` namespace | Fixes a permission-bypass present in `flow`; explains why Agno doesn't replace sandboxing |
-| [0007](decisions/0007-failure-over-durable-execution.md) | Fail-and-retry, not mid-run resume | Why a service restart fails runs cleanly instead of resuming them; triggers stay durable via RQ |
-| [0008](decisions/0008-execution-budgets.md) | Execution budgets and mutation limits | Bounds *how much* an agent can do, where ADR 0003 bounds *what* it can touch |
-| [0011](decisions/0011-service-secret-in-site-config.md) | Service secret lives in `site_config.json`, not a DB field + env var | `bench start` boots the service unattended; one source of truth instead of two kept in sync by hand |
-| [0013](decisions/0013-litellm-for-provider-ux-agno-still-executes.md) | litellm for provider/model UX only; Agno still executes chat | LiteLLM is UX-only; chat transport is per ADR 0014 |
-| [0014](decisions/0014-openai-compatible-chat-transport.md) | One OpenAI-compatible transport for all chat execution | Removes provider SDK coupling while preserving Agno orchestration, tools, confirmations, structured output, and streaming |
-| [0015](decisions/0015-configuration-time-model-capability-tests.md) | Capability checks run explicitly at configuration time | Provides actionable coverage without runtime preflight calls or real business-tool execution |
-| [0016](decisions/0016-fixed-ollama-embeddings.md) | Fixed Ollama `nomic-embed-text` embeddings | Keeps one vector space while allowing environment-specific private endpoints |
+Each decision record is short: the problem, the choice, the consequences.
 
----
+| ADR | Decision |
+|---|---|
+| [0001](decisions/0001-agno-fastapi-over-frappe-native.md) | Run agents in a separate FastAPI service built on Agno, not inside Frappe workers |
+| [0002](decisions/0002-lancedb-vector-store.md) | LanceDB for search vectors; MariaDB stays the source of truth |
+| [0003](decisions/0003-tools-execute-in-frappe.md) | Tools run inside Frappe as the acting user |
+| [0004](decisions/0004-sse-direct-from-fastapi.md) | The browser streams directly from the service |
+| [0005](decisions/0005-greenfield-no-migration.md) | New app, no data migrated from the older `flow` app |
+| [0006](decisions/0006-unified-safe-exec-namespace.md) | One sandbox for all generated code |
+| [0007](decisions/0007-failure-over-durable-execution.md) | A restart fails a run cleanly instead of resuming it mid-way |
+| [0008](decisions/0008-execution-budgets.md) | Per-run limits on calls, changes, records and time |
+| [0011](decisions/0011-service-secret-in-site-config.md) | The shared secret lives in `site_config.json` |
+| [0013](decisions/0013-litellm-for-provider-ux-agno-still-executes.md) | litellm only for provider/model suggestions; it never makes the calls |
+| [0014](decisions/0014-openai-compatible-chat-transport.md) | One OpenAI-compatible transport for all chat models |
+| [0015](decisions/0015-configuration-time-model-capability-tests.md) | Model capabilities are tested on demand, not on every run |
+| [0016](decisions/0016-fixed-ollama-embeddings.md) | One fixed embedding model (`nomic-embed-text` on Ollama) |
 
-## The Four Load-Bearing Rules
+## Guides and history
 
-Everything else follows from these. When an implementation question is ambiguous, resolve
-it against them.
+| Doc | Purpose |
+|---|---|
+| [Setup](setup.md) | Install, run the service, embeddings, backups, rebuilding the index |
+| [MCP setup guide](MCP_INTEGRATION_SETUP_GUIDE.md) | Connect an MCP server to an agent |
+| [Frappe Assistant Core integration](FRAPPE_ASSISTANT_CORE_INTEGRATION.md) | Using FAC tools from agents |
+| [DocType cleanup plan](DOCTYPE_CLEANUP_PLAN.md) | Which legacy DocTypes remain and why |
+| [Learnings](learnings.md) | Surprises met while building, and what fixed them |
+| [Progress notes](progress/) | What was built, and what is still open |
+| [Architecture review](reviews/2026-09-30-architecture-review.md) | Strengths, risks and the fix list |
 
-### 1. Frappe authorizes; FastAPI orchestrates
+## Glossary
 
-> The FastAPI service never reads or writes the Frappe database directly, and never holds a
-> credential at rest.
+| Term | Meaning |
+|---|---|
+| **Agent** | An `AI Agent` record: instructions, a model, the tools it may use, and optional knowledge bases |
+| **Session** | One conversation (`AI Session`). It stores the messages and is locked to one agent |
+| **Run** | One turn of a conversation (`AI Run`): the user message through to the final answer. Status: Running, Paused, Completed or Failed |
+| **Tool / tool call** | An action the model can request, such as "read these records". The model asks, Frappe does it |
+| **Confirmation / approval** | Some tools need the user to click Approve first. The run pauses until they do |
+| **Run token** | A short-lived signed token the browser uses to open the stream for one run |
+| **SSE** | Server-Sent Events: a one-way stream of events from server to browser |
+| **Agno** | The Python agent library the service uses to run the model-and-tools loop |
+| **MCP** | Model Context Protocol: a standard way to expose tools from another program |
+| **FAC** | Frappe Assistant Core: a separate Frappe app with a registry of tools that agents here can use |
+| **RAG** | Retrieval-augmented generation: finding relevant text first and giving it to the model |
+| **Knowledge base** | A named set of documents split into chunks and indexed for search |
+| **Chunk** | A piece of a document (about 1,000 characters by default) |
+| **Embedding** | A list of numbers representing the meaning of a text, used for similarity search |
+| **LanceDB** | The embedded database holding embeddings and a keyword index |
+| **Trigger** | A rule that starts an agent on a document event, a schedule, or a call from app code |
+| **Budget** | Limits for one run: tool calls, changes, records per call, active time |
+| **Sandbox / `safe_exec`** | A restricted Python environment for code the model writes |
 
-Every Frappe-touching tool call is dispatched back to Frappe carrying the originating
-user's identity, so `frappe.has_permission` still governs. A compromised service cannot
-exceed the permissions of the user it is acting for. → [ADR 0003](decisions/0003-tools-execute-in-frappe.md)
+## How to write docs here
 
-### 2. MariaDB is authoritative; LanceDB is disposable
-
-Chunk text and metadata live in `AI Knowledge Chunk`. LanceDB holds only vectors and FTS
-indexes, keyed by chunk name, and can be rebuilt from MariaDB at any time.
-
-`AI Knowledge Chunk` uses `autoincrement` naming because its integer name **is** the
-LanceDB row `id`. Changing that naming rule silently breaks retrieval.
-→ [ADR 0002](decisions/0002-lancedb-vector-store.md)
-
-### 3. All sandboxed code uses one hardened namespace
-
-`execute`, Script `AI Tool` rows, and `AI Trigger.condition` all run through
-`frappe_ai/utils/safe_exec.py`, which excludes `frappe.db.sql`, `frappe.qb`,
-`frappe.db.set_value`, and `frappe.get_all`.
-
-Agno validates tool *interfaces*; it does not sandbox tool *implementations*. It is not a
-substitute. → [ADR 0006](decisions/0006-unified-safe-exec-namespace.md)
-
-### 4. Permissions bound *what*; budgets bound *how much*
-
-Rule 1 guarantees an agent cannot touch data the user could not touch. It does **not** bound
-how many records a legitimately-permitted agent writes — and `auto_approve` triggers have no
-human check at all.
-
-Per-run budgets (`max_tool_calls`, `max_mutations`, `max_records_per_call`,
-`max_runtime_seconds`) close that gap at the direct Frappe/FAC dispatch boundary.
-→ [ADR 0008](decisions/0008-execution-budgets.md)
-
-The budget fields and direct Frappe/FAC dispatch accounting are implemented. Remote MCP
-calls still bypass these counters and remain a production-hardening gap.
-
----
-
-## Relationship to `apps/flow`
-
-`apps/flow` is a working, Frappe-native AI agent framework and is the **functional
-specification** for this app. It is not a dependency, and no data migrates from it.
-
-Once `frappe_ai` reaches parity, `flow` is uninstalled — after the pre-uninstall checklist
-in [ADR 0005](decisions/0005-greenfield-no-migration.md).
-
-Two things from `flow` are deliberately **not** carried forward:
-
-1. Its `safe_exec` asymmetry, where Script tools got a broader sandbox than the tool
-   documented as sandboxed ([ADR 0006](decisions/0006-unified-safe-exec-namespace.md)).
-2. Its `stream_with_persistence` commit choreography — a WSGI workaround with no FastAPI
-   analogue.
-
----
-
-## Documentation Conventions
-
-Established here; follow them for anything added later.
-
-```
-docs/
-├── README.md                  # this index
-├── specifications/            # NNN-topic.md — what the system does
-├── decisions/                 # NNNN-slug.md — why it does it that way
-├── progress/                  # feature-name.md — where the work stands
-└── learnings.md                # what surprised us, and why — a running log
-```
-
-**Specifications** are numbered `001`, `002`, … and describe current intended behaviour.
-When behaviour changes, edit the spec — do not append a changelog to it.
-
-**Decisions** are numbered `0001`, `0002`, … and are immutable once Accepted. To change a
-decision, write a new ADR and mark the old one `Superseded by NNNN`. Each records Context,
-Decision, Consequences (positive **and** negative), Alternatives Considered, and
-Verification.
-
-**Progress** files are living documents, updated continuously during implementation rather
-than written once at the start or backfilled at the end.
-
-**Learnings** is a single running log (newest first) of things that surprised us while
-building this — an assumption that turned out wrong, an API that behaved differently than
-documented, a wall hit and worked around. Unlike an ADR it isn't a decision record: it's
-the "why we know what we know" trail. When a learning leads to an actual fix, promote the
-fix into the relevant spec/controller and leave the learnings entry as the historical
-record of how it was found.
-
-Per the repository's `CLAUDE.md`, this documentation lives in the app whose code it
-describes, and travels with the repo.
+- **Specifications** (`specifications/NNN-*.md`) describe how things work *now*. When behaviour changes, edit the spec.
+- **Decisions** (`decisions/NNNN-*.md`) record why. Once accepted, do not rewrite them; write a new one and mark the old one `Superseded by NNNN` (or delete it if nothing links to it).
+- **Progress notes** are short and honest about what is not done.
+- Use plain words, define a term when you first use it, and check names (fields, endpoints, files) against the code.
