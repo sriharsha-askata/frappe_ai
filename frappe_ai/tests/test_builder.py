@@ -86,13 +86,18 @@ class TestAgentBuilder(unittest.TestCase):
 
 
 class TestGenerationSettings(unittest.TestCase):
-	def test_non_default_sampling_values_reach_model_params(self):
+	def test_temperature_and_non_default_top_p_reach_model_params(self):
 		cfg = _with_generation_params({"params": {}}, {"temperature": 0.2, "top_p": 0.9})
 
 		self.assertEqual(cfg["params"], {"temperature": 0.2, "top_p": 0.9})
 
-	def test_default_sampling_values_are_not_forwarded(self):
-		cfg = _with_generation_params({"params": {}}, {"temperature": 1.0, "top_p": 1.0})
+	def test_default_top_p_is_not_forwarded(self):
+		cfg = _with_generation_params({"params": {}}, {"temperature": 0.7, "top_p": 1.0})
+
+		self.assertEqual(cfg["params"], {"temperature": 0.7})
+
+	def test_reasoning_agents_get_no_sampling_params(self):
+		cfg = _with_generation_params({"params": {}}, {"temperature": 0.7, "top_p": 0.5, "reasoning": True})
 
 		self.assertEqual(cfg["params"], {})
 

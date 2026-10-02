@@ -89,10 +89,10 @@ class PendingConfirmation(Exception):
 		return f"{PENDING_CONFIRMATION_MARKER}:{self.tool_call_id}:{self.name}:{json.dumps(self.arguments, default=str)}"
 
 
-#: `AI Agent.temperature`/`top_p` default to 1.0, which is every provider's own default.
-#: Only a value that differs is forwarded, so the defaults never reach models (e.g.
-#: reasoning models) that reject sampling parameters outright.
-_SAMPLING_DEFAULT = 1.0
+#: `AI Agent.top_p` defaults to 1.0 (every provider's own default), so only a different value
+#: is forwarded. `temperature` defaults to 0.7 in the form, so it is always forwarded, except
+#: for agents flagged `reasoning`: reasoning models commonly reject sampling parameters.
+_TOP_P_DEFAULT = 1.0
 
 
 def _positive_int(value: Any) -> int | None:
@@ -110,11 +110,13 @@ def _with_generation_params(model_cfg: dict[str, Any], agent_cfg: dict[str, Any]
 	never silently replaced by the agent's value.
 	"""
 	params = dict(model_cfg.get("params") or {})
-	for key in ("temperature", "top_p"):
-		value = agent_cfg.get(key)
-		if value is None or float(value) == _SAMPLING_DEFAULT:
-			continue
-		params.setdefault(key, float(value))
+	if not agent_cfg.get("reasoning"):
+		temperature = agent_cfg.get("temperature")
+		if temperature is not None:
+			params.setdefault("temperature", float(temperature))
+		top_p = agent_cfg.get("top_p")
+		if top_p is not None and float(top_p) != _TOP_P_DEFAULT:
+			params.setdefault("top_p", float(top_p))
 	return {**model_cfg, "params": params}
 
 
