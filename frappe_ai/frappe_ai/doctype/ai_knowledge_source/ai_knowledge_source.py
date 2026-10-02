@@ -62,12 +62,20 @@ class AIKnowledgeSource(Document):
 			# A missing or unreadable attachment must not make loading a source fail.
 			return None
 
+	#: Max references per `File` lookup, to keep each query's `IN` list bounded.
+	_FILE_LOOKUP_CHUNK = 500
+
 	@classmethod
 	def find_existing_completed(cls, kb: str, source_type: str, content_hash: str) -> str | None:
 		"""Find a completed source with the same content in the same knowledge base.
 
 		The source DocType intentionally has no hash column. File hashes belong to the
 		File DocType, so legacy and newly uploaded files can share the same lookup path.
+
+		The candidates' File rows are resolved in batched queries and compared on their
+		stored hash. Only a legacy File row with no stored hash falls back to
+		`content_hash_for_file`, which reads and hashes the file's bytes. The earliest
+		matching source wins, as before.
 		"""
 		if not content_hash or source_type != "File":
 			return None
@@ -82,10 +90,41 @@ class AIKnowledgeSource(Document):
 			fields=["name", "file"],
 			order_by="creation asc, name asc",
 		)
+		refs = list(dict.fromkeys(row.get("file") for row in rows if row.get("file")))
+		by_url, by_name = cls._file_rows(refs)
 		for row in rows:
-			if cls.content_hash_for_file(row.get("file")) == content_hash:
+			ref = row.get("file")
+			if not ref:
+				continue
+			# Same resolution order as `content_hash_for_file`: file_url first, then name.
+			file_row = by_url.get(ref) or by_name.get(ref)
+			if file_row is None:
+				continue
+			stored = file_row.get("content_hash") or cls.content_hash_for_file(ref)
+			if stored == content_hash:
 				return row.get("name")
 		return None
+
+	@classmethod
+	def _file_rows(cls, refs: list[str]) -> tuple[dict[str, dict], dict[str, dict]]:
+		"""Resolve file references (URLs or File names) to File rows, a chunk per query."""
+		by_url: dict[str, dict] = {}
+		by_name: dict[str, dict] = {}
+		for start in range(0, len(refs), cls._FILE_LOOKUP_CHUNK):
+			chunk = refs[start : start + cls._FILE_LOOKUP_CHUNK]
+			for file_row in frappe.get_all(
+				"File",
+				or_filters=[["file_url", "in", chunk], ["name", "in", chunk]],
+				fields=["name", "file_url", "content_hash"],
+			):
+				by_name[file_row.name] = file_row
+				url = file_row.file_url
+				if url:
+					current = by_url.get(url)
+					# Two File rows can share a URL; prefer one that carries a stored hash.
+					if current is None or (not current.content_hash and file_row.content_hash):
+						by_url[url] = file_row
+		return by_url, by_name
 
 	@staticmethod
 	def log_event(event: str, source: str | None = None, **payload: Any) -> None:
