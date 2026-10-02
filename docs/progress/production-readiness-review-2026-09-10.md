@@ -649,3 +649,20 @@ judgement behind it, whose defects clustered in the gap between what the
 documentation asserted and what the code enforced. The ADRs were, in almost every
 case, right; the code had drifted from them and the tests had stopped noticing.
 Closing items 3–5 above makes it deployable.
+
+
+---
+
+## Follow-up changes (hardening on top of this branch)
+
+Applied after this review, each with tests:
+
+- **Dispatch is bound to a live run owned by the acting user** (`api/dispatch.py::_require_active_run`). A missing, unknown, finished or foreign run is refused, so the shared service secret alone cannot act as an arbitrary user.
+- **Approvals are enforced in Frappe.** `resume_run` records the user's approvals on `AI Run.approvals` (tool plus argument hash); `dispatch_*` refuses a confirmation-required tool without a matching, single-use approval. `call_id` is sent by the service for this. `auto_approve` runs skip the check.
+- **A finished run is final.** `apply_result` and `mark_failed` raise `RunAlreadyFinished`; the `persist_run_result` and `fail_run` callbacks lock the row and return `ignored`.
+- **Runtime budget per active segment** (`AI Run.segment_started_at`), so a slow approval no longer makes a resumed run fail.
+- **Trigger `auto_approve`** can be saved only by a System Manager; trigger runs carry an untrusted-content note.
+- **Reasoning agents** no longer receive the agent's `temperature`/`top_p`.
+- Removed four one-off scripts.
+
+Still open and not changed here: MCP calls bypass approvals and budgets (F-11 / `docs/to_do/high-mcp-budget-bypass.md`); trigger runs hold a Frappe worker (`docs/to_do/low-trigger-synchronous-poll.md`); a leaked shared secret can still act as any user who has a live run.

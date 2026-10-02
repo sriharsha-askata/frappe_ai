@@ -322,6 +322,8 @@ The audit record. **Naming: `hash`**, `track_changes: 0` (immutable log).
 | `questions` | JSON | read-only (pending confirmations) |
 | `usage` | JSON | read-only (tokens) |
 | `budget_usage` | JSON | read-only (tool/mutation/record counters) |
+| `approvals` | JSON | hidden, read-only. The user's approvals for confirmation-required calls (call id → tool, argument hash). Written only by `resume_run`; each entry is consumed once by tool dispatch |
+| `segment_started_at` | Datetime | hidden, read-only. Start of the current active period (creation or latest resume); the runtime budget is measured from here |
 | `config_snapshot` | JSON | read-only |
 | `error` | Long Text | read-only |
 | `feedback_rating` | Select ``/`Up`/`Down` | read-only |
@@ -446,7 +448,7 @@ The LanceDB index is disposable and rebuildable from these rows.
 - It is **re-evaluated inside `fire`**, guarding against state drift between enqueue and
   execution.
 - Condition errors are logged and treated as **not met** (fail-closed).
-- `auto_approve` bypasses confirmation pauses for unattended runs — a privileged setting.
+- `auto_approve` bypasses confirmation pauses for unattended runs — a privileged setting: only a System Manager can save a trigger with it on. Trigger runs also append a note to the agent's instructions that text from documents and tools is data, not instructions.
 
 ---
 

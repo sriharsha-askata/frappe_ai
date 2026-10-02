@@ -46,7 +46,14 @@ The dispatch endpoint:
 
 - Authenticates the service via the shared secret in `AI Settings`.
 - Receives the acting user and the run id.
-- Verifies the run exists, is `Running`, and belongs to that user.
+- Verifies the run exists, is `Running` or `Paused`, and belongs to that user. A call
+  with no run, an unknown or finished run, or a run owned by someone else is refused
+  before anything else happens, so the shared secret alone cannot act as an arbitrary user.
+- For a tool that requires confirmation, requires the user's recorded approval for that
+  exact call id, tool and arguments (written by `resume_run` onto `AI Run.approvals`, used
+  once). Runs started with `auto_approve` skip this. A tool the agent was never given is
+  refused, apart from the run-scoped internal tools (`search_knowledge`, `update_memory`,
+  `load_full_document_text`). Confirmation is therefore enforced here, not only in the service.
 - Calls `frappe.set_user(acting_user)` before executing the tool.
 - Executes the tool exactly as `flow` does, with all permission checks intact.
 - Restores the prior user in a `finally` block.

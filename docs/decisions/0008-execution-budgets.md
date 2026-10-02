@@ -46,7 +46,7 @@ Introduce **per-run execution budgets**, configured on `AI Agent` and enforced i
 | `max_tool_calls` | 50 | Total tool invocations per run |
 | `max_mutations` | 20 | `create` + `update` + `delete` + `run_action` calls per run |
 | `max_records_per_call` | 100 | Records touched by a single mutating call |
-| `max_runtime_seconds` | 600 | Wall-clock; the run fails past this |
+| `max_runtime_seconds` | 600 | Wall-clock per **active segment** (run start, or the latest resume, `AI Run.segment_started_at`); time spent Paused waiting for approval does not count. The run fails past this |
 
 `max_iterations` is retained — it bounds a different thing (reasoning depth) and the two are
 complementary.
