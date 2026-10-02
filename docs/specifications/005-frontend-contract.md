@@ -1,505 +1,162 @@
-# 005 - Frontend Contract
+# 005 — Frontend contract
 
-Audience: frontend apps built on top of `frappe_ai`, especially the standalone SPA at
-`/app/frappe-ai`.
+What a user interface needs to know to talk to `frappe_ai`. The bundled React app (`frontend/`) follows this contract, and you can write another client against it. Do not depend on Desk internals, `frappe.client`, or raw DocType forms.
 
-This document defines the app-facing contract. Clients should not depend on Frappe Desk
-internals, `frappe.client`, raw DocType forms, or the old panel shell.
+## 1. The two kinds of calls
 
-## 1. Positioning
+| Kind | Used for | How |
+|---|---|---|
+| **JSON endpoints** (Frappe) | Loading agents and history, starting and controlling runs, feedback, uploads | `GET`/`POST /api/method/frappe_ai.api.frontend.<name>`, logged-in session cookie. `POST` needs the header `X-Frappe-CSRF-Token` |
+| **Run stream** (FastAPI service) | The answer, as it is written | `POST <stream_url>` with `Authorization: Bearer <token>`; response is `text/event-stream` |
 
-`frappe_ai` is a backend product with:
+Frappe still owns login, permissions, storage and uploads. The service only streams.
 
-- a same-origin JSON API under `frappe_ai.api.frontend.*`
-- a bearer-token SSE run stream served by the FastAPI service
-- an independent SPA frontend that can be hosted in Frappe Desk through thin adapters
+All JSON responses below are the `message` part of Frappe's usual `{"message": …}` wrapper. Errors come back the Frappe way (`exc`, `_server_messages`).
 
-Frappe still owns auth, permissions, persistence, configuration, and attachment staging.
-Frontend clients consume those capabilities through the documented API only.
+## 2. The code that implements it
 
-## 2. Auth Model
+| Layer | Files |
+|---|---|
+| Server API | `frappe_ai/api/frontend.py` (shapes the data for the UI), `frappe_ai/api/api.py` (the underlying logic) |
+| Stream | `frappe_ai/service/main.py`, `service/routes/chat.py` |
+| Client transport | `frontend/src/api/client.ts` (JSON), `frontend/src/api/stream.ts` (stream) |
+| Hosts (mount code only) | `frontend/src/hosts/deskPanel.tsx` (slide-in panel), `frontend/src/hosts/frappePage.tsx` (full page `/app/frappe-ai`) |
 
-### JSON endpoints
+Only a host may keep host-specific state such as panel size or the selected session in the URL.
 
-- Transport: same-origin `GET` or `POST` to `/api/method/frappe_ai.api.frontend.<method>`
-- Auth: logged-in Frappe session cookie
-- CSRF: required for `POST`, using `X-Frappe-CSRF-Token`
+## 3. JSON endpoints
 
-### Stream endpoint
+All take the logged-in user into account; sessions and runs are limited to their owner.
 
-- Transport: `POST <stream_url>`
-- Auth: `Authorization: Bearer <token>`
-- Token source: `start_run` or `resume_run`
-- Token scope: one run, short-lived
+### `GET bootstrap`
 
-## 3. Host Adapters
-
-The frontend is split into three layers:
-
-1. Core app: shared state, transcript rendering, composer, activity timeline, feedback,
-   session browsing, agent/model controls.
-2. Transport adapter: `frontend/src/api/*` speaks the documented JSON + SSE contract.
-3. Host adapter: page/panel mount code only.
-
-Current host adapters:
-
-- Desk panel: `frontend/src/hosts/deskPanel.tsx`
-- Standalone page: `frontend/src/hosts/frappePage.tsx`
-
-Only the host adapter may read or write host-specific persistence such as panel state or
-URL session selection.
-
-## 4. JSON Endpoints
-
-All responses below are the normalized `message` payload returned by Frappe's method API.
-
-### `GET frappe_ai.api.frontend.bootstrap`
-
-Purpose: initial SPA bootstrap.
-
-Returns:
+Everything the app needs at start-up.
 
 ```json
 {
-  "user": { "name": "user@example.com", "full_name": "Example User" },
-  "agents": [{ "name": "Support Agent", "title": "Support Agent" }],
-  "models": [{ "name": "GPT-4o Mini", "title": "GPT-4o Mini" }],
-  "recent_sessions": [
-    {
-      "name": "AIS-0001",
-      "title": "Renewal help",
-      "modified": "2026-08-11 09:00:00",
-      "agent": "Support Agent",
-      "model": "GPT-4o Mini",
-      "source": "Manual"
-    }
-  ],
-  "supported_file_types": [".pdf", ".txt"],
-  "capabilities": {
-    "standalone_page": true,
-    "panel": true,
-    "custom_frontend": true,
-    "stream_transport": "fastapi_bearer_sse"
+  "user":   { "name": "user@example.com", "full_name": "Example User" },
+  "agent":  { "selected": "Frappe AI",
+              "items":  [ { "id": "…", "name": "…", "title": "…",
+                            "readiness": { "state": "ready", "label": "Ready" },
+                            "model": { "name": "…", "title": "…" },
+                            "tools": { "count": 3, "summaries": [ … ] },
+                            "mcp_connections": [ … ],
+                            "prompt_summary": "…", "output_summary": "Markdown enabled",
+                            "configure_action": { "label": "Configure agent", "target": "/app/ai-agent/…" } } ],
+              "models": [ { "name": "…", "title": "…" } ] },
+  "session": { "current": null, "history": [ { "id": "…", "name": "…", "title": "…", "preview": "…",
+                                               "modified": "…", "agent": "…", "model": "…", "source": "Manual" } ] },
+  "execution": { "current_run": null, "transcript": [], "paused_run": null, "feedback": [] },
+  "composer": { "supported_file_types": [".pdf", ".txt"] },
+  "capabilities": { "standalone_page": true, "panel": true, "custom_frontend": true,
+                    "stream_transport": "fastapi_bearer_sse" }
+}
+```
+
+Only enabled agents and models (up to 50) are listed. `readiness.state` is `needs_model` when an agent has no model. The default selection is the agent named "Frappe AI" if it exists.
+
+### `GET sessions` — `query?`, `limit?` (1–100, default 20)
+
+Returns `{ "session": { "history": [ …session rows… ] } }` for the current user's sessions, newest first, excluding sessions started by triggers. `query` matches the title.
+
+### `GET session_detail` — `session`
+
+Loads one conversation to show or restore it.
+
+```json
+{
+  "agent":   { "selected": "<agent name>" },
+  "session": { "current": { "id": "…", "title": "…", "agent": "…", "model": "…", "source": "…", "modified": "…" } },
+  "execution": {
+    "current_run": { "run": "…", "status": "Running|Paused", "started_at": "…", "updated_at": "…", "error": "" },
+    "transcript": [ … ],
+    "paused_run": { "run": "…", "questions": [ { "key": "call_1", "name": "…", "arguments": { }, "prompt": "…" } ] },
+    "feedback":   [ { "run": "…", "rating": "Up", "comment": "…" } ],
+    "attachments": [ { "id": "…", "run": "…", "file": "…", "file_name": "…", "file_size": 1024, "mode": "Inline|Retrieval" } ]
   }
 }
 ```
 
-### `GET frappe_ai.api.frontend.sessions`
+A transcript entry is either a user message (`role: "user"`, `content`, `run`, `attachments`) or an assistant message (`role: "assistant"`, `content`, `run`, `questions` for a paused run, `feedback`, and `executions`). Each execution describes one tool call: `id`, `kind` (`tool` or `mcp_tool`), `tool_name`, `display_title`, `status` (`running`, `completed`, `error`, `awaiting_confirmation`), `input_summary`, `result_summary`, `raw_input`, `raw_output`, `error`, and `approval_status` (`approved`, `denied`, `redirected`, or null).
 
-Query params:
-
-- `query?: string`
-- `limit?: number` with server clamp `1..100`
-
-Returns:
+### `POST start_run`
 
 ```json
-{
-  "sessions": [
-    {
-      "name": "AIS-0001",
-      "title": "Renewal help",
-      "modified": "2026-08-11 09:00:00",
-      "agent": "Support Agent",
-      "model": "GPT-4o Mini",
-      "source": "Manual"
-    }
-  ]
-}
+{ "input": "Help me renew this", "agent": "Support Agent", "session": null,
+  "model": null, "attachments": ["<File name>"] }
 ```
 
-Only the current user's sessions are returned.
-
-### `GET frappe_ai.api.frontend.session_detail`
-
-Query params:
-
-- `session: string`
-
-Returns:
+`agent` is required for a new session; with `session` the session's agent is reused. `model` switches the session's model unless a run is Paused or Running. Returns:
 
 ```json
-{
-  "session": {
-    "name": "AIS-0001",
-    "title": "Renewal help",
-    "agent": "Support Agent",
-    "model": "GPT-4o Mini",
-    "source": "Manual",
-    "modified": "2026-08-11 09:00:00"
-  },
-  "messages": [
-    {
-      "name": "AISM-0001",
-      "role": "user",
-      "content": "Help me renew this",
-      "run": "AIR-0001",
-      "tool_call_id": null,
-      "tool_calls": []
-    }
-  ],
-  "attachments": [
-    {
-      "name": "AISA-0001",
-      "run": "AIR-0001",
-      "file": "FILE-0001",
-      "file_name": "renewal.pdf",
-      "file_size": 1024,
-      "mode": "Upload"
-    }
-  ],
-  "paused_run": {
-    "run": "AIR-0001",
-    "questions": [
-      {
-        "key": "call_1",
-        "name": "write",
-        "prompt": "Approve this tool call?",
-        "arguments": { "doctype": "Task" }
-      }
-    ]
-  },
-  "feedback": [
-    { "run": "AIR-0001", "rating": "Up", "comment": "Good answer" }
-  ]
-}
+{ "run": "…", "session": "…", "token": "…", "stream_url": "http://127.0.0.1:8001/stream/<run>", "expires_in": 300 }
 ```
 
-### `POST frappe_ai.api.frontend.start_run`
+The answer does **not** come in this response. Open the stream with `stream_url` and `token`.
 
-Body:
+### `POST resume_run` — `run`, `answers`
 
-```json
-{
-  "input": "Help me renew this",
-  "agent": "Support Agent",
-  "session": null,
-  "model": "GPT-4o Mini",
-  "attachments": ["FILE-0001"]
-}
-```
+Continue a Paused run. `answers` maps each pending call id (the question `key`) to `"Approve"`, `"Deny"`, or free text (feedback for the model). Returns the same shape as `start_run`. When opening the stream for a resume, send the same `answers` in the JSON body. Frappe records the approvals when it receives this call, so approving is a server-side fact, not only a client message.
 
-Returns:
+### `POST stop_run` — `run`
 
-```json
-{
-  "run": "AIR-0001",
-  "session": "AIS-0001",
-  "token": "eyJ...",
-  "stream_url": "http://127.0.0.1:8001/stream/AIR-0001",
-  "expires_in": 900
-}
-```
+Stop a run: terminates a Paused run, or finishes a Running run whose stream the client abandoned. Returns `{ "status": … }`. A late result from the service is ignored.
 
-Important: assistant output does not arrive in this response. Clients must open the SSE
-stream using `stream_url` and `token`.
+### `POST recover_session` — `session`
 
-### `POST frappe_ai.api.frontend.resume_run`
+Fails any run still marked Running for that session (use on reload after a lost stream). Returns `{ "recovered": <count> }`.
 
-Body:
+### `POST submit_feedback` — `run`, `rating`, `comment?`
 
-```json
-{
-  "run": "AIR-0001",
-  "answers": {
-    "call_1": "Approve",
-    "call_2": "Use the open status only."
-  }
-}
-```
+`rating` is `Up`, `Down`, or `None` (clears it). A `Down` with a comment is also stored as agent memory. Returns `{ "rating": … }`.
 
-Returns the same stream bootstrap shape as `start_run`.
+### `GET run_feedback` — `run`
 
-### `POST frappe_ai.api.frontend.stop_run`
+Returns `{ "run", "rating", "comment" }`.
 
-Body:
+### `POST upload_attachment` (multipart form, field `file`)
 
-```json
-{ "run": "AIR-0001" }
-```
+Saves a private file and returns `{ "attachment": { "file", "file_name", "file_size" } }`. Pass the `file` value in `start_run`'s `attachments`. Allowed types are listed in `bootstrap.composer.supported_file_types`.
 
-Returns:
+### `GET agent_tools` — `agent`
 
-```json
-{ "status": "Failed" }
-```
+Returns `{ "tools": { "count", "summaries": […] }, "mcp_connections": […] }` so the UI can show what an agent can do and which tools need approval.
 
-### `POST frappe_ai.api.frontend.recover_session`
+## 4. The stream
 
-Body:
+`POST <stream_url>` with `Authorization: Bearer <token>`, `Content-Type: application/json`, and a body of `{}` (or `{"answers": {…}}` for a resume). The response is Server-Sent Events: frames of `event: <name>` and `data: <json>`, separated by a blank line. The JSON always includes `type` equal to the event name.
 
-```json
-{ "session": "AIS-0001" }
-```
+| Event | Fields | Notes |
+|---|---|---|
+| `run_started` | `run`, `session` | First frame |
+| `text` | `content` | Append to the current answer |
+| `tool_started` | `id`, `name`, `arguments` | A tool call began |
+| `tool_ended` | `id`, `name`, `result` | The tool call returned |
+| `done` | `status`, `iterations`, `output`, `usage`, `questions?` | Last frame. `status` is `Completed`, or `Paused` with `questions` (one per call waiting for approval) |
+| `error` | `message`, `code`, `status_code`, `retryable`, optional `diagnostics` | The run failed; last frame |
 
-Returns:
+Rules for clients:
 
-```json
-{ "recovered": 1 }
-```
+- Treat `done` or `error` as the end. The server has already saved the result.
+- Do not show Paused `questions` as an error; show an approval card per question (`key` is what you send back in `resume_run`).
+- If the stream breaks before `done`, call `recover_session` and reload the session.
+- The bundled client uses `fetch` and reads the body as a stream, because a resume needs a JSON body (browser `EventSource` cannot send one).
 
-Used when a client reloads a session and needs to clear abandoned running state.
+## 5. Failures
 
-### `POST frappe_ai.api.frontend.submit_feedback`
+| Where | What you get |
+|---|---|
+| JSON endpoint | Frappe's normal error response (`exc`, `_server_messages`) |
+| Opening the stream | HTTP 401 (`detail`) for a missing, tampered, expired or wrong-run token; the service not running is a network error |
+| During the stream | An `error` event, then the stream ends; the run is marked Failed |
+| Closing the tab mid-stream | The service marks the run Failed ("Stream interrupted") |
 
-Body:
+## 6. Typical flows
 
-```json
-{
-  "run": "AIR-0001",
-  "rating": "Up",
-  "comment": "Good answer"
-}
-```
+**New conversation:** `bootstrap` → `start_run` → open stream → render `text` events → `done`.
 
-Returns:
+**Approval:** stream ends with `done` (`Paused`) → show the cards → `resume_run` with the answers → open a new stream with the same answers → `done`.
 
-```json
-{ "rating": "Up" }
-```
+**Attachment:** `upload_attachment` → keep the returned `file` → `start_run` with `attachments: [file]`.
 
-Allowed ratings: `"Up"`, `"Down"`, `"None"`.
-
-### `POST frappe_ai.api.frontend.upload_attachment`
-
-Transport: `multipart/form-data`
-
-Fields:
-
-- `file`
-
-Returns:
-
-```json
-{
-  "attachment": {
-    "file": "FILE-0001",
-    "file_name": "renewal.pdf",
-    "file_size": 1024
-  }
-}
-```
-
-This is a staged attachment object for later use in `start_run`.
-
-### `GET frappe_ai.api.frontend.agent_tools`
-
-Query params:
-
-- `agent: string`
-
-Returns:
-
-```json
-{
-  "tools": {
-    "read": { "requires_confirmation": false },
-    "write": { "requires_confirmation": true }
-  }
-}
-```
-
-### `GET frappe_ai.api.frontend.run_feedback`
-
-Query params:
-
-- `run: string`
-
-Returns:
-
-```json
-{
-  "run": "AIR-0001",
-  "rating": "Up",
-  "comment": "Good answer"
-}
-```
-
-## 5. Stream Contract
-
-After `start_run` or `resume_run`, the client opens:
-
-```http
-POST <stream_url>
-Authorization: Bearer <token>
-Content-Type: application/json
-```
-
-Resume requests send:
-
-```json
-{
-  "answers": {
-    "call_1": "Approve"
-  }
-}
-```
-
-New runs may send `{}`.
-
-The server emits SSE `data:` frames containing JSON objects. The frontend normalizes them
-into the following event shapes:
-
-### `run_started`
-
-```json
-{
-  "type": "run_started",
-  "run": "AIR-0001",
-  "session": "AIS-0001"
-}
-```
-
-Client behavior:
-
-- mark the active run/session
-- keep the assistant message pending
-
-### `text`
-
-```json
-{
-  "type": "text",
-  "content": "Here is the next chunk."
-}
-```
-
-Client behavior:
-
-- append `content` to the current assistant transcript
-
-### `tool_started`
-
-```json
-{
-  "type": "tool_started",
-  "id": "call_1",
-  "name": "read",
-  "arguments": { "doctype": "Task" }
-}
-```
-
-Client behavior:
-
-- append or update a tool activity row
-- apply per-tool metadata from `agent_tools`
-
-### `tool_ended`
-
-```json
-{
-  "type": "tool_ended",
-  "id": "call_1",
-  "result": "{\"status\":\"approved\"}"
-}
-```
-
-Client behavior:
-
-- complete the matching tool activity row
-- derive approval status if the tool required confirmation
-
-### `done`
-
-```json
-{
-  "type": "done",
-  "status": "Completed"
-}
-```
-
-Paused example:
-
-```json
-{
-  "type": "done",
-  "status": "Paused",
-  "questions": [
-    {
-      "key": "call_1",
-      "name": "write",
-      "prompt": "Approve this tool call?",
-      "arguments": { "doctype": "Task" }
-    }
-  ]
-}
-```
-
-Client behavior:
-
-- mark the assistant message no longer pending
-- if `status == "Paused"`, render confirmation questions and wait for `resume_run`
-- otherwise refresh history and allow the next turn
-
-### `error`
-
-```json
-{
-  "type": "error",
-  "message": "Something failed."
-}
-```
-
-Client behavior:
-
-- append the error to the active assistant message
-- clear pending state
-
-## 6. Failure Contract
-
-### JSON methods
-
-- Transport failures use HTTP status codes.
-- Frappe method failures may also arrive as `200` with `exc` or `_server_messages`.
-- Frontend clients should extract a user-safe message from `_server_messages` first.
-
-Current frontend helper order:
-
-1. first server message from `_server_messages`
-2. `exception`
-3. `_error_message`
-4. `message`
-
-### Stream bootstrap failures
-
-- `start_run` and `resume_run` can fail before any SSE stream is opened.
-- The client should show the returned message directly when it comes from Frappe
-  validation or permission checks.
-
-### Stream failures
-
-- Non-2xx stream responses may return JSON with `detail`.
-- The client should surface `detail` first, then fall back to the generic server-message
-  extraction order above.
-
-## 7. Example Flows
-
-### Start a new conversation
-
-1. `GET bootstrap`
-2. user submits prompt
-3. `POST start_run`
-4. `POST stream_url` with bearer token
-5. consume `run_started`, `text`, `tool_*`, `done`
-
-### Resume a paused confirmation
-
-1. `GET session_detail`
-2. render `paused_run.questions`
-3. user answers prompts
-4. `POST resume_run`
-5. `POST stream_url` with bearer token and `{answers}`
-
-### Upload an attachment
-
-1. `POST upload_attachment` with multipart `file`
-2. retain returned staged `attachment.file`
-3. pass that file id in `start_run.attachments`
-
-### Restore a session after reload
-
-1. `GET bootstrap`
-2. select current session via host adapter state
-3. `POST recover_session`
-4. `GET session_detail`
-5. continue from restored transcript
+**Restore after reload:** `recover_session` (fails any stuck run) → `session_detail` → render the transcript; if `paused_run` is set, show its approval cards.
