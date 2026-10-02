@@ -1,44 +1,31 @@
-# ADR 0016 — Fixed Ollama embeddings
+# ADR 0016 — One fixed embedding model: `nomic-embed-text` on Ollama
 
-**Status:** Accepted
-**Date:** 2026-09-01
+**Status:** Accepted · **Date:** 2026-09-01
 
-## Context
+## The problem
 
-Knowledge retrieval needs one stable vector space across Frappe workers, the FastAPI
-service, and site-scoped LanceDB indexes. Selecting an embedding model through `AI Model`
-or `AI Settings` allowed a configuration change to make existing vectors meaningless and
-made deployment depend on provider-specific SDK configuration.
+Knowledge search compares vectors, and vectors from different embedding models cannot be compared. If an administrator could pick the embedding model in `AI Model` or `AI Settings`, one change would make every stored vector meaningless. It also tied deployments to provider-specific SDKs.
 
-## Decision
+## The decision
 
-Use Ollama's OpenAI-compatible embeddings endpoint with the fixed model
-`nomic-embed-text`. Only `FRAPPE_AI_OLLAMA_BASE_URL` varies by environment; it defaults to
-`http://localhost:11434/v1`. The endpoint is checked only when a real embedding request
-is needed.
+Use **Ollama's OpenAI-compatible embeddings endpoint with the fixed model `nomic-embed-text`**. Only the address varies by environment, through `FRAPPE_AI_OLLAMA_BASE_URL` (default `http://localhost:11434/v1`). Ollama is contacted only when an embedding is actually needed, not as a health check.
 
-`AI Model` contains chat models only. `AI Settings` retains the observed vector
-dimension as a read-only consistency value but no embedding-model selector. The first
-successful embedding request persists that dimension. LanceDB schema metadata records
-provider, model, and dimension, and reads/writes reject mismatches.
+- `AI Model` holds chat models only. `AI Settings` has no embedding-model choice, only the observed vector size (`embedding_dimension`, read-only), saved after the first successful embedding request.
+- The LanceDB table records provider, model and vector size in its metadata, and reads and writes **reject a mismatch**.
+- MariaDB remains the truth for chunk text and metadata. LanceDB stays a rebuildable index under `sites/<site>/private/files/lancedb/`, written only by Frappe ingestion workers.
 
-MariaDB remains authoritative for `AI Knowledge Chunk` text and metadata. LanceDB remains
-rebuildable derived storage under `sites/<site>/private/files/lancedb/`; Frappe ingestion
-workers remain the single writer.
+## What follows
 
-## Consequences
-
-- Every embedding call has the same model identity and vector space.
-- Environments can place Ollama locally or on a private internal host.
-- Missing Ollama does not stop ordinary chat. Attachment retrieval falls back to capped
-  inline content, while knowledge ingestion/search report the embedding failure.
-- Existing indexes must be rebuilt once, and again if the Ollama model digest or vector
-  dimension changes.
-- Running the first knowledge operation requires Ollama and records the returned width.
+- Every embedding uses the same model and vector space.
+- Ollama can be local or on a private host.
+- If Ollama is down, normal chat still works. Large attachments fall back to being inserted into the prompt (shortened), and knowledge ingestion and search report the embedding error.
+- The index must be rebuilt once when moving to this setup, and again if the Ollama model or its vector size changes.
+- The first knowledge operation needs Ollama running.
 
 ## Migration
 
-Back up MariaDB and LanceDB, install `nomic-embed-text`, run
-`frappe_ai.knowledge.migration.rebuild_knowledge_index()`, verify counts/dimensions and
-retrieval quality, then remove the obsolete setting. The migration is explicit because
-it needs a live embedding service and changes derived index contents.
+Back up MariaDB and LanceDB, install `nomic-embed-text` (`ollama pull nomic-embed-text`), then run `frappe_ai.knowledge.migration.rebuild_knowledge_index()` from a console. Check the row counts, the vector size and the search quality. Only then is the obsolete setting removed. The step is explicit because it needs a live embedding service and changes the index contents. Full steps: [setup](../setup.md).
+
+## Related
+
+[ADR 0002](0002-lancedb-vector-store.md), [setup](../setup.md), `frappe_ai/knowledge/embedder.py`, `store.py`, `migration.py`.

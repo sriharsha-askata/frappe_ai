@@ -1,95 +1,50 @@
-# ADR 0014 — one OpenAI-compatible transport for chat execution
+# ADR 0014 — One OpenAI-compatible client for every chat model
 
-**Status:** Accepted
-**Date:** 2026-08-23
-**Amends:** ADR 0009 (retired) and [ADR 0013](0013-litellm-for-provider-ux-agno-still-executes.md)
+**Status:** Accepted · **Date:** 2026-08-23
 
-## Context
+## The problem
 
-The previous chat path selected an Agno model class from
-`PROVIDER_MODEL_CLASSES`. That made a provider's optional native SDK a runtime
-dependency: selecting Google Gemini could import `google.genai`, while OpenAI-
-compatible providers used a mixture of native Agno wrappers. It also duplicated
-transport concerns across provider implementations.
+Chat calls used to go through a native Agno class per provider (an OpenAI class, a Gemini class, and so on). Each needed its own optional SDK, so choosing Google Gemini imported `google.genai` and failed if that package was missing. Providers also differed in errors and features, and the same transport concerns were repeated per provider.
 
-Google, Groq, OpenRouter, and other providers expose OpenAI-compatible Chat
-Completions endpoints. [Google's compatibility documentation](https://ai.google.dev/gemini-api/docs/openai)
-documents the endpoint at `https://generativelanguage.googleapis.com/v1beta/openai/`,
-including streaming, function calling, structured output, and provider-specific
-`extra_body` fields.
+Most providers (Google, Groq, OpenRouter, Mistral, DeepSeek, Ollama and others) offer an **OpenAI-compatible** chat endpoint that supports streaming, function calling and structured output.
 
-## Decision
+## The decision
 
-All chat execution uses one OpenAI-compatible transport backed by the OpenAI
-Python SDK. Agno remains the orchestration layer for agents, tools,
-confirmations, structured output handling, and streaming events.
+**All chat goes through one OpenAI-compatible client, the OpenAI Python SDK**, used through Agno's OpenAI chat model (`create_openai_compatible_model` in `lib/model.py`). Agno still runs the agent loop: tools, confirmations, structured-output handling and streaming events.
 
-Provider identity remains a stored configuration value. It selects endpoint
-defaults and is retained in model metadata, but it never selects a native Agno
-provider class or provider SDK. `PROVIDER_MODEL_CLASSES` and native provider
-imports are removed from the chat path. Native provider-only features require a
-future explicit adapter.
+- The provider name is stored and kept in model metadata. It selects **default endpoints** (for example OpenAI, Google, Groq, OpenRouter) but never selects a provider-specific class or SDK.
+- An explicit `base_url` on the provider or model always wins.
+- Connection details come from the linked `AI Provider`, or from the unlinked `AI Model` itself ([ADR 0013](0013-litellm-for-provider-ux-agno-still-executes.md)). Model `params` override provider `extra_params`. `extra_body` is passed through unchanged for provider extensions (for example Gemini's request options).
+- **Retries and timeouts are bounded:** at most two retries after the first attempt (three tries in total), and every request has a timeout (default 600 s for long streaming tool calls).
+- **Errors are normalized** (`normalize_provider_error`) into authentication, invalid model, rate limit, timeout, connection, or generic provider errors, with a `retryable` flag, so the UI gets a consistent message.
+- litellm is only used for provider validation and suggestions.
+- Features that a provider offers outside the compatible API need an explicit adapter later; they are not mixed into the common path.
+- The explicit **Test Connection** checks ([ADR 0015](0015-configuration-time-model-capability-tests.md)) use a shorter timeout and no retry. Building an agent never runs them.
 
-The shared resolver preserves the existing credential precedence:
+## What follows
 
-- A linked `AI Provider` supplies the API key, endpoint, and shared parameters.
-- An unlinked `AI Model` supplies its own API key, endpoint, and parameters.
-- Model `params` override provider `extra_params`.
+**Good**
+- No `google-genai` and no per-provider SDK at run time. The `openai` package is now an explicit dependency (`pyproject.toml`) instead of arriving through Agno.
+- Streaming, tool calls, structured output and confirmations behave the same across providers.
 
-Known endpoint defaults include OpenAI, Google/Gemini, Groq, OpenRouter, and
-other OpenAI-compatible services. An explicit provider or model `base_url`
-always wins. `extra_body` is forwarded unchanged for compatibility extensions
-such as Gemini's request options.
+**Costs**
+- Provider-specific features that the compatible API cannot express are not available until someone writes an adapter.
+- Quality of a "compatible" endpoint varies, which is why Test Connection exists.
 
-LiteLLM remains limited to provider validation and model-id suggestions. It is
-not imported or called by chat execution.
+## Alternatives rejected
 
-The OpenAI SDK's retries are bounded to three attempts, request timeouts have a
-default, and SDK/Agno failures are normalized into authentication, invalid
-model, rate limit, timeout, connection, or generic provider errors. The explicit
-Test Connection action runs the separate capability suite in ADR 0015 with a
-shorter timeout and no retry; runtime AgentBuilder construction never calls it.
+| Alternative | Why not |
+|---|---|
+| Keep Agno's native provider classes | Different optional SDK, errors and features per provider; Gemini needs `google-genai` |
+| Call models directly through litellm | Agno already owns orchestration; litellm would be a second execution layer |
+| One adapter per provider now | Not needed yet; add one only when a feature cannot be represented |
 
-## Consequences
+## How we check
 
-The runtime no longer needs `google-genai` or one native SDK per provider. The
-same streaming, tool-call, structured-output, and confirmation behavior is
-available across OpenAI-compatible endpoints. Provider-specific functionality
-that is not represented by the compatibility API is intentionally deferred to a
-future adapter rather than leaking into the common path.
+Tests cover requests to OpenAI, Google and Groq style endpoints through mocked HTTP, streaming, tool calls, structured-output forwarding, credential precedence, default endpoints, retries and normalized errors, plus route tests for failure events and approve/deny/resume.
 
-The explicit `openai` dependency is now part of `frappe_ai`'s contract instead
-of relying on Agno's transitive dependency.
+Tests: `frappe_ai/tests/test_openai_transport.py`, `test_model.py`, `test_chat_route.py`.
 
-## Alternatives Considered
+## Related
 
-### Keep Agno's native provider classes
-
-Rejected: this requires a different optional SDK and error/feature surface for
-each provider, and Google Gemini would continue to require `google-genai`.
-
-### Execute chat directly with LiteLLM
-
-Rejected: Agno already owns agent orchestration, tool execution, confirmations,
-and streaming event handling. LiteLLM remains useful for provider/model UX but
-would add a second execution layer.
-
-### Build a separate adapter for every provider
-
-Rejected for now: provider-specific features can be added later as explicit
-adapters when a compatibility endpoint cannot represent them. The common path
-should remain one transport.
-
-## Verification
-
-- Unit tests cover OpenAI, Google, and Groq completion requests through mocked
-  OpenAI-compatible HTTP, streaming, tool calls, structured-output request
-  forwarding, credential precedence, endpoint defaults, retries, and normalized
-  errors.
-- Route tests cover normalized provider-failure SSE plus confirmation deny and
-  approve/resume behavior.
-- Frappe integration tests pass for the provider transport module (14 tests),
-  AI Model validation/connection module (32 tests), and focused service model
-  configuration cases.
-- The full app suite reaches unrelated pre-existing failures involving the
-  missing `AI Agent Knowledge Base` DocType and a `FrappeClient` mock mismatch.
+[ADR 0013](0013-litellm-for-provider-ux-agno-still-executes.md), [ADR 0015](0015-configuration-time-model-capability-tests.md), [003 AI Model](../specifications/003-doctype-reference.md#models).

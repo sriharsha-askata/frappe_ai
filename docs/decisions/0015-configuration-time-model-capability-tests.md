@@ -1,32 +1,29 @@
-# ADR 0015 — configuration-time model capability tests
+# ADR 0015 — Model capabilities are tested on request, not on every run
 
-**Status:** Accepted
-**Date:** 2026-08-23
+**Status:** Accepted · **Date:** 2026-08-23
 
-## Context
+## The problem
 
-A single Test Connection ping proved only that one provider request could be
-made. It did not cover the streaming, function-calling, or structured-output
-behavior that chat depends on. A runtime preflight would add latency and
-duplicate provider calls for every run. Embeddings are now a separate fixed
-Ollama integration; see ADR 0016.
+A single "ping" proved only that one request could reach the provider. Chat also depends on streaming, function calling and sometimes structured output, which some endpoints handle badly. Checking these before *every* run would add delay and duplicate provider calls.
 
-## Decision
+## The decision
 
-Keep testing explicit and configuration-time: the saved AI Model form invokes a
-fresh Chat capability suite on each click. Chat checks reuse the
-OpenAI-compatible Agno transport used by runtime execution. The suite executes
-only a synthetic no-op tool and returns structured per-check results.
+Testing is **explicit and happens at configuration time**. The **Test Connection** button on a saved `AI Model` runs a fresh suite of chat checks each time it is clicked. The checks reuse the same OpenAI-compatible client as real chat ([ADR 0014](0014-openai-compatible-chat-transport.md)) and offer the model only a fake no-op tool, never a real one.
 
-Core capabilities are strict. Structured output and the bounded larger-input
-probe are warnings because provider support and practical limits vary. A base
-configuration/authentication failure blocks dependent checks. Runtime execution
-never calls Test Connection and has no execution gate based on its result.
+- **Strict (required):** the basic chat request, streaming, and the tool declaration / call / result round trip.
+- **Warnings (advisory):** structured JSON output and a larger input, because support and limits vary.
+- A failure in setup or authentication **blocks** the dependent checks so you do not see misleading follow-up failures.
+- The result is returned to the form and not stored, so it never goes stale.
+- Normal runs never call it and are not blocked by its result.
 
-## Consequences
+Details of the checks and result format: [011](../specifications/011-ai-model-capability-testing.md).
 
-The form gives operators actionable capability information without caching a
-stale status. A successful suite still cannot guarantee production success:
-provider outages, quota changes, retired models, and later prompt-size changes
-remain runtime concerns. The suite cannot validate real business tools because
-it intentionally never executes them.
+## What follows
+
+**Good:** operators get useful capability information when they set up a model, with no cost on later runs.
+
+**Limits:** a passing result does not guarantee production success. Outages, quota changes, retired models and later larger prompts remain run-time issues, and the suite cannot test real business tools because it deliberately never runs them.
+
+## Related
+
+[011](../specifications/011-ai-model-capability-testing.md), [ADR 0014](0014-openai-compatible-chat-transport.md), [ADR 0016](0016-fixed-ollama-embeddings.md).
