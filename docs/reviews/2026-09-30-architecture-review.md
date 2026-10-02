@@ -10,7 +10,7 @@ Evidence tags: **[V]** verified in source · **[I]** inference from source/docs 
 
 The architecture is coherent and unusually well documented for its stage. The core idea, *Frappe authorizes, a stateless FastAPI+Agno service orchestrates*, is sound and clearly explained by 16 ADRs. Boundaries between config/persistence (Frappe), orchestration (FastAPI), and derived vector indexes (LanceDB) are clean, and the transcript-in-Frappe design makes the service genuinely stateless.
 
-It is **not production-ready**, which the docs themselves say (Phase 8.1). My review agrees and adds findings the docs do not mention. The most important:
+It is **not production-ready**, which the project docs also say (see the production-hardening list in `docs/progress/flow-to-frappe-ai-migration.md`). My review agrees and adds findings the docs do not mention. The most important:
 
 1. **The security boundary is the shared secret, not the user** (ADR 0003's guarantee is overstated). `dispatch_tool`/`dispatch_plugin_tool` accept `user` and `run` from the caller and do not verify that the run is active and owned by that user; budgets and run-scoping are skipped when `run` is omitted. Anyone holding the secret can act as any user, including Administrator. [V] `api/dispatch.py`
 2. **Human-in-the-loop confirmation is enforced only inside the service process** (`builder._build_tool`), while dispatch "always executes what it's asked". Confirmation is a UX control, not a security control. [V]
@@ -186,7 +186,7 @@ Complexity: S ≤ 1 day · M ≈ 2–5 days · L > 1 week.
 ## 9. Final Engineering Checklist
 
 **Production readiness**
-- [ ] SSE heartbeats, bounded retries, rate limiting (Phase 8.1)
+- [ ] SSE heartbeats, bounded retries, rate limiting
 - [ ] Health/readiness distinguish "up" from "Frappe reachable"
 - [ ] Graceful shutdown of in-flight runs marks them Failed/Paused
 - [ ] Separate-host deployment supported (no `site_config.json` filesystem coupling)
