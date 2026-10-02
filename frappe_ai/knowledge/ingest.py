@@ -92,8 +92,10 @@ def ingest_source(source: str, rebuild: bool = False) -> None:
 			error=str(exc)[:500],
 			traceback=frappe.get_traceback()[:1000],
 		)
-		AIKnowledgeSource.on_index_failed(doc, exc)
+		# Record the failure first: a consumer hook must never be able to leave the
+		# source stuck in "Processing" or replace the original error.
 		_mark_failed(source)
+		AIKnowledgeSource.on_index_failed(doc, exc)
 		raise
 
 	count = frappe.db.count(CHUNK_DOCTYPE, {"source": doc.name})

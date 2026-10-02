@@ -846,6 +846,23 @@ class TestIngest(IntegrationTestCase):
 		self.assertEqual(source.is_embedded, 0)
 		self.assertIn("non-public", source.error_log or "")
 
+	def test_raising_index_failed_hook_does_not_mask_error_or_strand_source(self):
+		"""A consumer's `ai_knowledge_on_index_failed` hook that raises must neither replace
+		the real ingestion error nor leave the source in "Processing"."""
+		source = self._make_source(source_type="URL", url="http://127.0.0.1/secret")
+		with (
+			patch(
+				"frappe_ai.frappe_ai.doctype.ai_knowledge_source.ai_knowledge_source.call_hook_method",
+				side_effect=RuntimeError("hook exploded"),
+			),
+			self.assertRaisesRegex(frappe.ValidationError, "non-public"),
+		):
+			self._ingest(source.name)
+
+		source.reload()
+		self.assertEqual(source.status, "Failed")
+		self.assertIn("non-public", source.error_log or "")
+
 	def test_unavailable_embedding_service_marks_source_failed(self):
 		source = self._make_source(content="content that needs embeddings")
 		with (

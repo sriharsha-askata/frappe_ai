@@ -129,11 +129,24 @@ class AIKnowledgeSource(Document):
 
 	@classmethod
 	def on_index_failed(cls, doc: "AIKnowledgeSource", exc: Exception) -> None:
-		cls.dispatch_event(
-			EVENT_ON_INDEX_FAILED,
-			doc=doc,
-			exc=exc,
-		)
+		"""Notify consumers of an indexing failure. A raising hook is logged, never
+		propagated: it must not mask the ingestion error that is about to be re-raised."""
+		try:
+			cls.dispatch_event(
+				EVENT_ON_INDEX_FAILED,
+				doc=doc,
+				exc=exc,
+			)
+		except Exception:
+			try:
+				frappe.log_error(
+					title="Knowledge: index-failed hook error",
+					message=frappe.get_traceback(),
+					reference_doctype="AI Knowledge Source",
+					reference_name=doc.name,
+				)
+			except Exception:
+				pass
 
 	@staticmethod
 	def _file_doc(file: str):
