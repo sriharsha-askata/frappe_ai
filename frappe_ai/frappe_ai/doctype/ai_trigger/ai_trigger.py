@@ -43,6 +43,18 @@ class AITrigger(Document):
 		self._validate_condition()
 		self._validate_template()
 		self._validate_run_as()
+		self._validate_auto_approve()
+
+	def _validate_auto_approve(self):
+		"""`auto_approve` skips the human confirmation step for risky tools, so only a System
+		Manager may save a trigger that has it on (including edits to one already on, which
+		could otherwise change its prompt or agent)."""
+		if self.auto_approve and "System Manager" not in frappe.get_roles():
+			frappe.throw(
+				_("Only a System Manager can save a trigger with Auto Approve enabled."),
+				frappe.PermissionError,
+				title=_("Not Permitted"),
+			)
 
 	def _validate_run_as(self):
 		if not self.run_as:

@@ -11,7 +11,12 @@ from frappe.tests import IntegrationTestCase
 
 from frappe_ai.tools.builtins import sync_builtin_tools
 from frappe_ai.triggers import dispatch, dispatch_scheduled, fire, fire_manual_trigger
-from frappe_ai.triggers.triggers import _claim_scheduled_window, _run_via_service
+from frappe_ai.triggers.triggers import (
+	UNTRUSTED_CONTENT_GUARD,
+	_claim_scheduled_window,
+	_run_via_service,
+	_with_untrusted_content_guard,
+)
 
 
 def _trigger_agent(title: str = "Trigger Test Agent") -> str:
@@ -48,6 +53,41 @@ def _trigger(agent_name: str, **overrides):
 	}
 	doc.update(overrides)
 	return doc
+
+
+class TestTriggerAutoApprove(IntegrationTestCase):
+	def setUp(self):
+		frappe.reload_doc("frappe_ai", "doctype", "ai_trigger")
+
+	def tearDown(self):
+		frappe.db.rollback()
+
+	def test_auto_approve_requires_system_manager(self):
+		agent = _trigger_agent()
+		with patch("frappe.get_roles", return_value=["AI Manager"]):
+			with self.assertRaises(frappe.PermissionError):
+				frappe.get_doc(_trigger(agent, auto_approve=1)).insert(ignore_permissions=True)
+
+	def test_system_manager_may_enable_auto_approve(self):
+		agent = _trigger_agent()
+		doc = frappe.get_doc(_trigger(agent, auto_approve=1)).insert(ignore_permissions=True)
+		self.assertTrue(doc.auto_approve)
+
+	def test_trigger_without_auto_approve_saves_for_anyone(self):
+		agent = _trigger_agent()
+		with patch("frappe.get_roles", return_value=["AI Manager"]):
+			doc = frappe.get_doc(_trigger(agent)).insert(ignore_permissions=True)
+		self.assertFalse(doc.auto_approve)
+
+
+class TestUntrustedContentGuard(IntegrationTestCase):
+	def test_guard_is_appended_to_agent_instructions(self):
+		self.assertEqual(
+			_with_untrusted_content_guard("Be terse."), f"Be terse.\n\n{UNTRUSTED_CONTENT_GUARD}"
+		)
+
+	def test_guard_stands_alone_without_instructions(self):
+		self.assertEqual(_with_untrusted_content_guard(None), UNTRUSTED_CONTENT_GUARD)
 
 
 class TestTriggers(IntegrationTestCase):
