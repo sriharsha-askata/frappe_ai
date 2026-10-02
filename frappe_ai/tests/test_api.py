@@ -557,6 +557,27 @@ class TestStopRunAndFeedback(IntegrationTestCase):
 		result = api.stop_run(started["run"])
 		self.assertEqual(result["status"], "Failed")
 
+	def test_stop_run_on_completed_run_returns_completed(self):
+		agent = _model_and_agent("Stop Completed Agent")
+		started = api.start_run(input="hello", agent=agent)
+		frappe.db.set_value("AI Run", started["run"], "status", "Completed")
+
+		result = api.stop_run(started["run"])
+
+		self.assertEqual(result, {"status": "Completed"})
+
+	def test_stop_run_twice_is_idempotent(self):
+		agent = _model_and_agent("Stop Twice Agent")
+		started = api.start_run(input="hello", agent=agent)
+
+		first = api.stop_run(started["run"])
+		error = frappe.db.get_value("AI Run", started["run"], "error")
+		second = api.stop_run(started["run"])
+
+		self.assertEqual(first["status"], "Failed")
+		self.assertEqual(second["status"], "Failed")
+		self.assertEqual(frappe.db.get_value("AI Run", started["run"], "error"), error)
+
 	def test_submit_feedback_on_completed_run(self):
 		agent = _model_and_agent("Feedback Agent")
 		started = api.start_run(input="hello", agent=agent)

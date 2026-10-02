@@ -149,10 +149,14 @@ def stop_run(run_name: str) -> dict[str, str]:
 	if not isinstance(run_name, str) or not run_name.strip():
 		frappe.throw(_("Run is required."), title=_("Invalid Run"))
 
-	run = frappe.get_doc("AI Run", run_name.strip())
+	# Lock the row so the status check and the write cannot interleave with the service
+	# finishing the run; a run that is already finished is simply reported as it is.
+	run = frappe.get_doc("AI Run", run_name.strip(), for_update=True)
 	assert_run_owner(run)
-	if run.status not in ("Completed", "Failed"):
+	try:
 		run.mark_failed("Stopped by user.")
+	except RunAlreadyFinished:
+		pass
 	return {"status": run.status}
 
 
