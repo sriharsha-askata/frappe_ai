@@ -1,176 +1,61 @@
-# ADR 0004 — Stream SSE directly from FastAPI to the browser
+# ADR 0004 — The browser streams directly from the FastAPI service
 
-**Status:** Accepted
-**Date:** 2026-08-05
-**Deciders:** Sri Harsha Dabbiru
+**Status:** Accepted · **Date:** 2026-08-05
 
----
+## The problem
 
-## Context
+The answer must reach the browser token by token. The older app streamed Server-Sent Events (SSE) through Frappe itself, which kept a Frappe worker busy for the whole run and needed awkward transaction handling (Frappe's end-of-request commit had already run by the time the stream finished). With the agent loop moving to FastAPI ([ADR 0001](0001-agno-fastapi-over-frappe-native.md)), the streaming path has to be chosen again.
 
-`flow` streams agent output to the browser as **Server-Sent Events** generated inside the
-Frappe request/response cycle. Notably, `frappe.publish_realtime` is never used anywhere in
-`flow` — there is no socket.io involvement at all.
+## The decision
 
-That design forces `flow` into awkward transaction handling: WSGI iterates a streamed
-response body *after* the request handler returns, by which point Frappe's end-of-request
-commit has already fired. `stream_with_persistence` therefore commits explicitly on `Done`
-and on exception, and its `finally` block marks the run failed if `GeneratorExit` (client
-disconnect) cuts the stream short.
+**The browser opens the stream straight to the FastAPI service (port 8001)**, using a short-lived token that Frappe issues for that one run.
 
-More importantly, it holds a gunicorn worker for the entire run.
+1. The browser calls `start_run` on Frappe.
+2. Frappe creates the `AI Run`, saves the user's message, and returns `{run, session, token, stream_url, expires_in}`.
+3. The browser sends `POST stream_url` with `Authorization: Bearer <token>`. It uses `fetch` and reads the body as a stream, which allows a JSON body (needed to resume a paused run).
+4. The service verifies the token, builds the agent and streams events.
+5. At the end, the service posts the result back to Frappe to be saved.
 
-With orchestration moving to FastAPI ([ADR 0001](0001-agno-fastapi-over-frappe-native.md)),
-the streaming path must be re-decided.
+**Token:** an HMAC over `(run, session, user, expiry)` with the shared secret from `site_config.json` ([ADR 0011](0011-service-secret-in-site-config.md)); tied to one run; valid for 300 seconds, which covers opening the stream, not its length; verified by the service itself.
 
----
+**Events** (`text/event-stream`; headers `Cache-Control: no-cache`, `X-Accel-Buffering: no`): `run_started`, `text`, `tool_started`, `tool_ended`, `error`, `done`. Payloads are in [005](../specifications/005-frontend-contract.md).
 
-## Decision
+### Heartbeats: planned, not built
 
-**The browser opens the SSE connection directly against FastAPI (`:8001`)**, authenticated
-with a short-lived, run-scoped token minted by Frappe.
+A reverse proxy or load balancer between the browser and port 8001 will usually close a connection that is silent for 30–60 seconds, and a slow tool call or long reasoning step can be silent that long. The plan is for the service to send a small keep-alive event (`ping`) about every 15 seconds. **This is not implemented yet.** Until it is, streaming works on localhost and may fail behind proxies with short idle timeouts; raise the proxy's idle timeout for the service route. See [010](../specifications/010-review-topics.md).
 
-Flow of control:
+## What follows
 
-1. Browser calls `frappe_ai.api.start_run` on Frappe (`:8000`).
-2. Frappe creates the `AI Session`/`AI Run`, persists the user message, and mints a token.
-3. Frappe returns `{run, session, token, stream_url}`.
-4. Browser opens a `fetch`-based POST against `stream_url` with `Bearer <token>`; this
-   preserves SSE framing while allowing the request body used by resume.
-5. FastAPI verifies the token, builds the agent, and streams events.
-6. On completion, FastAPI posts the result back to Frappe for persistence.
+**Good**
+- Frappe workers are never held during a run. Proxying would have lost this.
+- Lowest latency: no extra hop.
+- No commit-on-`Done` choreography: the service streams natively and saves through an explicit callback.
+- The frontend change was small: a different origin and a `Bearer` token.
+- Client disconnects are visible to the service, so an abandoned run can be marked Failed.
 
-### Token properties
+**Costs**
+- Two origins: the service needs CORS configured for the site's origin (`FRAPPE_AI_CORS_ORIGINS`). Behind a reverse proxy, map a path to port 8001 to keep one public origin.
+- New security-critical code: token creation and checking.
+- Port 8001 must be reachable by the browser but should not be exposed publicly except through a proxy.
+- Stuck runs still need recovery on the Frappe side: `recover_session`, `stop_run`, and failing a run that stays *Running* beyond 300 seconds.
 
-- HMAC over `(run, session, user, expiry)` signed with the shared
-  `frappe_ai_service_secret` in `site_config.json` (see ADR 0011).
-- **Bound to a single run** — cannot be replayed against another run or user.
-- Short TTL (default 300s), covering stream setup only, not stream duration.
-- Verified locally by FastAPI, then confirmed against Frappe (run still `Running`).
+## Alternatives rejected
 
-### Wire format
-
-Deliberately compatible with `flow`'s event shapes, while the current React client parses
-the stream through its fetch-based transport adapter:
-
-| Event | Payload |
+| Alternative | Why not |
 |---|---|
-| `run_started` | `{run, session}` |
-| `text` | `{content}` |
-| `tool_started` | `{name, arguments}` |
-| `tool_ended` | `{name, result}` |
-| `error` | `{message}` |
-| `done` | `{status, iterations, output, usage, questions?}` |
-| `ping` | `{}` — keep-alive, see below |
+| Proxy the stream through Frappe | One origin and no token, but it holds a Frappe worker for every run, which is the limit we are removing |
+| Frappe realtime (socket.io via Redis) | An extra hop and Redis on the hot path, and a bigger frontend rewrite. May be worth revisiting if reconnection becomes important |
+| Poll `AI Run` | More load than the design it replaces, and not token-by-token |
 
-Headers: `Cache-Control: no-cache`, `X-Accel-Buffering: no`.
+**Deferred:** resuming a broken stream with `Last-Event-ID` would need every event stored per run. Today, if the stream breaks, the run still finishes or fails on the server and the result can be read back from `AI Run`.
 
-### Heartbeats (required)
+## How we check
 
-`flow` never needed keep-alives: it streamed through Frappe's own connection, which the
-desk's infrastructure already kept open. Streaming from a **separate port** changes that —
-any reverse proxy, load balancer, or ingress between the browser and `:8001` will terminate
-a connection that goes idle longer than its timeout (commonly 30–60s). A long reasoning step
-or a slow tool call exceeds that easily.
+- Text appears incrementally.
+- During a long run the Desk stays responsive.
+- A token for run A cannot stream run B; an expired token is rejected.
+- Closing the tab mid-run marks the run Failed.
 
-The service therefore emits `event: ping` every 15 seconds whenever no other event has been
-sent. The client treats it purely as liveness and renders nothing.
+## Related
 
-Without this, streaming works on localhost and fails in most real deployments — a failure
-mode that does not appear in development. Scheduled for Phase 8.1; the interval is
-configurable via `AI Settings.heartbeat_interval`.
-
----
-
-## Consequences
-
-### Positive
-
-- **Frappe workers are never held open during a run.** This is the entire point of the
-  migration; proxying would have forfeited it.
-- **Lowest latency.** Tokens go straight from the service to the browser with no
-  intermediate hop.
-- **`flow`'s commit choreography disappears.** No WSGI post-response iteration, so no
-  explicit commit-on-`Done`, no `GeneratorExit` special-casing. An entire class of bug is
-  designed out rather than ported.
-- **Frontend port is mechanical.** Only `api/stream.js` changes — new origin, `Bearer`
-  token instead of `X-Frappe-CSRF-Token`. The SSE parsing (split on `\n\n`) is unchanged.
-- **Backpressure and cancellation are native.** FastAPI/Starlette surface client
-  disconnects directly, so cancelling an abandoned run is straightforward.
-
-### Negative
-
-- **Cross-origin.** The browser talks to two ports, so CORS must be configured on the
-  service (allowing the site origin only, with credentials). In production a reverse proxy
-  should map `/ai-stream` to `:8001` to keep a single public origin.
-- **New auth surface.** Token minting and verification is security-critical code that did
-  not exist in `flow` (which relied on the desk session cookie).
-- **`:8001` must be browser-reachable**, directly or via proxy — an additional deployment
-  requirement, and a hardening obligation: the port must not be publicly exposed without
-  the proxy.
-- **Split logs.** A failed stream may need correlating across both processes.
-
-### Neutral
-
-- Stale-run recovery is still needed on the Frappe side (`RUNNING_STALE_SECONDS = 300`,
-  `recover_session`, `stop_run`), now complemented by service-side task cancellation.
-
----
-
-## Alternatives Considered
-
-### Proxy the stream through Frappe
-Browser talks only to `:8000`; Frappe relays the FastAPI stream. Single origin, no CORS, no
-token plumbing — reuses the desk session cookie.
-**Rejected:** it occupies a Frappe worker for the full duration of every run, which is
-precisely the constraint this migration exists to remove. It would deliver the operational
-cost of two processes with none of the concurrency benefit.
-
-### Frappe realtime (socket.io)
-FastAPI publishes events to Redis; Frappe's socket.io pushes them to the browser. Reuses
-desk auth, survives reconnects, and matches how other Frappe apps do live updates.
-**Rejected:** adds a hop and a Redis dependency on the hot path, and is a larger deviation
-from `flow`'s model — meaning a bigger frontend rewrite. Worth revisiting if reconnection
-robustness becomes a real requirement, since SSE reconnect semantics are weaker.
-
-### Polling `AI Run`
-Browser polls for incremental output. Simple and requires no new auth.
-**Rejected:** token-by-token streaming is the expected UX; polling at a useful granularity
-would generate more Frappe load than the design it replaces.
-
----
-
-### Replayable streams (`Last-Event-ID`) — deferred
-
-SSE has a standard resume mechanism: the server tags events with `id:`, and a reconnecting
-client sends `Last-Event-ID` to resume from that point. This would let a user recover a
-stream after a network blip without losing output.
-
-**Deferred to Phase 8.3, conditional on need.** It requires persisting every event per run
-in an ordered, addressable store — new infrastructure whose value depends entirely on how
-often disconnects actually happen. Heartbeats (above) eliminate the *predictable* cause of
-disconnection, which is idle-timeout termination. What remains is genuine network loss,
-where the existing behaviour — the run completes server-side and its full output is readable
-from `AI Run.output` — is already an acceptable fallback.
-
-Build this only if heartbeats prove insufficient in practice.
-
----
-
-## Verification
-
-- A chat turn streams tokens visibly incrementally, not as one block at the end.
-- During a long run, the Frappe desk stays responsive and worker count is unaffected.
-- A token for run A cannot stream run B.
-- An expired token is rejected.
-- Closing the browser tab mid-run cancels the service task and marks the run failed.
-- 25 concurrent streams do not degrade the desk.
-
----
-
-## References
-
-- [001 — Architecture §5, §6, §8](../specifications/001-architecture.md)
-- [ADR 0001 — Agno + FastAPI](0001-agno-fastapi-over-frappe-native.md)
-- `apps/flow/flow/api/api.py` — `_sse_response`, `_format_sse`
-- `apps/flow/frontend/src/api/stream.js` — the client being adapted
+[001 §4, §5, §7](../specifications/001-architecture.md), [005](../specifications/005-frontend-contract.md).
