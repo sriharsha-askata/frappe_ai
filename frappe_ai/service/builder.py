@@ -190,7 +190,13 @@ class AgentBuilder:
 		carries them on the model rather than the Agent, so the agent-level fields
 		were being sent to the service and silently dropped. The agent is the more
 		specific configuration, so it wins where set.
+
+		Agents flagged `reasoning` get no sampling overrides: reasoning models commonly
+		reject `temperature`/`top_p`, and the form defaults (0.7 / 1.0) would otherwise be
+		sent for every agent whether or not anyone chose them.
 		"""
+		if agent_cfg.get("reasoning"):
+			return model_cfg
 		overrides = {key: agent_cfg.get(key) for key in ("temperature", "top_p")}
 		overrides = {key: value for key, value in overrides.items() if value is not None}
 		if not overrides:

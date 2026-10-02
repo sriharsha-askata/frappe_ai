@@ -131,6 +131,17 @@ class TestAgentBuilder(unittest.TestCase):
 		self.assertEqual(model.temperature, 0.1)
 		self.assertEqual(model.top_p, 0.5)
 
+	def test_reasoning_agent_sampling_is_not_forwarded(self):
+		builder = AgentBuilder(frappe_client=None)  # type: ignore[arg-type]
+
+		model = builder._build_model(
+			self._model_cfg(params={}),
+			agent_cfg={"temperature": 0.7, "top_p": 0.5, "reasoning": True},
+		)
+
+		self.assertIsNone(model.temperature)
+		self.assertIsNone(model.top_p)
+
 	def test_model_params_kept_when_agent_sampling_unset(self):
 		builder = AgentBuilder(frappe_client=None)  # type: ignore[arg-type]
 
