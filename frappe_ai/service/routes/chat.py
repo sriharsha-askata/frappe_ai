@@ -1,28 +1,10 @@
 # Copyright (c) 2026, Frappe Technologies and contributors
 # License: MIT. See LICENSE
 
-"""SSE chat route — replaces `main.py`'s Phase 2 `/stream/{run}` placeholder.
+"""Run Agno turns and translate them to the six SSE events in architecture §8.
 
-Implements `001-architecture.md` §5.1's streaming half (run-token verification was
-already correct in the Phase 2 placeholder; this fills in the actual Agno run loop
-and event translation) and §5.2's confirmation pause/resume, and §9's failure
-handling (client disconnect → `fail_run`).
-
-**Event mapping.** Agno's streaming events (`agno.run.agent`) are translated to the
-wire format fixed by `001-architecture.md` §8 — `run_started`/`text`/`tool_started`/
-`tool_ended`/`error`/`done` — so the Phase 6 Vue panel port stays mechanical, exactly
-as that spec requires. Agno's own event vocabulary is deliberately not exposed
-verbatim; `_translate_event` is the one place that mapping lives.
-
-**Pause is never Agno-native** (see `service/builder.py`'s module docstring for why):
-a Paused segment here means one or more tool calls raised `PendingConfirmation`
-during this turn's Agno run, not that Agno itself entered `RunStatus.paused`. The
-loop catches those, stops calling the model further, and emits `done` with
-`status: "Paused"` and a `questions` payload shaped like `flow`'s
-(`{key, name, arguments, prompt}` per pending call) — `key` is the tool call id
-`resume_run`'s `answers` dict is keyed by, matching `001-architecture.md` §5.2's
-Approve/Deny/redirect semantics exactly.
-"""
+Confirmation pauses use `PendingConfirmation` and persist questions keyed by
+tool-call ID. Disconnects and errors call `fail_run`."""
 
 from __future__ import annotations
 
@@ -67,16 +49,9 @@ def _exception_is_stream_timeout(exc: BaseException) -> bool:
 	return False
 
 class _AgnoDiagnosticHandler(logging.Handler):
-	"""Forwards Agno's own exception logging into Frappe's Error Log for one run.
+	"""Forward Agno exceptions to Frappe's Error Log for one run.
 
-	Agno's `"agno"` logger sets `propagate = False` and its `RichHandler` has
-	`rich_tracebacks=False` with a bare `"%(message)s"` format, so the real
-	exception behind an opaque `RunErrorEvent` (see `agno/agents/base.py`'s
-	`except Exception as e: log_exception(...)`) is otherwise dropped — never
-	reaching this process's own logger hierarchy, let alone Frappe. Attaching
-	directly to the `"agno"` logger (bypassing propagate) for the duration of one
-	`agent.arun()` call, with a formatter that renders `exc_info`, recovers it.
-	"""
+	Attach to Agno's logger directly because it does not propagate exceptions."""
 
 	def __init__(
 		self, frappe_client: FrappeClient, run: str, level: int = logging.WARNING, title: str = "Agno error"
@@ -233,21 +208,10 @@ async def stream_chat(
 	*,
 	answers: dict[str, Any] | None = None,
 ) -> AsyncIterator[bytes]:
-	"""Run one turn (fresh or resumed) and yield SSE frames.
+	"""Yield SSE frames for a fresh or resumed run.
 
-	Args:
-		run (str): `AI Run` name.
-		user (str): Acting user — threaded through to every tool dispatch.
-		session (str): `AI Session` name (only used for the `run_started` frame).
-		frappe_client (FrappeClient): Shared client for config fetch, dispatch, and
-			the persistence callbacks.
-		answers (dict[str, Any] | None): On resume, maps pending tool-call ids to
-			"Approve" / "Deny" / free-text redirect feedback. `None` on a fresh turn.
-
-	Yields:
-		bytes: SSE frames (`event: ...\\ndata: ...\\n\\n`), in the wire format fixed
-			by `001-architecture.md` §8.
-	"""
+	`answers` maps pending tool-call IDs to Approve, Deny, or redirect feedback.
+	Tool dispatch and persistence use the acting `user`."""
 	yield _frame("run_started", {"run": run, "session": session})
 
 	builder = AgentBuilder(frappe_client)
@@ -262,7 +226,7 @@ async def stream_chat(
 
 		if denied:
 			# ADR/§5.2: a Deny on any pending call halts the whole run immediately —
-			# no further model call, matching flow's _has_denial short-circuit.
+			# no further model call after a denied pending tool.
 			result = _denied_result(config["messages"], questions_by_id, denied)
 			await frappe_client.persist_run_result(run, result)
 			persisted = True
@@ -277,10 +241,8 @@ async def stream_chat(
 			# re-request the exact call it was blocked on (the pending assistant
 			# tool_calls message is deliberately not replayed to the model — see
 			# `_messages_excluding_pending`'s docstring — so there is nothing left
-			# to prompt a re-request). flow's own resume (`_prepare_resume`:
-			# "Approve" → actually run the tool and serialize the result) does this
-			# directly rather than hoping the model asks again; this must match
-			# that. Pending-call arguments come from `config["questions"]` —
+			# to prompt a re-request). Dispatch approved calls directly and
+			# serialize their results. Pending-call arguments come from `config["questions"]` —
 			# `AI Run.questions` as persisted by the prior (Paused) segment.
 			approved_results = await _dispatch_approved(
 				frappe_client,
@@ -470,14 +432,9 @@ def _frame(event: str, payload: dict[str, Any]) -> bytes:
 
 
 def _repair_orphaned_tool_results(messages: list[dict[str, Any]]) -> list[dict[str, Any]]:
-	"""Insert synthetic assistant tool_calls messages for any orphaned tool results.
+	"""Insert assistant requests before orphaned tool results in stored history.
 
-	If a stored session has a `role: "tool"` message whose tool_call_id has no
-	matching tool_use in any preceding assistant message's tool_calls list (caused
-	by an off-by-one in _new_messages_for_session that dropped the first assistant
-	message of a multi-tool run), Anthropic returns error 2013. This inserts a
-	minimal placeholder assistant message so the history is structurally valid.
-	"""
+	This repairs transcripts that would otherwise be rejected by model APIs."""
 	known_ids: set[str] = set()
 	for m in messages:
 		for tc in m.get("tool_calls") or []:
@@ -511,25 +468,11 @@ def _to_agno_messages(
 	redirect_answers: dict[str, str],
 	approved_results: list[dict[str, Any]] | None = None,
 ) -> list[Message]:
-	"""Convert Frappe's stored transcript (OpenAI-format dicts) to Agno `Message`s
-	for this turn's model call.
+	"""Convert the stored transcript to Agno messages for this model turn.
 
-	The stored `system` row is preserved. Some OpenAI-compatible providers reject
-	Agno's provider-specific `developer` role for agent instructions, so
-	`AgentBuilder` leaves `instructions=None` and relies on the transcript's
-	`system` message instead.
-
-	On resume, neither the assistant tool-call request nor its result for a
-	previously-pending call is part of the stored transcript `messages` came from
-	(`_messages_excluding_pending` deliberately strips both from what gets
-	persisted — see its docstring for why). Both `approved_results` (a real
-	dispatch result) and `redirect_answers` (free-text feedback) therefore need the
-	matching assistant `tool_calls` request reconstructed here, fresh, from
-	`questions_by_id` (`config["questions"]`, keyed by call id) — for this turn's
-	model call only, never persisted. Without the paired assistant message, a
-	bare `role: "tool"` response has no request to answer and most model APIs
-	reject it as malformed.
-	"""
+	Keep the stored system message. On resume, reconstruct each pending assistant
+	tool request before its approved result or redirect feedback; most model APIs
+	reject a tool response without its matching request."""
 	messages = _repair_orphaned_tool_results(messages)
 	out: list[Message] = []
 	for m in messages:
@@ -587,45 +530,12 @@ async def _dispatch_approved(
 	run: str,
 	tool_sources: dict[str, str | None],
 ) -> list[dict[str, Any]]:
-	"""Actually run each approved pending call, using the arguments it was
-	originally paused with.
+	"""Execute approved pending calls using their recorded arguments before resuming.
 
-	This is the piece `approved_call_ids` on `AgentBuilder`/`Function.entrypoint`
-	alone doesn't cover: that flag only lets a call *the model re-requests* through
-	without raising `PendingConfirmation` again — it does nothing to make the model
-	re-request the exact call it was blocked on, and after `_messages_excluding_pending`
-	strips the pending assistant `tool_calls` message from the stored transcript,
-	there is nothing left to prompt a re-request either. Dispatching directly here,
-	from the arguments `AI Run.questions` already recorded, matches `flow`'s own
-	`_prepare_resume` ("Approve" → actually run the tool and serialize the result).
-
-	Args:
-		frappe_client (FrappeClient): Used for the actual dispatch calls.
-		user (str): Acting user — same identity every other dispatch in this run uses.
-		questions_by_id (dict[str, dict[str, Any]]): `config["questions"]` keyed by
-			call id — each `{key, name, arguments, prompt}`.
-		approved_ids (frozenset[str]): Call ids answered `"Approve"` this resume.
-		run (str): `AI Run` these calls belong to. Required — dispatching without
-			it bypasses the run's execution budget, and confirmation-gated tools
-			are precisely the mutating ones the budget exists to bound.
-		tool_sources (dict[str, str | None]): Tool name → `source` from this run's
-			`config["tools"]`. Approval must pick the same dispatcher the streaming
-			path would have (`service/builder.py`'s `_build_tool`): an Assistant
-			Core tool routed to `dispatch_tool` resolves against the legacy `AI
-			Tool` doctype instead of the FAC registry, which silently skips FAC's
-			role access and tool permission checks and drops the server-owned
-			context `dispatch_plugin_tool` injects. Tool names overlap between the
-			two tables (`create`, `update`, `delete`, `run_action`, ...), so the
-			wrong route executes a *different* tool rather than failing loudly —
-			and it is exactly the confirmation-gated mutating calls that would
-			take it.
-
-	Returns:
-		list[dict[str, Any]]: `[{"id", "name", "arguments", "result"}, ...]` for
-			every approved id found in `questions_by_id` (silently skips an approved
-			id with no matching question — stale/mismatched answers, not this run's
-			own pending calls).
-	"""
+	Approval alone does not make the model re-request a pending call. Pass `run` for
+	budget enforcement and choose the dispatcher from the bound tool's source:
+	Assistant Core tools require `dispatch_plugin_tool` for FAC permissions and
+	server-owned context. Skip approvals with no matching question or bound tool."""
 	results: list[dict[str, Any]] = []
 	for call_id in approved_ids:
 		question = questions_by_id.get(call_id)
@@ -663,17 +573,9 @@ def _redirects(answers: dict[str, Any] | None) -> dict[str, str]:
 
 
 def _pending_from_tool_execution(tool) -> PendingConfirmation | None:
-	"""Recover a `PendingConfirmation` from a failed tool call, if that's what failed.
+	"""Recover `PendingConfirmation` from Agno's failed-tool marker.
 
-	Agno's `Function.aexecute` catches `PendingConfirmation` (a plain `Exception`,
-	deliberately not `agno.exceptions.AgentRunException` — see that class's
-	docstring) as a generic tool failure: `ToolExecution.tool_call_error = True` and
-	the completed event's `content` becomes `str(exception)`, which
-	`PendingConfirmation.__str__` formats as a colon-separated string starting with
-	`PENDING_CONFIRMATION_MARKER`. Any other tool error has a different `content`
-	and is a genuine failure, not a pause — returns `None` for those so the caller
-	surfaces them as a normal `tool_ended` with the error in `result`.
-	"""
+	Return `None` for ordinary tool errors so they remain tool results."""
 	content = getattr(tool, "result", None)
 	if not isinstance(content, str) or not content.startswith(PENDING_CONFIRMATION_MARKER):
 		return None
@@ -687,19 +589,10 @@ def _build_result(
 	*,
 	approved_results: list[dict[str, Any]] | None = None,
 ) -> dict[str, Any]:
-	"""Build the dict `AIRun.apply_result` expects, from this segment's Agno output
-	plus any tool calls that require confirmation.
+	"""Build the segment result expected by `AIRun.apply_result`.
 
-	`approved_results` (resume only) must be **prepended** to whatever gets
-	persisted, not just injected into the model's input — discovered live: Agno's
-	`RunOutput.messages` only contains messages it generated *during* this
-	`arun()` call, not the extra assistant/tool message pairs `_to_agno_messages`
-	injected into `input` to give the model context. Without prepending them here
-	too, the approved call's real result would show up as a `role: "tool"` row
-	with no matching assistant `tool_calls` request anywhere in the stored
-	transcript — invalid shape for a future resume/continuation of this session
-	to replay to the model.
-	"""
+	Prepend approved-call assistant/tool pairs to the persisted transcript: Agno's
+	`RunOutput.messages` omits messages supplied as input to this model turn."""
 	prefix = _approved_result_messages(approved_results)
 
 	if pending:
@@ -756,32 +649,11 @@ def _denied_result(
 	questions_by_id: dict[str, dict[str, Any]],
 	denied_ids: list[str],
 ) -> dict[str, Any]:
-	"""A Deny on any pending call halts the run — terminal Completed with no further
-	model call, matching `001-architecture.md` §5.2's Deny semantics.
+	"""End the run after a denial without another model call.
 
-	`AIRun.apply_result` documents `messages` as the segment's **full** transcript,
-	diffing it against what the session already has stored to compute the delta
-	(`_new_messages_for_session`) — discovered live: an earlier version of this
-	function returned only the denial rows themselves (already just a delta), which
-	`_new_messages_for_session` then re-sliced against the existing count and
-	silently dropped entirely, since a 1-row list sliced from index 2 is empty.
-
-	Each denied call's assistant `tool_calls` request was stripped from the stored
-	transcript on pause (`_messages_excluding_pending`), so — same reasoning as
-	`_approved_result_messages` — it must be reconstructed here from
-	`questions_by_id` before the paired `role: "tool"` denial row is persisted, or
-	the denial row is left orphaned with no request to answer.
-
-	`prior_messages` is passed through **unfiltered** (system row included) — a
-	second live-testing find: `_new_messages_for_session`'s delta slice
-	(`full_transcript[existing_count:]`) counts against exactly what's stored in
-	`AI Session Message`, which does include the system row. Filtering it out here
-	shifted every index by one and silently dropped the reconstructed assistant
-	message from what got persisted (only the denial's `tool` row survived the
-	slice) — caught only by inspecting the DB after a live Deny, not by unit tests,
-	since none of them round-tripped a Deny through the real accumulate-by-count
-	delta logic in `AIRun._new_messages_for_session`.
-	"""
+	Include the complete prior transcript, including the system row, so
+	`AIRun.apply_result` can append the correct delta. Reconstruct each denied
+	call's assistant request before its tool response to keep the transcript valid."""
 	prior = list(prior_messages)
 	denial_rows: list[dict[str, Any]] = []
 	for call_id in denied_ids:
@@ -821,7 +693,7 @@ def _confirm_prompt(pending: PendingConfirmation) -> str:
 	"""Best-effort human-readable summary. `AI Tool.confirm_prompt` lambdas
 	(`frappe_ai.tools.builtins`) run in Frappe, not here — the service only sees the
 	JSON Schema, not the tool's Python. A generic fallback keeps the panel usable;
-	Phase 6 may route this through a dedicated Frappe call if richer prompts matter."""
+	The prompt uses the stored tool name and arguments."""
 	return f"Run {pending.name} with {json.dumps(pending.arguments, default=str)}?"
 
 
@@ -880,32 +752,12 @@ def _trim_stored_tool_content(row: dict[str, Any]) -> None:
 def _messages_excluding_pending(
 	output: RunOutput | None, pending: list[PendingConfirmation]
 ) -> list[dict[str, Any]]:
-	"""Same as `_messages`, but strips the never-actually-run attempt from what gets
-	persisted on a Paused segment.
+	"""Remove unexecuted pending calls from a paused segment's transcript.
 
-	A tool call caught as `PendingConfirmation` still produces a `role: "tool"`
-	message in Agno's transcript (Agno's own error-handling path — see
-	`PendingConfirmation`'s docstring), whose `content` is the internal
-	`PENDING_CONFIRMATION_MARKER` string, not a real result. Persisting that
-	verbatim — discovered live, not by unit tests, since the unit tests never
-	round-tripped a paused run's transcript back through a second real model call
-	— poisons the durable session transcript two ways on resume:
-
-	1. `AISession.build_prompt_messages()` replays it to the model as if it were a
-	   genuine tool result, which the model then treats as "this call already
-	   happened" rather than "this call is still awaiting approval" — observed
-	   live as the model fabricating a plausible-looking fake success instead of
-	   actually retrying the call after being told it was approved.
-	2. Most model APIs require every assistant `tool_calls` entry to have a
-	   matching tool-role response in the same request; leaving the marker in
-	   place technically satisfies that shape while being semantically wrong.
-
-	Instead: drop each pending call's marker tool-message, and drop the assistant
-	message that requested it if that assistant turn only ever requested pending
-	(never-approved, never-executed) calls. The persisted transcript then ends
-	cleanly at the last real exchange; resume rebuilds the tool-call request from
-	scratch via a fresh model turn rather than replaying a stale, unresolved one.
-	"""
+	Agno emits a tool response containing `PENDING_CONFIRMATION_MARKER`; it is not
+	a real result and must not be replayed. Drop that response and any assistant
+	request consisting only of pending calls. Resume reconstructs the request from
+	the stored questions."""
 	pending_ids = {p.tool_call_id for p in pending}
 	rows = _messages(output)
 

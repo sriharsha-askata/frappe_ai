@@ -3,9 +3,8 @@
 
 """Tests for the Frappe-side service endpoints (`frappe_ai/api/service.py`).
 
-`get_service_config`'s shared-secret auth is the load-bearing case here: it is the
-Frappe-side half of the FastAPI service's one real Phase 2 capability
-(`frappe_client.get_service_config`), and unlike the rest of this app's whitelisted
+`get_service_config`'s shared-secret auth is the critical case here: it serves
+`frappe_client.get_service_config`, and unlike the other whitelisted
 methods it is `allow_guest=True` — the 401 in `_verify_service_secret` is what
 actually gates access, so it needs direct coverage.
 """
@@ -45,15 +44,7 @@ def _model_and_agent(title: str = "Service API Test Agent") -> str:
 
 
 def _patch_request_header(header_value: str | None):
-	"""Build a `frappe.get_request_header` stand-in for `X-Frappe-AI-Service-Secret`.
-
-	Args:
-		header_value (str | None): Value to return for the `X-Frappe-AI-Service-Secret`
-			header.
-
-	Returns:
-		Callable: Drop-in replacement matching `frappe.get_request_header`'s signature.
-	"""
+	"""Stub `frappe.get_request_header` for service-secret tests."""
 
 	def _fake_get_request_header(key, default=None):
 		if key == "X-Frappe-AI-Service-Secret":
@@ -210,14 +201,7 @@ class TestGetRunConfigAuth(IntegrationTestCase):
 
 
 class TestServiceHealth(IntegrationTestCase):
-	"""Regression tests for the unconfigured-`base_url` path of `service_health()`.
-
-	The original bug (see `apps/frappe_ai/docs/to_do/critical-service-health-nameerror.md`)
-	was a `NameError` from a dead reference to `_resolve_agent_plugin_tools(agent_doc, user)`
-	inside the `if not base_url:` branch of `service_health()`. The first test below
-	exercises that exact branch by mocking the URL helper to return an empty string
-	and asserts the friendly message comes back without an exception escaping.
-	"""
+	"""Cover `service_health` when no service URL is configured."""
 
 	def tearDown(self):
 		frappe.db.rollback()

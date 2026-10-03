@@ -114,14 +114,7 @@ def create_mcp_connection_from_json(json_config: str | dict[str, Any]) -> dict[s
 
 
 def _flatten_exception_group(exc: BaseException) -> list[BaseException]:
-	"""Recursively unwrap BaseExceptionGroup / ExceptionGroup to its leaf causes.
-
-	``str(ExceptionGroup(...))`` returns the unhelpful
-	"unhandled errors in a TaskGroup (N sub-exceptions)" message and hides the
-	actual root cause (e.g. ``httpx.ConnectError``). This helper walks the
-	``exceptions`` tree so the caller can show the real error to the user and
-	to ``frappe.log_error``.
-	"""
+	"""Yield leaf exceptions so connection errors show their underlying cause."""
 	leaves: list[BaseException] = []
 	stack: list[BaseException] = [exc]
 	while stack:
@@ -149,16 +142,10 @@ def _format_failure(exc: BaseException) -> str:
 
 
 def _apply_result_to_doc(doc, result: dict[str, Any]) -> None:
-	"""Persist a connection-check result onto ``doc`` correctly.
+	"""Update in-memory connection fields before saving discovered tools.
 
-	``doc.save()`` (called by ``_sync_discovered_tools``) writes **all** in-memory
-	fields back to the DB. If we wrote the new status with ``frappe.db.set_value``
-	first, that subsequent ``doc.save()`` would overwrite the freshly-written
-	``is_connected=1`` with the stale in-memory value (``0``). To avoid that, we
-	update the in-memory doc fields first and then do a single ``doc.save()`` via
-	``_sync_discovered_tools``. ``_update_status`` is kept as a safety net for the
-	failure path where no ``doc.save()`` happens.
-	"""
+	Saving after `frappe.db.set_value` would overwrite the new status with stale
+	document fields."""
 	doc.is_connected = 1 if result.get("is_connected") else 0
 	doc.last_check_time = frappe.utils.now_datetime()
 	doc.status_message = (result.get("status_message") or "")[:140]

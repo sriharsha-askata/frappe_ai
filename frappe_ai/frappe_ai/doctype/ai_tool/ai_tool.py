@@ -1,12 +1,10 @@
 # Copyright (c) 2026, Frappe Technologies and contributors
 # License: MIT. See LICENSE
 
-"""`AI Tool` — ported from `flow`'s `Flow Tool` (see `apps/flow/flow/flow/doctype/flow_tool/flow_tool.py`).
+"""`AI Tool` stores a legacy tool definition and validates its configuration.
 
-Execution is the load-bearing difference from `flow`: `to_tool()` here resolves through
-`frappe_ai.lib.resolver.resolve_tool`, which runs Script tools through
-`frappe_ai.utils.safe_exec` (the hardened namespace built in Phase 1), not the broader
-`frappe.utils.safe_exec` `flow` uses. See ADR 0006.
+`to_tool()` resolves through `frappe_ai.lib.resolver.resolve_tool`; Script tools
+run in the restricted `frappe_ai.utils.safe_exec` namespace (ADR 0006).
 """
 
 from __future__ import annotations

@@ -1,18 +1,11 @@
 # Copyright (c) 2026, Frappe Technologies and contributors
 # License: MIT. See LICENSE
 
-"""Site-scoped LanceDB vector store.
+"""Site-scoped LanceDB search index derived from MariaDB chunks.
 
-MariaDB (AI Knowledge Chunk) is the source of truth for chunk text and metadata.
-This store holds only what search needs: the vector, scoping columns, and a copy
-of the content for the full-text index. Row `id` is the chunk's autoincrement name,
-so every hit maps back to its MariaDB row. The fixed embedding identity and width
-are stored in the LanceDB schema metadata. The whole store is disposable — it can
-be rebuilt from MariaDB at any time.
-
-Ported verbatim from `flow.knowledge.store` (`apps/flow/flow/knowledge/store.py`) —
-see [ADR 0002](../../docs/decisions/0002-lancedb-vector-store.md).
-"""
+MariaDB owns chunk text and metadata. Index rows use chunk names as IDs and
+can be rebuilt; embedding identity and width live in LanceDB schema metadata
+(ADR 0002)."""
 
 from __future__ import annotations
 

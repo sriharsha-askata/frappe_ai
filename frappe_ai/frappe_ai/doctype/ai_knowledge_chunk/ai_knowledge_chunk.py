@@ -1,8 +1,7 @@
 # Copyright (c) 2026, Frappe Technologies and contributors
 # License: MIT. See LICENSE
 
-"""`AI Knowledge Chunk` — ported from `flow`'s `Flow Knowledge Chunk`
-(see `apps/flow/flow/flow/doctype/flow_knowledge_chunk/flow_knowledge_chunk.py`).
+"""`AI Knowledge Chunk` stores indexed text and source provenance.
 
 **Naming is load-bearing**: `autoname: autoincrement` means `self.name` is a plain
 integer, and that integer **is** the LanceDB `chunks` table's row `id` — see

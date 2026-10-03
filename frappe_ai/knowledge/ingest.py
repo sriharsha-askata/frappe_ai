@@ -1,20 +1,10 @@
 # Copyright (c) 2026, Frappe Technologies and contributors
 # License: MIT. See LICENSE
 
-"""Ingestion pipeline: turn a knowledge source into MariaDB chunks + LanceDB rows.
+"""Ingest knowledge sources into MariaDB chunks and a derived LanceDB index.
 
-MariaDB (AI Knowledge Chunk) is the source of truth; the LanceDB store is a
-derived index keyed by chunk name.
-
-- Text / File / URL are single documents: each run rebuilds them from scratch.
-- DocType sources are incremental. A watermark (last_synced_at) bounds each run
-  to rows modified since the last sweep; a per-row content hash skips re-embedding
-  unchanged rows; deletions and filter-exits are pulled from Deleted Document and
-  the changed set, so nothing is enqueued per row.
-
-Ported verbatim (module-path substitution only) from `flow.knowledge.ingest`
-(`apps/flow/flow/knowledge/ingest.py`).
-"""
+Text, File, and URL sources rebuild each run. DocType sources use a modification
+watermark and content hashes; deletions and filter exits remove stale chunks."""
 
 from __future__ import annotations
 

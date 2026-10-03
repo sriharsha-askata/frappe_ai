@@ -3,8 +3,7 @@
 
 """Runtime tool representation and JSON-Schema derivation.
 
-Ported verbatim from `flow/lib/tool.py` — this module is pure Python (no Frappe
-imports), so the port is mechanical renaming only. Used by both `AI Tool.to_tool()`
+This pure-Python module is used by both `AI Tool.to_tool()`
 (via `frappe_ai.lib.resolver`) and the builtin tools in `frappe_ai.tools.builtins`.
 """
 

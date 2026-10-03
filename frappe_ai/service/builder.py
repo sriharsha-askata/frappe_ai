@@ -1,38 +1,11 @@
 # Copyright (c) 2026, Frappe Technologies and contributors
 # License: MIT. See LICENSE
 
-"""Turn Frappe-fetched run config into a runnable `agno.agent.Agent`.
+"""Build an Agno agent from Frappe's run configuration.
 
-Replaces `flow`'s `FlowAgent.assemble()` — but runs in FastAPI, not Frappe, and
-builds an Agno `Agent` instead of `flow.lib.agent.Agent`. Everything this needs
-(agent fields, resolved model credentials, each bound tool's JSON Schema and
-`requires_confirmation` flag, and the prompt messages) comes from one call to
-`FrappeClient.get_run_config()` — `AgentBuilder` never talks to Frappe's database
-directly (ADR 0003/`001-architecture.md` §4).
-
-**Confirmation design — deliberately not Agno's native HITL.** Agno's `Function`
-supports `requires_confirmation` natively, but its pause/resume
-(`RunPausedEvent`/`Agent.continue_run`) is built around Agno's own session `db`
-holding the paused `RunOutput` between the pause response and a later resume
-request — a stateful dependency this architecture doesn't have (`frappe_ai` is
-stateless between requests; Frappe is the only source of truth, per
-`001-architecture.md` §7.1). Instead, confirmation is handled entirely in each
-tool's `entrypoint`:
-
-- A tool call not requiring confirmation (or already approved this turn, via
-  `approved_call_ids`) dispatches immediately through `FrappeClient.dispatch_tool`.
-- A tool call requiring confirmation and not yet approved raises
-  `PendingConfirmation` instead of dispatching. The run loop
-  (`frappe_ai.service.routes.chat`) catches these after each Agno turn and, if any
-  occurred, treats the segment as Paused — mirroring `flow`'s own `Question`
-  collection (`lib/agent.py`'s `_confirmation_question`), just implemented as a
-  Python exception instead of a return value, since Agno's tool-calling loop
-  doesn't have a "return a sentinel instead of a result" affordance.
-
-This keeps Agno responsible for exactly what it's good at — the model-calling and
-tool-invocation loop — while `AI Run`/`AI Session` in Frappe remain the only place
-run state persists across requests.
-"""
+The service fetches config over HTTP and keeps no local run state. Tools needing
+approval raise `PendingConfirmation`; Frappe persists the questions for resume
+rather than relying on Agno's session state (architecture §7.1)."""
 
 from __future__ import annotations
 
@@ -69,17 +42,10 @@ PENDING_CONFIRMATION_MARKER = "__frappe_ai_pending_confirmation__"
 
 @dataclass
 class PendingConfirmation(Exception):
-	"""Raised by a tool's entrypoint instead of dispatching, when that call requires
-	confirmation and hasn't been approved yet this turn. Caught by the run loop.
+	"""Signal that a tool call needs user approval before dispatch.
 
-	Deliberately a plain `Exception`, not `agno.exceptions.AgentRunException` — the
-	latter is re-raised by Agno out of the entire `arun()` generator on the first
-	occurrence, which would stop the turn after just one pending call. A plain
-	exception is instead swallowed by Agno into
-	`ToolExecution(tool_call_error=True, ...)` with `str(self)` as the error text,
-	letting multiple tool calls in the same turn each independently end up Paused —
-	matching `flow`'s behaviour of collecting every pending `Question` in one pass.
-	"""
+	Use a plain exception so Agno records each pending tool failure and the run loop
+	can collect multiple confirmation questions in one turn."""
 
 	tool_call_id: str
 	name: str
@@ -107,27 +73,10 @@ class AgentBuilder:
 		*,
 		approved_call_ids: frozenset[str] = frozenset(),
 	) -> tuple[Agent, dict[str, Any]]:
-		"""Fetch this run's config from Frappe and build a runnable Agent.
+		"""Build an Agno agent and return it with the raw run configuration.
 
-		Args:
-			run (str): `AI Run` name.
-			user (str): Acting user — every tool dispatch this Agent makes carries
-				this identity, so `frappe.has_permission` on the Frappe side scopes
-				to it (ADR 0003).
-			approved_call_ids (frozenset[str]): Tool call ids that were already
-				approved (via a resume's `answers`) and should dispatch immediately
-				this turn rather than raising `PendingConfirmation` again. Empty on
-				a fresh (non-resumed) turn.
-
-		Returns:
-			tuple[Agent, dict[str, Any]]: The built Agent, and the raw config dict
-				(kept for `config_snapshot`/tool-metadata lookups the run loop needs,
-				e.g. mapping a tool name back to its `requires_confirmation` flag).
-
-		Raises:
-			AgentBuildError: If Frappe rejects the run/config fetch, or the model
-				class can't be instantiated.
-		"""
+		Tool calls dispatch as `user`. `approved_call_ids` bypasses the pause gate for
+		calls already approved on resume; it does not execute them by itself."""
 		try:
 			config = await self.frappe_client.get_run_config(run, user)
 		except FrappeClientError as e:
@@ -184,17 +133,9 @@ class AgentBuilder:
 
 	@staticmethod
 	def _apply_agent_sampling(model_cfg: dict[str, Any], agent_cfg: dict[str, Any]) -> dict[str, Any]:
-		"""Overlay the agent's sampling settings onto the model's own params.
+		"""Apply agent sampling settings over model defaults.
 
-		`temperature`/`top_p` live on both `AI Model.params` and `AI Agent`. Agno
-		carries them on the model rather than the Agent, so the agent-level fields
-		were being sent to the service and silently dropped. The agent is the more
-		specific configuration, so it wins where set.
-
-		Agents flagged `reasoning` get no sampling overrides: reasoning models commonly
-		reject `temperature`/`top_p`, and the form defaults (0.7 / 1.0) would otherwise be
-		sent for every agent whether or not anyone chose them.
-		"""
+		Reasoning agents omit `temperature` and `top_p`, which their models may reject."""
 		if agent_cfg.get("reasoning"):
 			return model_cfg
 		overrides = {key: agent_cfg.get(key) for key in ("temperature", "top_p")}

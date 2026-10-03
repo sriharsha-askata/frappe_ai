@@ -1,8 +1,7 @@
 # Copyright (c) 2026, Frappe Technologies and contributors
 # License: MIT. See LICENSE
 
-"""`AI Knowledge Source` — ported from `flow`'s `Flow Knowledge Source`
-(see `apps/flow/flow/flow/doctype/flow_knowledge_source/flow_knowledge_source.py`).
+"""`AI Knowledge Source` configures content ingestion for a knowledge base.
 """
 
 from __future__ import annotations
@@ -67,16 +66,10 @@ class AIKnowledgeSource(Document):
 
 	@classmethod
 	def find_existing_completed(cls, kb: str, source_type: str, content_hash: str) -> str | None:
-		"""Find a completed source with the same content in the same knowledge base.
+		"""Find the earliest completed source with the same content in this KB.
 
-		The source DocType intentionally has no hash column. File hashes belong to the
-		File DocType, so legacy and newly uploaded files can share the same lookup path.
-
-		The candidates' File rows are resolved in batched queries and compared on their
-		stored hash. Only a legacy File row with no stored hash falls back to
-		`content_hash_for_file`, which reads and hashes the file's bytes. The earliest
-		matching source wins, as before.
-		"""
+		Compare stored File hashes in batches; hash file bytes only for legacy rows
+		without a stored hash."""
 		if not content_hash or source_type != "File":
 			return None
 

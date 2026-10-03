@@ -1,16 +1,9 @@
 # Copyright (c) 2026, Frappe Technologies and contributors
 # License: MIT. See LICENSE
 
-"""The ten builtin tools — ported from `flow/tools/builtins.py`.
+"""Builtin tools executed in Frappe under the acting user's permissions.
 
-All ten execute **inside Frappe**, dispatched to by `frappe_ai.api.dispatch` (the
-service never runs these itself; it only holds their JSON Schemas via
-`Tool.to_dict()`). This module's only Frappe-side concern is the tool bodies
-themselves — permission checks, per-record failure handling, and the sandbox for
-`execute` — exactly as in `flow`.
-
-`search_knowledge` is real as of Phase 4, and `update_memory` as of Phase 5.
-"""
+The service receives tool schemas; Frappe owns dispatch and the `execute` sandbox."""
 
 from __future__ import annotations
 

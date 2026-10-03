@@ -1,17 +1,10 @@
 # Copyright (c) 2026, Frappe Technologies and contributors
 # License: MIT. See LICENSE
 
-"""Ephemeral, session-scoped vector store for oversized chat attachments.
+"""Session-scoped index for oversized chat attachments.
 
-Separate from the curated KB store (store.py) so chat files never surface in
-agent knowledge-base search. Reads are scoped by `session`; the session-owner
-check in load_session() is the authorization boundary, enforced before any
-search runs. The `content` column is the source of truth; this index is
-disposable and rebuildable.
-
-Ported verbatim from `flow.knowledge.attachment_store`
-(`apps/flow/flow/knowledge/attachment_store.py`).
-"""
+Search requires session ownership. Chat files never enter the curated KB index;
+this disposable index keeps attachment content for retrieval."""
 
 from __future__ import annotations
 

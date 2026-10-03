@@ -7,8 +7,6 @@ Sizes are character counts. Chunks break on whitespace where possible so a
 word is not split across two chunks; text with no whitespace falls back to a
 hard split at chunk_size.
 
-Ported verbatim from `flow.knowledge.chunker` (`apps/flow/flow/knowledge/chunker.py`) —
-pure function, no Frappe imports, nothing to adapt.
 """
 
 from __future__ import annotations

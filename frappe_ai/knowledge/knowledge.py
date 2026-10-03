@@ -7,8 +7,6 @@ Build and populate an AI Knowledge Base from Python — attach text, files, URLs
 or DocType data without the desk UI. Ingestion is synchronous: when an add_*
 call returns, the content is embedded, indexed, and ready to search.
 
-Ported verbatim (module-path substitution only) from `flow.knowledge.knowledge`
-(`apps/flow/flow/knowledge/knowledge.py`).
 """
 
 from __future__ import annotations

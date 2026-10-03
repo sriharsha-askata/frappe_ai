@@ -199,7 +199,7 @@ class TestResolveTool(IntegrationTestCase):
 	def test_bad_import_path_throws(self):
 		doc = frappe.get_doc(_tool(slug="bad_import", import_path="not.a.real.module.fn"))
 		# Validation only checks the dotted-path shape, not that it resolves — the
-		# resolve failure surfaces at to_tool() time, matching flow's behaviour.
+		# resolve failure surfaces at to_tool() time.
 		doc.insert()
 		with self.assertRaises(frappe.ValidationError):
 			doc.to_tool()

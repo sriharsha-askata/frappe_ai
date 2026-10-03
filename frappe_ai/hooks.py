@@ -208,8 +208,7 @@ scheduler_events = {
 # Migration
 # ---------
 # Upserts the 10 builtin tools as system-generated AI Tool rows on every migrate.
-# Phase 7's sync_builtin_assistant will also call this (see AI Model.after_insert's
-# ImportError guard); it runs independently here so builtins exist before Phase 7 lands.
+# Keep builtin tools available on every migrate, including before model creation.
 after_migrate = [
 	"frappe_ai.assistant_tools.sync.sync_decorated_tools",
 	"frappe_ai.tools.builtins.sync_builtin_tools",

@@ -502,7 +502,7 @@ class TestExtract(IntegrationTestCase):
 
 	def test_doctype_source_strips_html_from_rich_text(self):
 		# Frappe's HTML sanitizer escapes <script> to `&lt;script&gt;` at save time
-		# (this bench's version; `flow`'s test predates that sanitizer behavior), so
+		# on this bench, so
 		# by the time extraction runs it is already inert text, not a live tag — bs4's
 		# get_text() correctly renders escaped entities back to readable characters,
 		# which is indistinguishable in the final string from "never stripped." Assert
@@ -1398,12 +1398,11 @@ class TestKnowledgeBuilder(IntegrationTestCase):
 
 
 class TestAgentKnowledge(IntegrationTestCase):
-	"""Tests the real integration point in this architecture:
-	`frappe_ai.tools.builtins.bind_search_knowledge` — Phase 3 replaced `flow`'s
-	in-process `Agent`/`Model` runtime with the FastAPI service + `AgentBuilder`, so
-	there is no direct equivalent of `flow`'s `Agent(knowledge=...)` constructor to
-	test against; the tool binding is what an `AI Agent`'s `knowledge_bases` child
-	table actually resolves to at dispatch time."""
+	"""Test the knowledge tool bound from an `AI Agent`'s `knowledge_bases` table.
+
+	`frappe_ai.tools.builtins.bind_search_knowledge` is the dispatch-time
+	integration point for agent knowledge retrieval.
+	"""
 
 	def setUp(self):
 		_set_settings(embedding_dimension=0)

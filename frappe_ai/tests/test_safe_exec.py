@@ -22,8 +22,7 @@ class TestFrappeAISafeExecNamespace(IntegrationTestCase):
 		for name in ("get_value", "get_single_value", "exists", "count"):
 			self.assertIn(name, g.frappe.db)
 
-	# `frappe_ai.tools.builtins` landed in Phase 3 — `_frappe_ai_builtins()` in
-	# `frappe_ai/utils/safe_exec.py` now injects everything except `execute` (no
+	# `_frappe_ai_builtins()` injects everything except `execute` (no
 	# recursive self-sandboxing) and `search_knowledge` (needs a bound KB scope,
 	# see `_SKIP_BUILTINS`).
 	def test_builtins_injected_except_execute_and_search_knowledge(self):

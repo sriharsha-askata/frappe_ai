@@ -1,10 +1,9 @@
 # Copyright (c) 2026, Frappe Technologies and contributors
 # License: MIT. See LICENSE
 
-"""`AI Knowledge Base` — ported from `flow`'s `Flow Knowledge Base`
-(see `apps/flow/flow/flow/doctype/flow_knowledge_base/flow_knowledge_base.py`).
+"""`AI Knowledge Base` binds searchable content to agents.
 
-Authorization model (carried forward from `flow` intentionally): the KB binding on the
+Authorization model: the knowledge-base binding on the
 agent **is** the authorization boundary. Chunks are not re-checked per user at retrieval
 time. Do not bind a KB containing restricted content to an agent available to all users.
 """

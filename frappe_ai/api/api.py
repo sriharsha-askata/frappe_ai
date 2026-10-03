@@ -1,33 +1,11 @@
 # Copyright (c) 2026, Frappe Technologies and contributors
 # License: MIT. See LICENSE
 
-"""Browser-facing whitelisted API — ported from `flow/api/api.py`.
+"""Browser-facing API for runs, sessions, and feedback.
 
-**The load-bearing difference from `flow`:** none of these methods run the model.
-`flow`'s `start_run`/`resume_run` call `FlowSession.chat()`/`.resume()` in-process and
-return either a finished `Flow Run` summary or an SSE generator built from an
-in-process event stream. Here, LLM orchestration lives in the FastAPI service (a
-different process), so `start_run`/`resume_run` only:
-
-1. Resolve/create the `AI Session` and persist this turn's messages (the parts that
-   must happen in Frappe: authorization, transcript storage).
-2. Create the `AI Run` row (status=Running) with a config snapshot.
-3. Mint a short-lived run token (`frappe_ai.service.auth.mint_run_token`, ADR 0004).
-4. Return `{run, session, token, stream_url}` — the browser opens the actual SSE
-   connection **directly against FastAPI** (`POST {stream_url}` with
-   `Authorization: Bearer <token>`), not through Frappe. See `001-architecture.md`
-   §5.1 for the full sequence diagram this implements.
-
-`stop_run`/`recover_session`/`submit_feedback`/`get_agent_tools`/`attach_file` port
-much more directly, since they only ever touched DocTypes, never the runtime.
-
-Two internal (service-secret-authenticated, not user-facing) callbacks live here too:
-`persist_run_result` and `fail_run` — the Frappe-side half of the service's
-"call back over HTTP on Done/exception/disconnect" persistence pattern that replaces
-`flow`'s `stream_with_persistence` (dropped; see `AI Run`'s module docstring).
-
-Thumbs-down feedback now also writes shared agent memory when the agent supports it.
-"""
+`start_run` and `resume_run` persist the turn in Frappe, then return a short-lived
+token and URL for the browser to stream directly from FastAPI. The service calls
+`persist_run_result` or `fail_run` over HTTP to save the outcome."""
 
 from __future__ import annotations
 
@@ -61,24 +39,10 @@ def start_run(
 	model: str | None = None,
 	attachments: list[str] | str | None = None,
 ) -> dict[str, Any]:
-	"""Start a new turn: persist it in Frappe, then hand off to the FastAPI service.
+	"""Persist a new turn and return its run, session, token, and stream URL.
 
-	Creates a session if none is given (agent required in that case). Resuming an
-	existing session reuses its locked-in agent; `model` may switch the session's
-	model for this and future turns, unless a run is currently Paused or Running.
-
-	Args:
-		input (str): The user's message.
-		agent (str | None): `AI Agent` name. Required when `session` is omitted.
-		session (str | None): Existing `AI Session` name to continue.
-		model (str | None): Override the agent's default model.
-		attachments (list[str] | str | None): Uploaded `File` names (or a JSON array
-			string of them) whose text is injected into this turn.
-
-	Returns:
-		dict[str, Any]: `{run, session, token, stream_url, expires_in}` — everything
-			the browser needs to open the SSE stream directly against FastAPI.
-	"""
+	A new session requires an agent. An existing session keeps its agent; a model
+	override applies to this and later turns unless another run is active."""
 	if not isinstance(input, str) or not input.strip():
 		frappe.throw(_("Input is required."), title=_("Invalid Input"))
 
@@ -106,16 +70,9 @@ def start_run(
 
 @frappe.whitelist()
 def resume_run(run_name: str, answers: dict[str, Any] | str) -> dict[str, Any]:
-	"""Resume a Paused run with the user's answers to its pending questions.
+	"""Resume a paused run with answers keyed by pending tool-call ID.
 
-	Args:
-		run_name (str): The `AI Run` name to resume.
-		answers (dict[str, Any] | str): Maps each question's `key` (the pausing tool
-			call's id) to `"Approve"`, `"Deny"`, or free-text redirect feedback.
-
-	Returns:
-		dict[str, Any]: Same shape as `start_run` — a fresh token and stream URL.
-	"""
+	Accept Approve, Deny, or redirect feedback; return a new token and stream URL."""
 	parsed_answers = _parse_answers(answers)  # validated here so a malformed payload fails before minting a token
 
 	run = frappe.get_doc("AI Run", run_name)
@@ -137,15 +94,7 @@ def resume_run(run_name: str, answers: dict[str, Any] | str) -> dict[str, Any]:
 
 @frappe.whitelist()
 def stop_run(run_name: str) -> dict[str, str]:
-	"""Stop a run at the user's request: terminate a Paused run so the agent won't
-	continue, or finalize a Running one whose SSE stream the client has aborted.
-
-	Args:
-		run_name (str): The `AI Run` name to stop.
-
-	Returns:
-		dict[str, str]: `{"status": <final AI Run status>}`.
-	"""
+	"""Stop a Paused or Running run and return its final status."""
 	if not isinstance(run_name, str) or not run_name.strip():
 		frappe.throw(_("Run is required."), title=_("Invalid Run"))
 
@@ -162,16 +111,7 @@ def stop_run(run_name: str) -> dict[str, str]:
 
 @frappe.whitelist()
 def recover_session(session: str) -> dict[str, int]:
-	"""Fail any Running run on session (re)load. The client that owned the stream is
-	gone, so the run is abandoned; clearing it here unblocks the next turn instead of
-	waiting for the stale-run timeout on the next send.
-
-	Args:
-		session (str): The `AI Session` name to recover.
-
-	Returns:
-		dict[str, int]: `{"recovered": <count of runs failed>}`.
-	"""
+	"""Fail abandoned Running runs when a session is reloaded."""
 	if not isinstance(session, str) or not session.strip():
 		frappe.throw(_("Session is required."), title=_("Invalid Session"))
 
@@ -190,16 +130,7 @@ def recover_session(session: str) -> dict[str, int]:
 
 @frappe.whitelist()
 def submit_feedback(run_name: str, rating: str, comment: str | None = None) -> dict[str, Any]:
-	"""Record thumbs feedback on a finished run, or clear it with rating "None".
-
-	Args:
-		run_name (str): The `AI Run` name.
-		rating (str): "Up", "Down", or "None" (clears any existing rating).
-		comment (str | None): Optional comment, capped at 500 characters.
-
-	Returns:
-		dict[str, Any]: `{"rating": rating}` (or `{"rating": None}` when cleared).
-	"""
+	"""Set or clear thumbs feedback for a finished run; comments cap at 500 chars."""
 	if not isinstance(run_name, str) or not run_name.strip():
 		frappe.throw(_("Run is required."), title=_("Invalid Run"))
 	if rating not in ("Up", "Down", "None"):
@@ -233,15 +164,7 @@ def submit_feedback(run_name: str, rating: str, comment: str | None = None) -> d
 
 @frappe.whitelist()
 def get_agent_tools(agent: str) -> dict[str, bool]:
-	"""Map an agent's tool slugs to whether each needs confirmation, so the panel can
-	classify tool calls (approval vs. inline).
-
-	Args:
-		agent (str): `AI Agent` name.
-
-	Returns:
-		dict[str, bool]: `{slug: requires_confirmation}`.
-	"""
+	"""Return `{slug: requires_confirmation}` for an agent's tools."""
 	if not isinstance(agent, str) or not agent.strip():
 		return {}
 
@@ -259,16 +182,7 @@ def get_agent_tools(agent: str) -> dict[str, bool]:
 
 @frappe.whitelist()
 def attach_file(file: str) -> dict[str, Any]:
-	"""Validate and extract an uploaded File for use as a chat attachment. Errors
-	(unsupported type, unreadable, not owned) surface here, at upload time. The
-	extracted text is staged in cache; the attachment row is written on send.
-
-	Args:
-		file (str): `File` document name.
-
-	Returns:
-		dict[str, Any]: `{file, file_name, file_size}`.
-	"""
+	"""Validate and stage an uploaded file; return metadata for the composer."""
 	if not isinstance(file, str) or not file.strip():
 		frappe.throw(_("File is required."), title=_("Invalid Attachment"))
 
@@ -279,22 +193,9 @@ def attach_file(file: str) -> dict[str, Any]:
 
 @frappe.whitelist(allow_guest=True)
 def persist_run_result(run: str, result: dict | str) -> dict[str, str]:
-	"""Service-secret-authenticated callback: apply a finished/paused run segment.
+	"""Apply a completed or paused service segment to its run and session.
 
-	Called by the FastAPI service on `Done` (see `001-architecture.md` §8's `done`
-	event) — the Frappe-side half of the persistence-via-explicit-callback pattern
-	that replaces `flow`'s `stream_with_persistence`.
-
-	Args:
-		run (str): `AI Run` name.
-		result (dict | str): `AIRun.apply_result`'s expected shape (JSON string or dict).
-
-	Returns:
-		dict[str, str]: `{"status": <new AI Run status>}`.
-
-	Raises:
-		frappe.AuthenticationError: If the service secret is missing or invalid.
-	"""
+	Accept `result` as a dict or JSON string; return the resulting run status."""
 	_verify_service_secret()
 	if isinstance(result, str):
 		result = json.loads(result)
@@ -313,21 +214,7 @@ def persist_run_result(run: str, result: dict | str) -> dict[str, str]:
 
 @frappe.whitelist(allow_guest=True)
 def fail_run(run: str, error: str) -> dict[str, str]:
-	"""Service-secret-authenticated callback: mark a run Failed.
-
-	Called by the FastAPI service when a run raises or the client disconnects
-	mid-stream before a `Done` event was ever produced (`001-architecture.md` §9).
-
-	Args:
-		run (str): `AI Run` name.
-		error (str): Error message (truncated to 5000 chars by `AIRun.mark_failed`).
-
-	Returns:
-		dict[str, str]: `{"status": "Failed"}`.
-
-	Raises:
-		frappe.AuthenticationError: If the service secret is missing or invalid.
-	"""
+	"""Mark a run Failed after a service error or stream disconnect."""
 	_verify_service_secret()
 	original_user = frappe.session.user
 	frappe.set_user("Administrator")
@@ -344,24 +231,7 @@ def fail_run(run: str, error: str) -> dict[str, str]:
 
 @frappe.whitelist(allow_guest=True)
 def log_diagnostic(title: str, message: str) -> dict[str, str]:
-	"""Service-secret-authenticated callback: record a service-side diagnostic.
-
-	Lets the FastAPI service (which has no Frappe site context of its own — see
-	`service/config.py`'s module docstring) surface run diagnostics — model call
-	timing/token counts, and the real exception underneath an opaque Agno
-	`RunErrorEvent` — into Frappe's Error Log instead of a log file only visible
-	in the bench-managed uvicorn process's own console.
-
-	Args:
-		title (str): Error Log title (truncated by `frappe.log_error` as usual).
-		message (str): Full diagnostic text (traceback, timing, etc.).
-
-	Returns:
-		dict[str, str]: `{"status": "logged"}`.
-
-	Raises:
-		frappe.AuthenticationError: If the service secret is missing or invalid.
-	"""
+	"""Record a service-side diagnostic in Frappe's Error Log."""
 	_verify_service_secret()
 	frappe.log_error(title=title, message=message)
 	return {"status": "logged"}
@@ -406,9 +276,10 @@ def _resolve_session(session: str | None, *, agent: str | None, model: str | Non
 
 
 def _check_agent_usable(agent_doc, session_model: str | None) -> None:
-	"""Mirrors `AI Agent.assemble()`'s permission gate (flow) — but flow's `assemble()`
-	built a runtime agent object; here it only needs to fail fast before a token is
-	minted, so the service never has to reject a config it was never allowed to see."""
+	"""Reject an unusable agent before minting a run token.
+
+	This keeps the service from receiving a config the caller cannot access.
+	"""
 	if not agent_doc.enabled:
 		frappe.throw(_("AI Agent {0} is disabled.").format(agent_doc.name), title=_("Disabled Agent"))
 

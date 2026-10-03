@@ -95,17 +95,10 @@ def dispatch_scheduled() -> None:
 
 
 def _claim_scheduled_window(trigger: str, last_fired_at: Any, now: Any) -> bool:
-	"""Claim this trigger's due window, returning False if someone else got it.
+	"""Atomically claim a scheduled trigger window before enqueueing.
 
-	A plain read-then-write lets two schedulers (or one scheduler racing a
-	retry) both observe the same `last_fired_at` and both enqueue, firing an
-	agent twice for one window. A conditional update makes the claim atomic:
-	exactly one caller sees a row affected.
-
-	The window is claimed *before* the job runs, so a failing job forfeits its
-	turn rather than retrying. That is deliberate -- per ADR 0007 this system
-	prefers a skipped agent run over a duplicated one, since runs mutate data.
-	"""
+	Only one scheduler may claim it. A failed job forfeits the window to avoid
+	duplicating a potentially mutating run (ADR 0007)."""
 	if last_fired_at is None:
 		condition, values = "`last_fired_at` is null", {"now": now, "trigger": trigger}
 	else:

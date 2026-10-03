@@ -64,7 +64,7 @@ class AIModel(Document):
 		try:
 			from frappe_ai.assistant import sync_builtin_assistant
 		except ImportError:
-			# frappe_ai.assistant doesn't exist until Phase 7; no-op until then.
+			# Assistant integration is optional; model creation still succeeds without it.
 			return
 
 		sync_builtin_assistant(model=self.name)

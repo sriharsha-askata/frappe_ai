@@ -1,18 +1,10 @@
 # Copyright (c) 2026, Frappe Technologies and contributors
 # License: MIT. See LICENSE
 
-"""Provider-independent chat transport and model configuration.
+"""Configure provider-independent chat models through OpenAI-compatible transport.
 
-Provider identity is deliberately separate from execution. Every chat model is
-created through the OpenAI-compatible Chat Completions transport, which is the
-one transport Agno needs for orchestration, tools, structured output, and
-streaming. The provider slug is retained as metadata and selects endpoint
-defaults; it never selects an ``agno.models.<provider>`` implementation.
-
-The only Agno model import in this module is Agno's OpenAI Chat transport. That
-transport uses the OpenAI Python SDK, so providers such as Google Gemini do not
-load their native SDKs (in particular, ``google.genai``).
-"""
+Provider identity selects endpoint defaults; it does not select a native Agno
+provider or load its SDK."""
 
 from __future__ import annotations
 
@@ -453,19 +445,10 @@ SINGLE_RESULT_CONTEXT_FRACTION = 0.5
 
 
 def single_tool_result_char_budget(model_name: str | None) -> int:
-	"""Safe character budget for ONE tool call's result payload, derived from
-	`model_name`'s ``AI Model.context_window`` — not a hardcoded, model-blind
-	document-size constant.
+	"""Limit one tool result to half the model's context window.
 
-	Reserves half the window for one result: a single large tool result must
-	still coexist with the system prompt, prior turns' tool results, and the
-	eventual reply within the same model call, so the full context window is
-	never a safe budget for one piece of it. Falls back to a conservative
-	default when the model is unknown or ``context_window`` is unset/0 (found
-	empirically: agentic tool-calling calls whose cumulative input crossed
-	~27,000-31,000 tokens against "Minimax M3" failed with an opaque
-	model_provider_error, reproduced regardless of chunk size).
-	"""
+	Use a conservative default when the model or window is unknown; the remaining
+	space accommodates the prompt, other results, and reply."""
 	context_window = (model_name and frappe.db.get_value("AI Model", model_name, "context_window")) or 0
 	budget_tokens = (
 		int(context_window * SINGLE_RESULT_CONTEXT_FRACTION) if context_window else DEFAULT_SINGLE_CALL_BUDGET_TOKENS

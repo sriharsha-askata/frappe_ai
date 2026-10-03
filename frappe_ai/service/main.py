@@ -3,11 +3,9 @@
 
 """FastAPI service entrypoint.
 
-Phase 2 built process supervision, health check, and authenticated communication
-with Frappe (hand-built FastAPI, not Agno's AgentOS — see progress doc, Phase 2
-build decision). Phase 3 fills in the real `/stream/{run}` route: run-token
-verification (unchanged from Phase 2) now leads into `frappe_ai.service.routes.chat`,
-which builds the Agno agent and streams the run.
+Provides a health check and an authenticated `/stream/{run}` route. After run-token
+verification, `frappe_ai.service.routes.chat` builds the Agno agent and streams
+the run. The service communicates with Frappe through its HTTP client.
 """
 
 from __future__ import annotations
@@ -34,7 +32,7 @@ frappe_client = FrappeClient(settings)
 
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncIterator[None]:
-	"""Startup/shutdown logging. No resource acquisition needed until later phases."""
+	"""Log service startup and shutdown."""
 	logger.info("frappe_ai service starting up (site=%s, frappe_url=%s)", settings.site, settings.frappe_url)
 	yield
 	logger.info("frappe_ai service shutting down")
@@ -73,27 +71,10 @@ class StreamRunBody(BaseModel):
 async def stream_run(
 	run: str, body: StreamRunBody = StreamRunBody(), authorization: str | None = Header(default=None)
 ) -> StreamingResponse:
-	"""Stream one turn's agent run as Server-Sent Events.
+	"""Authenticate the bearer run token and stream the turn as SSE.
 
-	Verifies the run token exactly as the Phase 2 placeholder did, then hands off to
-	`frappe_ai.service.routes.chat.stream_chat` for the actual Agno run loop and SSE
-	event translation (`001-architecture.md` §8).
-
-	Args:
-		run (str): `AI Run` name from the URL path.
-		body (StreamRunBody): `{"answers": {...}}` when resuming a Paused run,
-			otherwise empty.
-		authorization (str | None): `Bearer <run token>` header, minted by
-			`frappe_ai.api.api.start_run`/`resume_run`.
-
-	Returns:
-		StreamingResponse: `text/event-stream`, headers per §8 (`Cache-Control:
-			no-cache`, `X-Accel-Buffering: no`).
-
-	Raises:
-		HTTPException: 401 if the token is missing, malformed, tampered, or expired,
-			or not bound to this run.
-	"""
+	`body.answers` resumes pending questions. Return 401 for a missing, invalid,
+	expired, or mismatched token; delegate the run to `stream_chat`."""
 	if not authorization or not authorization.startswith("Bearer "):
 		raise HTTPException(status_code=401, detail="Missing bearer run token")
 

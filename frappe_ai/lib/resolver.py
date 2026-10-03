@@ -1,19 +1,10 @@
 # Copyright (c) 2026, Frappe Technologies and contributors
 # License: MIT. See LICENSE
 
-"""Resolve `AI Tool` rows into runtime `Tool`s.
+"""Resolve `AI Tool` rows into runtime tools.
 
-Ported from `flow/lib/resolver.py`. The load-bearing difference: Script tools run
-through `frappe_ai.utils.safe_exec.safe_exec` — the hardened namespace built in
-Phase 1 — not `frappe.utils.safe_exec.safe_exec`. That function's signature has no
-`restrict_commit_rollback` kwarg (commit/rollback are already absent from its
-namespace entirely; see ADR 0006), so `_make_script_runner` here does not thread one
-through.
-
-`schema_from_code()` reads a Script tool's `main` signature from the AST only —
-annotations are never evaluated, so untrusted code cannot execute during schema
-derivation.
-"""
+Script tools use the restricted sandbox (ADR 0006). Schema derivation reads
+`main`'s AST without evaluating annotations."""
 
 from __future__ import annotations
 
@@ -47,14 +38,7 @@ _OBJECT_NAMES = frozenset({"dict", "Dict", "Mapping"})
 
 
 def resolve_tool(doc: AITool) -> Tool:
-	"""Turn an `AI Tool` row into a runtime `Tool` the dispatch endpoint can call.
-
-	Args:
-		doc (AITool): The tool document to resolve.
-
-	Returns:
-		Tool: The resolved, callable tool.
-	"""
+	"""Resolve an `AI Tool` document into a callable runtime `Tool`."""
 	if doc.type == "Imported":
 		return _resolve_module(doc)
 	return _resolve_script(doc)
@@ -114,17 +98,7 @@ def _make_script_runner(code: str, slug: str):
 
 
 def schema_from_code(code: str) -> dict[str, Any]:
-	"""Derive a JSON Schema for a Script tool's arguments from `main`'s signature.
-
-	Reads type annotations from the AST without evaluating them, so untrusted code
-	cannot run during schema derivation.
-
-	Args:
-		code (str): The Script tool's Python source.
-
-	Returns:
-		dict[str, Any]: JSON Schema for `main`'s parameters.
-	"""
+	"""Derive `main`'s argument schema from the AST without evaluating annotations."""
 	main = _find_main(ast.parse(code))
 	params = main.args.posonlyargs + main.args.args + main.args.kwonlyargs
 	required = _required_arg_names(main.args)

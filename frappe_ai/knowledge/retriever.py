@@ -1,31 +1,11 @@
 # Copyright (c) 2026, Frappe Technologies and contributors
 # License: MIT. See LICENSE
 
-"""Query-time retrieval over the knowledge store.
+"""Retrieve knowledge-base-scoped hits and hydrate them from MariaDB.
 
-Embeds the query, runs a KB-scoped search (hybrid or vector-only per
-AI Settings' search_type), and hydrates each hit from MariaDB (the source of
-truth) for its text and provenance.
-
-Permission model — the knowledge base is the boundary. KBs are admin-curated
-(System Manager-only doctypes), bound to agents by admins, and the LLM cannot
-widen the scope. Retrieval is therefore not re-checked per chunk against the
-running user; the binding is the authorization. The two gates are: scoping is
-fail-closed (an empty scope is refused, never widened to the whole store), and
-only knowledge bases that currently exist and are enabled are searched, so
-disabling a KB is a real off-switch.
-
-That reasoning holds for sources whose content an admin chose directly — `Text`,
-`File`, `URL`. It does **not** hold for `source_type = "DocType"`, where the
-indexed content is derived from documents carrying their own per-user
-permissions, selected by a filter rather than individually, and kept growing by
-`auto_sync`. Treating the KB binding as authorization there would let any user of
-a bound agent read documents they have no permission for. So chunks that name a
-source document are additionally checked against that document's own read
-permission; chunks without provenance keep the KB-as-boundary rule unchanged.
-
-Ported verbatim from `flow.knowledge.retriever` (`apps/flow/flow/knowledge/retriever.py`).
-"""
+Agent bindings authorize ordinary KB content; an empty or disabled KB scope
+fails closed. Chunks derived from DocType records also require the acting user's
+read permission on each source document."""
 
 from __future__ import annotations
 

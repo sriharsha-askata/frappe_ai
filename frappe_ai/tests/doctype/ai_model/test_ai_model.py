@@ -78,7 +78,7 @@ class TestAIModelProvider(IntegrationTestCase):
 		frappe.db.rollback()
 
 	def test_linked_provider_does_not_alter_model_id(self):
-		# Unlike flow, the provider is not composed into model_id — it stays bare.
+		# The provider does not change the stored model_id.
 		doc = frappe.get_doc(_model(provider="anthropic", model_id="claude-sonnet-4-6")).insert()
 
 		self.assertEqual(doc.model_id, "claude-sonnet-4-6")
@@ -241,8 +241,7 @@ class TestContextWindow(IntegrationTestCase):
 		self.assertEqual(reloaded.context_window, 0)
 
 	def test_context_window_survives_model_id_change(self):
-		# Unlike flow, changing model_id does not trigger any re-detection — the
-		# user-set value is left untouched.
+		# Changing model_id preserves the user-set context window.
 		doc = frappe.get_doc(_model(context_window=128000)).insert()
 		doc.model_id = "claude-sonnet-4-6"
 		doc.save()

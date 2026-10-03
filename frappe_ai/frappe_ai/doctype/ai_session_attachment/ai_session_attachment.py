@@ -1,8 +1,7 @@
 # Copyright (c) 2026, Frappe Technologies and contributors
 # License: MIT. See LICENSE
 
-"""`AI Session Attachment` — ported from `flow`'s `Flow Session Attachment`
-(see `apps/flow/flow/flow/doctype/flow_session_attachment/flow_session_attachment.py`).
+"""`AI Session Attachment` stores files attached to a conversation.
 
 Extraction now goes through `frappe_ai.knowledge.extract.extract_file`
 (`FILE_EXTENSIONS`) — PDF, DOCX, XLSX, HTML, OCR, and plain text, same set `AI
@@ -48,16 +47,9 @@ class AISessionAttachment(Document):
 
 
 def extract_attachment(file: str) -> dict[str, Any]:
-	"""Validate and extract text from an uploaded File. Raises (so errors surface at
-	upload time) if the caller doesn't own the file, the type is unsupported, or no
-	text can be read. Returns the fields needed to write an attachment row.
+	"""Validate file ownership and type, then return extracted text and metadata.
 
-	Args:
-		file (str): `File` document name.
-
-	Returns:
-		dict[str, Any]: `{file, file_name, file_size, extracted_text}`.
-	"""
+	Raise extraction errors at upload time."""
 	file_doc = frappe.get_doc("File", file)
 	if not frappe.has_permission("File", "read", doc=file_doc):
 		frappe.throw(_("Not permitted to use this file."), frappe.PermissionError)
@@ -86,15 +78,7 @@ def _cache_key(file: str) -> str:
 
 
 def stage_attachment(file: str) -> dict[str, Any]:
-	"""Extract at upload time and cache the result, so send can write the child row
-	without re-parsing. Returns lightweight metadata for the composer chip.
-
-	Args:
-		file (str): `File` document name.
-
-	Returns:
-		dict[str, Any]: `{file, file_name, file_size}`.
-	"""
+	"""Cache extracted text at upload and return lightweight composer metadata."""
 	data = extract_attachment(file)
 	frappe.cache.set_value(_cache_key(file), data, expires_in_sec=CACHE_TTL)
 	return {"file": data["file"], "file_name": data["file_name"], "file_size": data["file_size"]}

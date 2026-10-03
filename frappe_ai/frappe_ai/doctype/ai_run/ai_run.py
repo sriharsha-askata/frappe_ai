@@ -1,33 +1,11 @@
 # Copyright (c) 2026, Frappe Technologies and contributors
 # License: MIT. See LICENSE
 
-"""`AI Run` — ported from `flow`'s `Flow Run`
-(see `apps/flow/flow/flow/doctype/flow_run/flow_run.py`).
+"""Persist run status and transcript updates from service callbacks.
 
-`apply_result` takes a plain dict here, not a `RunResult` dataclass — the FastAPI
-service is a separate process, so a run's result crosses the wire as JSON via the
-`frappe_ai.api.api.persist_run_result` callback, not an in-process object. Shape:
-
-	{
-		"status": "Completed" | "Paused" | "Failed",
-		"iterations": int,          # this segment's iteration count (accumulated onto the row)
-		"output": str | None,
-		"tool_calls": [{"id", "name", "arguments"}, ...],
-		"questions": [{"key", ...}, ...] | None,   # only when status == "Paused"
-		"usage": {"prompt_tokens": int, "completion_tokens": int, ...},  # this segment's usage
-		"messages": [{"role", "content", "tool_call_id"?, "tool_calls"?}, ...],  # FULL transcript
-	}
-
-`messages` is the full transcript as the service sees it (system + history + this
-segment) — `apply_result` diffs it against the session's already-stored message count
-and appends only the delta, exactly as `flow`'s `_new_messages_for_session` does.
-
-`stream_with_persistence`'s WSGI commit choreography is deliberately not ported — see
-`001-architecture.md` §8. FastAPI's persistence-via-explicit-HTTP-callback pattern
-replaces it: the service calls `persist_run_result`/`fail_run` explicitly on `Done`/
-exception/disconnect; there is no generator-iterated-after-response-returns problem to
-work around.
-"""
+`apply_result` receives the segment's full transcript as JSON-compatible data.
+It appends only messages beyond the count already stored in the session;
+`persist_run_result` and `fail_run` save outcomes over HTTP."""
 
 from __future__ import annotations
 
@@ -106,16 +84,10 @@ class AIRun(Document):
 			frappe.throw(_("Failed runs must include an error message."))
 
 	def apply_result(self, result: dict[str, Any]) -> None:
-		"""Update this row to reflect a (re-)executed run. The new messages produced by
-		this segment are appended to the parent Session's transcript.
+		"""Apply a run segment and append its new messages to the session.
 
-		Resume re-invokes this on the same run: `iterations` and `usage` **accumulate**
-		here rather than overwrite, so a paused-then-resumed run's counters reflect the
-		whole run, not just the latest segment.
-
-		Raises:
-			RunAlreadyFinished: If the run is already Completed or Failed.
-		"""
+		Resume accumulates iterations and usage across segments. Raise
+		`RunAlreadyFinished` for terminal runs."""
 		self._assert_not_finished()
 		self.status = result.get("status") or "Completed"
 		self.iterations = (self.iterations or 0) + int(result.get("iterations") or 0)
@@ -157,15 +129,9 @@ def approval_hash(arguments: dict[str, Any] | None) -> str:
 
 
 def record_approvals(run: "AIRun", answers: dict[str, Any]) -> list[str]:
-	"""Record the user's `"Approve"` answers for this run's pending questions.
+	"""Record user-approved call IDs against the pending tool and argument digest.
 
-	Called only from the user-authenticated `resume_run`, never from the service, so a
-	compromised service cannot approve its own calls. Each approval binds a tool call id
-	to the tool name and the argument digest stored with the question the user saw.
-
-	Returns:
-		list[str]: Call ids recorded as approved.
-	"""
+	Only the user-authenticated resume path may grant these approvals."""
 	questions = {q.get("key"): q for q in json.loads(run.questions) if isinstance(q, dict)} if run.questions else {}
 	approvals = json.loads(run.approvals) if run.approvals else {}
 	recorded = []
@@ -197,15 +163,7 @@ def consume_approval(run: str, call_id: str | None, tool: str, arguments: dict[s
 
 
 def assert_run_owner(run) -> None:
-	"""Owner match or `write` permission, else `frappe.PermissionError`.
-
-	Authorization chokepoint: `AIRun.apply_result`/`mark_failed` (and `AISession`'s
-	equivalent message-append) use `ignore_permissions=True`, so this check is the only
-	thing standing between a user and someone else's run.
-
-	Args:
-		run: An `AI Run` name (str) or already-loaded document.
-	"""
+	"""Require ownership or write permission before bypassing run permissions."""
 	doc = frappe.get_doc("AI Run", run) if isinstance(run, str) else run
 	if doc.owner == frappe.session.user:
 		return
@@ -224,20 +182,7 @@ def create_run(
 	trigger: str | None = None,
 	config_snapshot: dict[str, Any] | None = None,
 ) -> "AIRun":
-	"""Create a new `AI Run` row in the Running state. Every run belongs to an `AI
-	Session` (which carries the transcript and agent linkage).
-
-	Args:
-		source (str): "Manual" or "Trigger".
-		input (str | None): The user input that started the run.
-		session (str): `AI Session` name this run belongs to.
-		reference_doctype (str | None): For Trigger runs, the DocType that fired it.
-		reference_name (str | None): For Trigger runs, the document that fired it.
-		config_snapshot (dict[str, Any] | None): `AI Agent._snapshot()` output.
-
-	Returns:
-		AIRun: The inserted, Running run.
-	"""
+	"""Insert a Running run linked to its session and config snapshot."""
 	doc = frappe.get_doc(
 		{
 			"doctype": "AI Run",

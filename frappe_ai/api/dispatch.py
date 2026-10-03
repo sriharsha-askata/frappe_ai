@@ -1,43 +1,11 @@
 # Copyright (c) 2026, Frappe Technologies and contributors
 # License: MIT. See LICENSE
 
-"""Permission-enforcing tool dispatch — the endpoint ADR 0003 depends on.
+"""Permission-enforcing tool dispatch for the FastAPI service (ADR 0003).
 
-`flow` has no equivalent to this module: its Agent runs in-process, so a tool call
-is just a Python function call under whatever user the request handler already set.
-`frappe_ai` splits orchestration into a separate FastAPI process, so every
-Frappe-touching tool call must cross back over HTTP — this endpoint is that crossing
-point, and it is the one place that must get ADR 0003's invariant right:
-
-    A compromised or buggy service cannot exceed the permissions of the user on
-    whose behalf it is acting.
-
-Two things make that true here:
-
-1. **Service-secret auth** (`_verify_service_secret`, identical to
-   `api/service.py`'s) proves the *caller* is the FastAPI process, not an arbitrary
-   client — the same `X-Frappe-AI-Service-Secret` header, never `Authorization`
-   (see `frappe_client.py`'s module docstring for why that header is off-limits).
-2. **`frappe.set_user(acting_user)` before anything else runs.** The service tells
-   Frappe which user originated the call; every permission check inside the tool
-   body (`frappe.has_permission`, `frappe.get_list`, `safe_exec`'s namespace) then
-   runs as that user, not as whatever identity the shared secret would otherwise
-   imply. This is the actual mechanism behind ADR 0003 — the secret authenticates
-   the *process*, `set_user` scopes the *permissions*.
-
-Every call must also name a live run owned by the acting user (`_require_active_run`),
-so the secret alone cannot be used to act as an arbitrary user or to sidestep budgets.
-
-Confirmation (`requires_confirmation`) is enforced here too, not only in the service
-(`_enforce_confirmation`): a confirmation-required call runs only if the user's approval
-for that exact call id, tool and argument digest is on record on the `AI Run` (written by
-`resume_run`, single use), or the run was started with `auto_approve`. The service still
-raises `PendingConfirmation` to pause the UI, but a compromised service can no longer skip it.
-
-A tool that raises is caught and returned as `{"error": ...}` truncated to 500
-chars, exactly as `flow`'s in-process tool calls behave — a failing tool must never
-kill the run.
-"""
+Authenticate the service secret, bind each call to an active run and acting user,
+and enforce single-use approval for confirmation-gated calls. Tool exceptions
+return bounded error results so they do not terminate the run."""
 
 from __future__ import annotations
 
@@ -54,27 +22,10 @@ _ERROR_LIMIT = 500
 def dispatch_tool(
 	tool: str, user: str, arguments: dict | None = None, run: str | None = None, call_id: str | None = None
 ) -> dict:
-	"""Execute one `AI Tool` call on behalf of `user`, enforcing that user's permissions.
+	"""Execute one `AI Tool` under the acting user's permissions.
 
-	Args:
-		tool (str): `AI Tool` slug (its `name`).
-		user (str): The Frappe user originating this call — set via `frappe.set_user`
-			before the tool body runs, so every permission check inside it is scoped
-			to this user, not the service's own identity.
-		arguments (dict | None): Keyword arguments to call the tool with.
-
-	Returns:
-		dict: `{"result": <json-serializable>}` on success, or `{"error": <message>}`
-			(truncated to 500 chars) if the tool raised. Never raises itself except
-			for the auth/lookup failures below — a failing *tool call* is reported in
-			the response body, not as an HTTP error, so the service's run loop can
-			feed it back to the model.
-
-	Raises:
-		frappe.AuthenticationError: If the service secret is missing or invalid.
-		frappe.DoesNotExistError: If `tool` or `user` doesn't exist.
-		frappe.ValidationError: If the tool is disabled.
-	"""
+	Return `{"result": ...}` or a tool-level `{"error": ...}` capped at 500
+	characters. Authentication, lookup, and disabled-tool failures still raise."""
 	_verify_service_secret()
 
 	if not frappe.db.exists("User", user):
@@ -183,16 +134,10 @@ def dispatch_plugin_tool(
 
 
 def _require_active_run(run: str | None, user: str) -> None:
-	"""Bind a dispatch to a live run owned by the acting user.
+	"""Require an active run owned by `user` before dispatch.
 
-	The shared secret authenticates the *process*; without this check anyone holding it
-	could name any `user` and skip every per-run control (budgets, agent/KB scoping).
-	A call is only honoured for a run that is still active and belongs to `user`.
-
-	Raises:
-		frappe.PermissionError: If `run` is missing, not active, or owned by someone else.
-		frappe.DoesNotExistError: If `run` does not exist.
-	"""
+	The shared secret authenticates the service, while this check binds the call to
+	its user, budget, and agent scope."""
 	if not run:
 		frappe.throw(_("A run is required to dispatch a tool call."), frappe.PermissionError)
 	row = frappe.db.get_value("AI Run", run, ["status", "owner"], as_dict=True)
@@ -252,15 +197,9 @@ def _plugin_requires_confirmation(run: str, tool: str) -> bool:
 def _enforce_confirmation(
 	run: str, tool: str, call_id: str | None, arguments: dict | None, requires_confirmation: bool
 ) -> None:
-	"""Refuse a confirmation-required call unless the user approved exactly this call.
+	"""Require single-use approval for this exact tool call, unless auto-approved.
 
-	Approval is recorded on the `AI Run` by the user-authenticated `resume_run` and is
-	single-use (`consume_approval`), so the service cannot approve its own calls or replay
-	an approved one. Runs started with `auto_approve` (agent/trigger setting) skip the check.
-
-	Raises:
-		frappe.PermissionError: If approval is required and not on record for this call.
-	"""
+	The user-authenticated `resume_run` records approval; service calls cannot grant it."""
 	if not requires_confirmation:
 		return
 	run_doc = frappe.get_doc("AI Run", run)
@@ -324,17 +263,7 @@ def _error_text(e: Exception) -> str:
 
 
 def _verify_service_secret() -> None:
-	"""Verify the `X-Frappe-AI-Service-Secret` header against `site_config.json`.
-
-	Identical check to `api/service.py`'s `_verify_service_secret` — duplicated
-	rather than imported to keep this security-critical module self-contained and
-	because `api/service.py` docstrings this pattern is deliberately about not
-	using the `Authorization` header, which applies equally here.
-
-	Raises:
-		frappe.AuthenticationError: If the header is missing, the secret isn't
-			configured, or it mismatches.
-	"""
+	"""Authenticate the dedicated service-secret header or reject the call."""
 	provided = frappe.get_request_header("X-Frappe-AI-Service-Secret") or ""
 	if not provided:
 		frappe.throw(_("Missing service secret."), exc=frappe.AuthenticationError)

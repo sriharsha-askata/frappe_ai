@@ -155,8 +155,7 @@ def _frappe_ai_builtins() -> dict[str, Any]:
 	try:
 		from frappe_ai.tools.builtins import BUILTIN_TOOLS
 	except ImportError:
-		# frappe_ai.tools.builtins doesn't exist until Phase 3; no builtins to inject
-		# until then, so the sandbox is usable standalone in the meantime.
+		# The sandbox remains usable if builtin tools cannot be imported.
 		return {}
 
 	return {t.name: t.func for t in BUILTIN_TOOLS if t.name not in _SKIP_BUILTINS}

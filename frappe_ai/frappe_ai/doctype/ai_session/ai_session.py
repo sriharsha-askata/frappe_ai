@@ -1,20 +1,10 @@
 # Copyright (c) 2026, Frappe Technologies and contributors
 # License: MIT. See LICENSE
 
-"""`AI Session` — ported from `flow`'s `Flow Session`
-(see `apps/flow/flow/flow/doctype/flow_session/flow_session.py`).
+"""`AI Session` owns configuration, authorization, and durable transcript state.
 
-`flow`'s `FlowSession.chat()`/`.resume()`/`_runtime`/`new_session()`/`load_session()`
-have **no equivalent here** — those drove flow's in-process Agent runtime, which
-`frappe_ai` replaces entirely with the FastAPI service + `AgentBuilder` +
-`frappe_ai.api.dispatch`/`frappe_ai.api.api.start_run`/`resume_run`. This controller
-keeps only the config/persistence surface flow's DocType itself owned: agent-locking,
-model-enabled validation, the owner chokepoint, transcript append, log clearing, and
-title derivation.
-
-**Phase 5 update:** `build_prompt_messages()` now also injects an `<agent_memory>` block
-into the stored system message when the agent has durable memories.
-"""
+The service runs the model; `build_prompt_messages` adds durable agent memory
+to the system prompt when present."""
 
 from __future__ import annotations
 
@@ -31,7 +21,7 @@ TITLE_MAX_LENGTH = 80
 # A "Running" run older than this is treated as abandoned and no longer blocks the session.
 RUNNING_STALE_SECONDS = 300
 
-# Attachment routing thresholds — ported from flow. A file whose text exceeds
+# Attachment routing thresholds. A file whose text exceeds
 # RETRIEVAL_FRACTION of the model's context window is too big to inline every turn,
 # so it is chunked and retrieved instead when the fixed embedding integration can
 # serve it; failures demote it to Inline and it is truncated to fit at prompt-build time.
@@ -134,18 +124,9 @@ class AISession(Document):
 	def persist_turn(
 		self, input: str, instructions: str | None, attachment_data: list[dict[str, Any]], run: str
 	) -> None:
-		"""Persist this turn's user message (and the system message on the first turn) plus
-		its attachment rows before the run executes. Called by `frappe_ai.api.api.start_run`
-		before handing off to the FastAPI service.
+		"""Store the user message and attachments before the service starts the run.
 
-		Args:
-			input (str): The user's message text.
-			instructions (str | None): The agent's system instructions — stored only on
-				the session's first turn.
-			attachment_data (list[dict[str, Any]]): Resolved attachments
-				(`AISessionAttachment.resolve_attachment` output), one per file.
-			run (str): The `AI Run` name this turn belongs to.
-		"""
+		Store system instructions only on the session's first turn."""
 		if not self.messages and instructions:
 			self.append("messages", {"role": "system", "content": instructions, "run": run})
 		self.append("messages", {"role": "user", "content": input, "run": run})
@@ -223,15 +204,10 @@ class AISession(Document):
 		return max(0, window_chars - reserved - dialogue)
 
 	def build_prompt_messages(self) -> list[dict[str, Any]]:
-		"""Transcript as sent to the model. Augmentation is ephemeral — stored messages stay
-		clean (file text lives only in the attachments child table):
+		"""Build model messages without changing the stored transcript.
 
-		- Inline files: full text re-injected on their turn, clamped to the remaining budget.
-		- Retrieval files: a short note marks where each was attached; for the latest user
-		  turn the most relevant chunks (by that turn's query) are injected in place of the
-		  full text.
-
-		"""
+		Inline attachment text is bounded by the remaining context budget. Retrieval
+		attachments contribute a note and, for the latest turn, relevant chunks."""
 		from frappe_ai.knowledge.embedder import EmbeddingServiceUnavailable
 		from frappe_ai.knowledge.retriever import retrieve_attachments
 		from frappe_ai.memory.memory import build_memory_block
@@ -333,15 +309,7 @@ class AISession(Document):
 
 
 def assert_session_owner(session) -> None:
-	"""Owner match or `write` permission, else `frappe.PermissionError`.
-
-	Authorization chokepoint: `AISession.append_run_messages`/`persist_turn` use
-	`ignore_permissions=True`, so this check is the only thing standing between a user
-	and someone else's conversation.
-
-	Args:
-		session: An `AI Session` name (str) or already-loaded document.
-	"""
+	"""Require ownership or write permission before bypassing session permissions."""
 	doc = frappe.get_doc("AI Session", session) if isinstance(session, str) else session
 	if doc.owner == frappe.session.user:
 		return

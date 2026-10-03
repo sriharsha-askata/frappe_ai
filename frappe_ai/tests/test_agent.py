@@ -89,9 +89,8 @@ class TestAIAgentKnowledgeSearchTool(IntegrationTestCase):
 				knowledge_bases=[{"knowledge_base": "Nonexistent KB"}],
 			)
 		)
-		# AI Knowledge Base doesn't exist until Phase 4 — ignore_links lets this test
-		# exercise _ensure_knowledge_search_tool's logic (a non-empty knowledge_bases
-		# table) without a real linkable KB doc to point at.
+		# Ignore the nonexistent KB link to exercise tool binding with a non-empty
+		# knowledge_bases table.
 		doc.insert(ignore_links=True)
 		slugs = {row.tool_name for row in doc.tools}
 		self.assertIn("search_knowledge", slugs)

@@ -2,9 +2,7 @@
 # License: MIT. See LICENSE
 
 """Tests for `AI Session` and `AI Run` — the owner chokepoints, the accumulating
-`apply_result`, and prompt-message assembly. These are the properties `flow`'s audit
-trail depended on, ported to `frappe_ai`'s split process model (see `AI Run`'s and
-`AI Session`'s module docstrings for what's deliberately different).
+`apply_result`, and prompt-message assembly across the service and Frappe processes.
 """
 
 from __future__ import annotations

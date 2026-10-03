@@ -3,8 +3,6 @@
 
 """Turn an AI Knowledge Source into plain text, ready for chunking.
 
-Ported near-verbatim from `flow.knowledge.extract`
-(`apps/flow/flow/knowledge/extract.py`) — see `002-feature-mapping.md` §5.4-5.7.
 """
 
 from __future__ import annotations

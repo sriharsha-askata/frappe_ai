@@ -1,19 +1,10 @@
 # Copyright (c) 2026, Frappe Technologies and contributors
 # License: MIT. See LICENSE
 
-"""Tests for the FastAPI service skeleton (`frappe_ai/service/main.py`).
+"""Test the ASGI service without connecting to a real Frappe site.
 
-Uses `fastapi.testclient.TestClient` (sync, no separate event loop) rather than
-`IntegrationTestCase` — this exercises the ASGI app in isolation, the same way
-Phase 2's `main.py` runs in its own process with no `frappe.init`/`frappe.connect`.
-
-`frappe_ai.service.main` reads its bootstrap settings from `site_config.json` at
-*import* time (`config.load_settings()` — see ADR 0011), by reading a real file off
-disk (deliberately: `config.py` never calls `frappe.init`/`frappe.connect`). A
-throwaway site directory is created under a temp `sites/` root before the module
-import below, with `FRAPPE_AI_SITES_PATH`/`FRAPPE_AI_SITE` pointed at it — nothing
-here touches this bench's real sites.
-"""
+The module reads site config at import time, so tests create a temporary site
+and set `FRAPPE_AI_SITES_PATH` and `FRAPPE_AI_SITE` before import."""
 
 from __future__ import annotations
 

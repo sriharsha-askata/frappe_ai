@@ -1,28 +1,12 @@
 # Copyright (c) 2026, Frappe Technologies and contributors
 # License: MIT. See LICENSE
 
-"""Authenticated async HTTP client for FastAPI's calls back into Frappe.
+"""Authenticated async HTTP client for the FastAPI service's Frappe calls.
 
-Every call carries two things Frappe needs to authenticate and route it:
-- `X-Frappe-AI-Service-Secret: <service_secret>` — proves the call comes from the
-  service process (see ADR 0010; verified server-side against
-  `site_config.json`'s `frappe_ai_service_secret`). Deliberately **not** the standard `Authorization`
-  header: Frappe core's `validate_auth()` intercepts any `Authorization: Bearer ...`
-  header itself (treating it as an OAuth bearer token) and raises
-  `AuthenticationError` before a whitelisted method's body ever runs if that
-  validation fails — even one decorated `allow_guest=True`. A dedicated header name
-  avoids colliding with that global auth path entirely.
-- `X-Frappe-Site-Name: <site>` — tells Frappe which site's database to resolve
-  against, independent of the `Host` header (`frappe/app.py:get_site()`).
-
-Phase 3 adds the run loop's three real capabilities: `get_run_config` (agent/model/
-tools/prompt for one run), `dispatch_tool` (execute one Frappe-touching tool call as
-the originating user — ADR 0003), and `persist_run_result`/`fail_run` (the
-persistence-via-callback pattern that replaces `flow`'s `stream_with_persistence`).
-Each of `dispatch_tool`/`get_run_config` additionally carries the **acting user** as
-an explicit body/query parameter, not inferred from a session — the service has none.
-Frappe scopes every permission check for that call to this user via `frappe.set_user`.
-"""
+Use `X-Frappe-AI-Service-Secret`, since Frappe intercepts standard Bearer
+`Authorization` headers before whitelisted methods run. `X-Frappe-Site-Name`
+selects the site. Run configuration and dispatch pass the acting user explicitly
+so Frappe applies that user's permissions."""
 
 from __future__ import annotations
 
@@ -78,15 +62,7 @@ class FrappeClient:
 		}
 
 	async def get_service_config(self) -> dict[str, Any]:
-		"""Fetch `AI Settings` service-relevant fields from Frappe.
-
-		Returns:
-			dict[str, Any]: The subset of `AI Settings` the service needs, as returned
-				by `frappe_ai.api.service.get_service_config`.
-
-		Raises:
-			FrappeClientError: If the call fails or Frappe rejects the shared secret.
-		"""
+		"""Fetch service settings from Frappe using the shared secret."""
 		return await self._get_json(GET_SERVICE_CONFIG_METHOD)
 
 	async def ping(self) -> bool:
@@ -102,37 +78,11 @@ class FrappeClient:
 			return False
 
 	async def get_run_config(self, run: str, user: str) -> dict[str, Any]:
-		"""Fetch everything needed to build and run one turn's Agno agent.
-
-		Args:
-			run (str): `AI Run` name.
-			user (str): The Frappe user this run belongs to — every permission
-				check on the Frappe side runs as this user.
-
-		Returns:
-			dict[str, Any]: See `frappe_ai.api.service.get_run_config`'s docstring
-				for the exact shape (agent/model/tools/messages/config_snapshot).
-
-		Raises:
-			FrappeClientError: If the call fails, the secret is rejected, or Frappe
-				refuses the run (wrong owner, not active, disabled model, etc.).
-		"""
+		"""Fetch the agent, model, tools, and prompt for one run as `user`."""
 		return await self._get_json(GET_RUN_CONFIG_METHOD, params={"run": run, "user": user})
 
 	async def get_fallback_model_config(self, user: str) -> dict[str, Any]:
-		"""Fetch the system default AI Model's call config, for retry after a
-		`model_provider_error` on the run's originally-configured model.
-
-		Args:
-			user (str): The Frappe user the run belongs to.
-
-		Returns:
-			dict[str, Any]: Same shape as `get_run_config`'s `"model"` key.
-
-		Raises:
-			FrappeClientError: If the call fails, the secret is rejected, or no
-				enabled default AI Model is configured.
-		"""
+		"""Fetch an enabled default model for a provider-error retry as `user`."""
 		return await self._get_json(GET_FALLBACK_MODEL_CONFIG_METHOD, params={"user": user})
 
 	async def dispatch_tool(
@@ -143,26 +93,11 @@ class FrappeClient:
 		run: str | None = None,
 		call_id: str | None = None,
 	) -> dict[str, Any]:
-		"""Execute one Frappe-touching tool call as `user` (ADR 0003).
+		"""Dispatch one tool under `user` and the active `run` (ADR 0003).
 
-		Args:
-			tool (str): `AI Tool` slug.
-			user (str): The Frappe user originating this call.
-			arguments (dict[str, Any] | None): Keyword arguments for the tool.
-			run (str | None): `AI Run` the call belongs to. Frappe refuses a call whose run
-				is missing, finished, or owned by someone other than `user`.
-			call_id (str | None): The model's tool-call id. For tools that need approval,
-				Frappe matches it to the user's recorded approval for that exact call.
-
-		Returns:
-			dict[str, Any]: `{"result": ...}` on success or `{"error": "..."}` if the
-				tool itself raised — both are normal outcomes the run loop feeds back
-				to the model, not client-level failures.
-
-		Raises:
-			FrappeClientError: If the call fails at the transport/auth level (not a
-				tool-level error, which comes back as `{"error": ...}` in the 200).
-		"""
+		`call_id` binds confirmation-gated calls to recorded approval. A tool exception
+		returns `{"error": ...}`; transport or authentication failure raises
+		`FrappeClientError`."""
 		return await self._post_json(
 			DISPATCH_TOOL_METHOD,
 			json={"tool": tool, "user": user, "arguments": arguments or {}, "run": run, "call_id": call_id},
@@ -185,45 +120,15 @@ class FrappeClient:
 		)
 
 	async def persist_run_result(self, run: str, result: dict[str, Any]) -> dict[str, Any]:
-		"""Persist a finished/paused run segment (the `Done`-event callback).
-
-		Args:
-			run (str): `AI Run` name.
-			result (dict[str, Any]): See `AIRun.apply_result`'s docstring for the shape.
-
-		Returns:
-			dict[str, Any]: `{"status": <new AI Run status>}`.
-
-		Raises:
-			FrappeClientError: If the call fails or Frappe rejects the shared secret.
-		"""
+		"""Persist a completed or paused run segment and return its status."""
 		return await self._post_json(PERSIST_RUN_RESULT_METHOD, json={"run": run, "result": result})
 
 	async def fail_run(self, run: str, error: str) -> dict[str, Any]:
-		"""Mark a run Failed (exception mid-run, or client disconnect before `Done`).
-
-		Args:
-			run (str): `AI Run` name.
-			error (str): Error message.
-
-		Returns:
-			dict[str, Any]: `{"status": "Failed"}`.
-
-		Raises:
-			FrappeClientError: If the call fails or Frappe rejects the shared secret.
-		"""
+		"""Mark a run Failed after an exception or pre-completion disconnect."""
 		return await self._post_json(FAIL_RUN_METHOD, json={"run": run, "error": error})
 
 	async def log_diagnostic(self, title: str, message: str) -> None:
-		"""Record a service-side diagnostic in Frappe's Error Log.
-
-		Best-effort: swallows `FrappeClientError` so a logging failure never
-		masks or replaces the run failure it was trying to help diagnose.
-
-		Args:
-			title (str): Error Log title.
-			message (str): Full diagnostic text (traceback, timing, etc.).
-		"""
+		"""Best-effort Error Log callback; logging failures never mask run failures."""
 		try:
 			await self._post_json(LOG_DIAGNOSTIC_METHOD, json={"title": title, "message": message})
 		except FrappeClientError:

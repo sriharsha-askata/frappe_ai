@@ -1,20 +1,9 @@
 # Copyright (c) 2026, Frappe Technologies and contributors
 # License: MIT. See LICENSE
 
-"""`AI Agent` — ported from `flow`'s `Flow Agent`
-(see `apps/flow/flow/flow/doctype/flow_agent/flow_agent.py`).
+"""`AI Agent` validates configuration and default tool bindings.
 
-Unlike `flow`, this controller does not `assemble()` a runtime agent or `run()` a
-session — that's the FastAPI service's job now (`frappe_ai.service.builder.AgentBuilder`,
-which runs in a different process and talks to Frappe over HTTP). This controller only
-owns the config/validation surface: default tools, `_ensure_knowledge_search_tool`,
-`_snapshot`, and the immutability/delete/rename guards.
-
-`_resolve_tools()` (the flow name for turning agent rows into runtime tools) has no
-equivalent here — `AgentBuilder.build()` does the resolving, in the service process,
-by fetching this row's config plus each tool's schema from Frappe via the dispatch
-endpoint rather than calling `to_tool()` locally.
-"""
+`AgentBuilder` assembles runtime agents in the FastAPI service."""
 
 from __future__ import annotations
 

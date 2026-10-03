@@ -1,32 +1,11 @@
 # Copyright (c) 2026, Frappe Technologies and contributors
 # License: MIT. See LICENSE
 
-"""Frappe-side endpoints supporting the FastAPI service.
+"""Frappe endpoints for service authentication and run configuration.
 
-Whitelisted methods:
-- `mint_token` — mints an HMAC run token (ADR 0004). Now validates against real
-  `AI Run`/`AI Session` documents (Phase 3) — see its docstring.
-- `service_health` — lets Frappe check whether the FastAPI service is reachable,
-  by calling its `GET /health`.
-- `get_service_config` — the Frappe-side half of `frappe_client.py`'s Phase 2
-  capability. Authenticates the FastAPI service via the shared secret carried
-  as a dedicated `X-Frappe-AI-Service-Secret` header (not `Authorization` — see
-  `_verify_service_secret`'s docstring for why), not a logged-in user session.
-- `get_run_config` (Phase 3) — the config fetch in `001-architecture.md` §5.1's
-  step 3: given a run token's payload, returns everything `AgentBuilder.build()`
-  needs — agent fields, resolved model/provider credentials, each bound tool's
-  JSON Schema, and the prompt messages for this turn. Same shared-secret auth
-  as `get_service_config`, plus the acting user is passed explicitly (not
-  inferred from a Frappe session, since the service has none) so permission
-  checks below run as that user.
-
-Shared secret: `frappe_ai_service_secret` in `site_config.json` (ADR 0010,
-revised) — not a DocType field. This process reads it via `frappe.conf`, the
-same file every Frappe process already loads; the FastAPI service reads the
-same file directly off disk (`frappe_ai/service/config.py`), since it never
-calls `frappe.init`/`frappe.connect`. One file, one source of truth, no
-DB-stored secret to keep in sync with anything.
-"""
+The service uses a shared secret from site config, not a Frappe login session.
+`get_run_config` supplies the agent, model, tools, and prompt under the acting
+user's permissions; `mint_token` binds a run token to its run and session."""
 
 from __future__ import annotations
 
@@ -49,25 +28,9 @@ SERVICE_HEALTH_TIMEOUT = 5
 
 @frappe.whitelist()
 def mint_token(run: str, session: str, ttl_seconds: int | None = None) -> dict:
-	"""Mint a short-lived, single-run HMAC token for the calling user.
+	"""Mint a token for a Running run owned by the caller and bound to `session`.
 
-	`AI Run`/`AI Session` exist as of Phase 3: this verifies the run belongs to
-	the given session, the run is still `Running`, and the caller owns the run
-	(`assert_run_owner` — owner match or `write` permission) before minting.
-	`frappe_ai.api.api.start_run`/`resume_run` are the primary callers in practice
-	(they mint inline via `frappe_ai.service.auth.mint_run_token` directly, since
-	they already hold the freshly created/loaded run doc); this whitelisted
-	wrapper exists for any client that only has a run name.
-
-	Args:
-		run (str): `AI Run` name the token will be bound to.
-		session (str): `AI Session` name the run belongs to.
-		ttl_seconds (int | None): Token lifetime in seconds. Defaults to
-			`auth.DEFAULT_TTL_SECONDS` (300s) when omitted.
-
-	Returns:
-		dict: `{"success": True, "data": {"token": str, "expires_in": int}}`
-	"""
+	Return `{"success": True, "data": {"token": str, "expires_in": int}}`."""
 	from frappe_ai.frappe_ai.doctype.ai_run.ai_run import assert_run_owner
 
 	user = frappe.session.user
@@ -127,23 +90,10 @@ def service_health() -> dict:
 
 @frappe.whitelist(allow_guest=True)
 def get_service_config() -> dict:
-	"""Return the `AI Settings` subset the FastAPI service needs, over HTTP.
+	"""Return service settings after validating the shared-secret header.
 
-	Authenticated with the shared secret carried as a custom
-	`X-Frappe-AI-Service-Secret` header (not the standard `Authorization` header —
-	see `frappe_client.py`'s module docstring for why: Frappe core's own
-	`validate_auth()` intercepts `Authorization: Bearer ...` before this method's
-	body would run), verified against `frappe.conf.frappe_ai_service_secret`
-	(`site_config.json`). Not a logged-in user session, since the FastAPI service
-	has none. `allow_guest=True` is required for this header-only auth to run at
-	all; the 401 below is what actually gates access.
-
-	Returns:
-		dict: The service-relevant subset of `AI Settings`.
-
-	Raises:
-		frappe.AuthenticationError: If the bearer secret is missing or does not match.
-	"""
+	`allow_guest=True` permits header authentication without a Frappe login;
+	`_verify_service_secret` enforces access."""
 	_verify_service_secret()
 
 	settings = frappe.get_cached_doc("AI Settings")
@@ -156,39 +106,12 @@ def get_service_config() -> dict:
 
 @frappe.whitelist(allow_guest=True)
 def get_run_config(run: str, user: str) -> dict:
-	"""Return everything `AgentBuilder.build()` needs to run one turn: agent fields,
-	resolved model call kwargs, each bound tool's JSON Schema, and this session's
-	prompt messages.
+	"""Return the agent, model, tools, prompt, snapshot, and pending questions for a run.
 
-	Same shared-secret auth as `get_service_config`. `user` is the acting user
-	carried explicitly (the service has no Frappe session of its own) — every
-	permission check below (`AI Model` read, tool resolution) runs as this user via
-	`frappe.set_user`, mirroring `AI Agent.assemble()`'s permission gate in `flow`.
-
-	Args:
-		run (str): `AI Run` name — already verified `Running` and owned by `user`
-			at `mint_token`/`start_run` time; re-checked here since a run token's
-			TTL can outlive a fast-moving status change.
-		user (str): The Frappe user this run belongs to.
-
-	Returns:
-		dict: `{
-			"agent": {"name", "instructions", "max_iterations", "temperature",
-				"top_p", "reasoning", "markdown"},
-			"model": {"provider", "transport", "model_id", "api_key", "base_url", "params"},
-			"tools": [{"name", "description", "parameters", "requires_confirmation"}, ...],
-			"mcp_connections": [...],
-			"messages": [...],  # this session's full prompt, from AISession.build_prompt_messages()
-			"config_snapshot": {...},  # AI Run.config_snapshot, already stored at start_run time
-			"questions": [{"key", "name", "arguments", "prompt"}, ...],  # pending confirmations
-				# from the prior segment, empty on a fresh run — resume dispatches
-				# approved ones directly using these arguments (see chat.py's
-				# _dispatch_approved, not by hoping the model re-requests the call)
-		}`
-
-	Raises:
-		frappe.AuthenticationError: If the bearer secret is missing or does not match.
-	"""
+	Authenticate the service and recheck the active run under `user` before reading
+	configuration. The payload keys are `agent`, `model`, `tools`, `mcp_connections`,
+	`messages`, `config_snapshot`, and `questions`; approved pending calls use the
+	stored question arguments on resume."""
 	_verify_service_secret()
 	original_user = frappe.session.user
 	original_local_user = getattr(frappe.local, "user", None)
@@ -257,25 +180,10 @@ def get_run_config(run: str, user: str) -> dict:
 
 @frappe.whitelist(allow_guest=True)
 def get_fallback_model_config(user: str) -> dict:
-	"""Resolve the system default ``AI Model`` for a run's model-failure fallback.
+	"""Return the enabled default model for a provider-error retry.
 
-	Called by the FastAPI service only after a run's originally-configured model
-	fails with a provider/model error (`model_provider_error` and the like) —
-	never as the primary model lookup. Same shared-secret auth as
-	`get_run_config`; the acting user is still checked against `AI Model` read
-	permission so the fallback can't reach a model the run's owner isn't allowed
-	to use.
-
-	Args:
-		user (str): The Frappe user the run belongs to.
-
-	Returns:
-		dict: The same `"model"` shape `get_run_config` returns.
-
-	Raises:
-		frappe.DoesNotExistError: If no enabled AI Model is marked default.
-		frappe.PermissionError: If `user` cannot read that AI Model.
-	"""
+	Apply shared-secret authentication and `user`'s model-read permission;
+	raise if no eligible default exists."""
 	_verify_service_secret()
 	original_user = frappe.session.user
 	original_local_user = getattr(frappe.local, "user", None)
@@ -414,13 +322,5 @@ def _verify_service_secret() -> None:
 
 
 def _secrets_match(provided: str, expected: str) -> bool:
-	"""Constant-time comparison of the provided secret against the configured one.
-
-	Args:
-		provided (str): Secret from the `X-Frappe-AI-Service-Secret` header.
-		expected (str): `frappe.conf.frappe_ai_service_secret` (`site_config.json`).
-
-	Returns:
-		bool: True if they match.
-	"""
+	"""Compare the supplied service secret with the configured secret in constant time."""
 	return hmac.compare_digest(provided, expected)
