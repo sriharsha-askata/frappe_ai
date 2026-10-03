@@ -82,7 +82,11 @@ export function resultSummary(result: string | null) {
 	}
 }
 
-export function executionStatusFromResult(result: string | null) {
+export function executionStatusFromResult(result: string | null): {
+	status: string;
+	error: string | null;
+	approvalStatus: "approved" | "denied" | "redirected" | null;
+} {
 	if (!result) return { status: "running", error: null, approvalStatus: null };
 	try {
 		const parsed = JSON.parse(result);

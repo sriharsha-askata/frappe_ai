@@ -9,177 +9,20 @@ import React, {
 } from "react";
 import * as api from "../api/client";
 import { resumeRun, startRun } from "../api/stream";
+import type { RunEvent } from "../api/stream";
 import { __ } from "../lib/translate";
-import {
-	executionStatusFromResult,
-	parseArgs,
-	parseToolIdentity,
-	resultSummary,
-	summarizeSchema,
-	summarizeValues,
-	toolLabel,
-} from "../lib/toolMeta";
+import { summarizeSchema } from "../lib/toolMeta";
 
-type AgentToolSummary = {
-	id: string;
-	name: string;
-	display_name: string;
-	description: string;
-	requires_confirmation: boolean;
-	input_schema: Record<string, any>;
-	summary: string;
-};
-
-type MCPAConnection = {
-	id: string;
-	name: string;
-	display_name: string;
-	transport: string;
-	status: string;
-	status_message: string;
-	tool_count?: number | null;
-	tool_summaries: Array<any>;
-	tool_summaries_available?: boolean;
-	test_connection_supported?: boolean;
-};
-
-type AgentRecord = {
-	id: string;
-	name: string;
-	title: string;
-	readiness: { state: string; label: string };
-	model: { name: string | null; title: string | null };
-	tools: { count: number; summaries: AgentToolSummary[] };
-	mcp_connections: MCPAConnection[];
-	prompt_summary: string;
-	output_summary: string;
-	configure_action?: { label: string; target: string };
-};
-
-type ModelRecord = { name: string; title: string };
-type SessionRecord = {
-	id: string;
-	name: string;
-	title: string;
-	preview: string;
-	modified?: string;
-	agent?: string | null;
-	model?: string | null;
-	source?: string | null;
-};
-type AttachmentItem = {
-	uid: string;
-	file: string | null;
-	file_name: string;
-	file_size?: number;
-	status: "uploading" | "ready" | "error";
-	error: string;
-};
-type Feedback = { rating: string; comment: string } | null;
-type Question = {
-	key: string;
-	name: string;
-	arguments?: Record<string, any>;
-	prompt: string;
-	_answer?: string;
-};
-type ExecutionItem = {
-	id: string;
-	kind: "tool" | "mcp_tool";
-	tool_name: string;
-	display_title: string;
-	connection_name?: string | null;
-	status: string;
-	duration_ms?: number | null;
-	input_summary: Array<{ label: string; value: string }>;
-	result_summary: string;
-	raw_input: any;
-	raw_output: any;
-	error?: string | null;
-	approval_status?: "approved" | "denied" | "redirected" | null;
-};
-type TranscriptMessage =
-	| {
-			id: string;
-			role: "user";
-			content: string;
-			run: string | null;
-			attachments: Array<{ file_name: string; file_size?: number }>;
-			interrupted?: boolean;
-	  }
-	| {
-			id: string;
-			role: "assistant";
-			run: string | null;
-			content: string;
-			executions: ExecutionItem[];
-			questions: Question[];
-			feedback: Feedback;
-			pending: boolean;
-			error?: string | null;
-	  };
-type CurrentRun = {
-	run: string;
-	status: string;
-	started_at?: string;
-	updated_at?: string;
-	error?: string;
-} | null;
-type InspectorState = {
-	open: boolean;
-	mode: "agent" | "model" | "mcp" | "tool" | "execution" | "activity";
-	title: string;
-	payload: any;
-};
-
-type StoreState = {
-	agents: AgentRecord[];
-	models: ModelRecord[];
-	history: SessionRecord[];
-	selectedAgent: string | null;
-	selectedModel: string | null;
-	currentSession: SessionRecord | null;
-	currentRun: CurrentRun;
-	transcript: TranscriptMessage[];
-	attachments: AttachmentItem[];
-	supportedFileTypes: string[];
-	sending: boolean;
-	loaded: boolean;
-	scrollTick: number;
-	forceScroll: boolean;
-	focusTick: number;
-	inspector: InspectorState;
-};
-
-type StoreContextValue = StoreState & {
-	locked: boolean;
-	needsSetup: boolean;
-	paused: boolean;
-	uploading: boolean;
-	agentRecord: AgentRecord | null;
-	loadInitial: () => Promise<void>;
-	restoreSession: () => Promise<void>;
-	newChat: () => void;
-	switchSession: (name: string) => Promise<void>;
-	setAgent: (name: string) => void;
-	setModel: (name: string | null) => void;
-	send: (text: string) => Promise<void>;
-	stopRun: () => void;
-	answerQuestion: (messageId: string, questionKey: string, answer: string) => Promise<void>;
-	submitFeedback: (runName: string, rating: string, comment?: string) => Promise<void>;
-	attachFiles: (files: FileList | null) => void;
-	removeAttachment: (uid: string) => void;
-	searchSessions: (query: string) => Promise<SessionRecord[]>;
-	clearForceScroll: () => void;
-	openAgentInspector: () => void;
-	openModelInspector: () => void;
-	openMcpInspector: (connection: MCPAConnection) => void;
-	openToolInspector: (tool: AgentToolSummary) => void;
-	openExecutionInspector: (execution: ExecutionItem, message?: TranscriptMessage) => void;
-	openActivityInspector: () => void;
-	closeInspector: () => void;
-	testMcpConnection: (name: string) => Promise<void>;
-};
+import type {
+	AgentToolSummary,
+	MCPAConnection,
+	ExecutionItem,
+	TranscriptMessage,
+	InspectorState,
+	StoreState,
+	StoreContextValue,
+} from "./types";
+import { applyRunEvent, cloneTranscript, findAssistant } from "./runEvents";
 
 export type SessionHostAdapter = {
 	getInitialSession?: () => string | null;
@@ -216,51 +59,11 @@ let attachmentUid = 0;
 const nextId = () => `n${++uid}`;
 const nextAttachmentId = () => `a${++attachmentUid}`;
 
-function prepareQuestions(questions: Question[]) {
-	return (questions || []).map((question) => ({ ...question, _answer: undefined }));
-}
-
-function cloneExecution(item: ExecutionItem): ExecutionItem {
-	return { ...item, input_summary: item.input_summary.map((row) => ({ ...row })) };
-}
-
-function cloneTranscript(messages: TranscriptMessage[]) {
-	return messages.map((message) =>
-		message.role === "user"
-			? { ...message, attachments: [...message.attachments] }
-			: {
-					...message,
-					executions: message.executions.map(cloneExecution),
-					questions: message.questions.map((question) => ({ ...question })),
-					feedback: message.feedback ? { ...message.feedback } : null,
-			  }
-	);
-}
-
 function requestScrollState(current: StoreState, force = false): StoreState {
 	return {
 		...current,
 		forceScroll: force ? true : current.forceScroll,
 		scrollTick: current.scrollTick + 1,
-	};
-}
-
-function buildExecution(rawName: string, args: any, existing?: Partial<ExecutionItem>): ExecutionItem {
-	const identity = parseToolIdentity(rawName);
-	return {
-		id: existing?.id || nextId(),
-		kind: identity.kind,
-		tool_name: identity.toolName,
-		display_title: toolLabel(identity.toolName),
-		connection_name: identity.connectionName,
-		status: existing?.status || "running",
-		duration_ms: existing?.duration_ms ?? null,
-		input_summary: summarizeValues(parseArgs(args)),
-		result_summary: existing?.result_summary || "",
-		raw_input: parseArgs(args),
-		raw_output: existing?.raw_output ?? null,
-		error: existing?.error ?? null,
-		approval_status: existing?.approval_status ?? null,
 	};
 }
 
@@ -421,87 +224,14 @@ export function StoreProvider({
 		update((current) => (current.forceScroll ? { ...current, forceScroll: false } : current));
 	}, [update]);
 
-	const findAssistant = useCallback((messageId: string, messages: TranscriptMessage[]) => {
-		return messages.find((item) => item.role === "assistant" && item.id === messageId) as
-			| Extract<TranscriptMessage, { role: "assistant" }>
-			| undefined;
-	}, []);
-
 	const findToolSummary = useCallback((toolName: string) => {
 		const agent = selectedAgentRecord(stateRef.current.selectedAgent);
 		return agent?.tools.summaries.find((item) => item.name === toolName) || null;
 	}, [selectedAgentRecord]);
 
 	const handleEvent = useCallback(
-		(event: any, messageId: string) => {
-			update((current) => {
-				const transcript = cloneTranscript(current.transcript);
-				const message = findAssistant(messageId, transcript);
-				if (!message) return current;
-				switch (event.type) {
-					case "run_started":
-						message.run = event.name;
-						return {
-							...current,
-							currentRun: { run: event.name, status: "Running" },
-							currentSession:
-								current.currentSession ||
-								({ id: event.session, name: event.session, title: __("New chat"), preview: __("New chat") } as SessionRecord),
-							transcript,
-						};
-					case "text":
-						message.content += event.delta || "";
-						return { ...current, transcript };
-					case "tool_started": {
-						const existing = message.executions.find((item) => item.id === event.id);
-						if (existing) {
-							Object.assign(existing, buildExecution(event.name, event.arguments, { ...existing, id: event.id, status: "running" }));
-						} else {
-							message.executions.push({ ...buildExecution(event.name, event.arguments), id: event.id });
-						}
-						return { ...current, transcript };
-					}
-					case "tool_ended": {
-						const execution = message.executions.find((item) => item.id === event.id);
-						if (!execution) return current;
-						execution.raw_output = event.result;
-						execution.result_summary = resultSummary(event.result);
-						const parsed = executionStatusFromResult(event.result);
-						execution.status = parsed.status;
-						execution.error = parsed.error;
-						execution.approval_status = parsed.approvalStatus;
-						return { ...current, transcript };
-					}
-					case "done":
-						message.pending = false;
-						message.run = message.run || current.currentRun?.run || null;
-						if (event.status === "Paused") {
-							message.questions = prepareQuestions(event.questions || []);
-							for (const execution of message.executions) {
-								if (message.questions.some((question) => question.key === execution.id)) {
-									execution.status = "awaiting_confirmation";
-								}
-							}
-						}
-						return {
-							...current,
-							currentRun: current.currentRun
-								? { ...current.currentRun, status: event.status || "Completed" }
-								: current.currentRun,
-							transcript,
-						};
-					case "error":
-						message.error = event.message;
-						message.pending = false;
-						return {
-							...current,
-							currentRun: current.currentRun ? { ...current.currentRun, status: "Failed", error: event.message } : current.currentRun,
-							transcript,
-						};
-					default:
-						return current;
-				}
-			});
+		(event: RunEvent, messageId: string) => {
+			update((current) => applyRunEvent(current, event, messageId));
 			if (["text", "tool_started", "tool_ended"].includes(event.type)) {
 				update((current) => requestScrollState(current));
 			}
@@ -510,7 +240,7 @@ export function StoreProvider({
 			}
 			if (event.type === "done") void refreshHistory();
 		},
-		[findAssistant, refreshHistory, update]
+		[refreshHistory, update]
 	);
 
 	const send = useCallback(

@@ -1,7 +1,17 @@
 import { serverMessage } from "./client";
 import { __ } from "../lib/translate";
+import type { Question } from "../state/types";
 
-type EventHandler = (event: any) => void;
+export type RunEvent =
+	| { type: "run_started"; name: string; session: string; run?: string }
+	| { type: "text"; delta: string; content?: string }
+	| { type: "tool_started"; id: string; name: string; arguments: unknown }
+	| { type: "tool_ended"; id: string; name: string; result: string | null }
+	| { type: "done"; status: string; questions?: Question[]; iterations?: number; output?: unknown; usage?: unknown }
+	| { type: "error"; message: string; code?: string; status_code?: number; retryable?: boolean }
+	| { type: "unknown"; original: unknown };
+
+type EventHandler = (event: RunEvent) => void;
 
 async function openRun(
 	methodPath: string,
@@ -69,14 +79,19 @@ async function consumeStream(body: ReadableStream<Uint8Array>, onEvent: EventHan
 	}
 }
 
-function normalizeEvent(event: any) {
+function normalizeEvent(event: any): RunEvent {
 	switch (event.type) {
 		case "run_started":
 			return { ...event, name: event.run };
 		case "text":
 			return { ...event, delta: event.content || "" };
-		default:
+		case "tool_started":
+		case "tool_ended":
+		case "done":
+		case "error":
 			return event;
+		default:
+			return { type: "unknown", original: event };
 	}
 }
 

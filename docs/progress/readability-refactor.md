@@ -2,14 +2,14 @@
 
 ## Status
 
-- Overall: Phases 0–4 complete; user-requested post-baseline repairs complete; Phases 5–6 pending.
-- Current phase: Phase 4 completed 2026-10-03.
+- Overall: Phases 0–4 complete; Phase 5 code and automated gates complete, live UI smoke pending; Phase 6 pending.
+- Current phase: Phase 5 implementation completed 2026-10-03; live UI smoke pending.
 - Starting commit: `6528fb3c142feac4b4f6c6dd104020fea1594603` on `final-cleanup-codex`.
 - Scope: `apps/frappe_ai` only, a separate clean Git repository at the start of Phase 0. The dirty `apps/tender_automation` repository is outside this work.
 - Completed: starting commit and public contracts inventoried; old Flow references classified; full `tact.local` Python and TypeScript baselines captured with no application code changes at the Phase 0 gate. The subsequent repair pass is recorded below.
-- In progress: none.
-- Blockers: none. Original failures and TypeScript errors remain recorded below as the immutable pre-repair baseline.
-- Remaining: Phases 5–6, in the plan's order.
+- In progress: Phase 5 live UI smoke gate.
+- Blockers: No browser runner or reachable local frontend in this workspace for the manual smoke gate. Original failures and TypeScript errors remain recorded below as the immutable pre-repair baseline.
+- Remaining: Phase 5 live UI smoke, then Phase 6.
 
 ## Phase 0 contract inventory
 
@@ -140,9 +140,9 @@ Failing unspecified-category tests:
 | 0 — contracts and baseline | Complete | Contracts and both baselines were recorded before application changes. |
 | 1 — comments and docstrings | Complete | 37 Python files and the packaging comment updated; gates recorded below. |
 | 2 — chat split | Complete | SSE and confirmation tests passed; module import graph is acyclic. |
-| 3 — API seams | Pending | Preserve whitelisted paths and callback behavior. |
-| 4 — triggers and knowledge | Pending | Preserve hooks and migration compatibility. |
-| 5 — frontend | Pending | Resolve recorded TypeScript issues and preserve frontend contract. |
+| 3 — API seams | Complete | Focused tests and syntax gates passed. |
+| 4 — triggers and knowledge | Complete | Full 499-test gate passed. |
+| 5 — frontend | Code complete; live UI smoke pending | Typecheck, six event tests, build, and full 499-test app suite passed. |
 | 6 — integration | Pending | Compare full gates against this baseline. |
 
 ## User-requested post-baseline repairs (2026-10-03)
@@ -193,3 +193,11 @@ Verification: `env/bin/bench --site tact.local run-tests --app frappe_ai` passed
 - Moved the service request, SSE terminal handling, error payload parsing, and terminal run polling unchanged from `triggers/triggers.py` to `triggers/service_runner.py`. Trigger dispatch, scheduling, event matching, run creation, and the four `triggers/__init__.py` exports remain in place.
 - Updated `test_triggers.py` to import and patch the runner at its new module path. Clarified comments in the knowledge store, knowledge DocType controllers, agent memory, and FAC compatibility; no ingestion, search, tool migration, or authorization logic changed. Kept the separate 300-character builtin and 500-character dispatch error limits.
 - Phase 4 gate on `tact.local`: `test_triggers` passed 14 tests; full `env/bin/bench --site tact.local run-tests --app frappe_ai` passed 499 tests (10 unit, 421 integration, 68 other). `python -m compileall -q frappe_ai` and `git diff --check` passed. Codebase-memory graph indexing was unavailable because its MCP tools were not exposed in this session.
+
+## Phase 5 — React state and frontend transport (2026-10-03)
+
+- Moved store data and context types to `frontend/src/state/types.ts`. Moved the normalized run-event switch and its transcript, question, and execution helpers to `frontend/src/state/runEvents.ts` as `applyRunEvent(state, event, messageId)`. `store.tsx` retains `SessionHostAdapter`, `StoreProvider`, `useStore`, fetching, React effects, scroll updates, and history refresh.
+- Added a discriminated normalized-event union in `api/stream.ts`. The Frappe CSRF and FastAPI bearer POSTs, `run_started.run → name`, and `text.content → delta` remain intact. The two Phase 0 TypeScript errors were already fixed in the post-baseline repair pass; `executionStatusFromResult` now also declares its return type explicitly.
+- Added six pure event tests with an esbuild bundle and Node `node:test`, using the existing fallback dependency path. The cases cover text accumulation, duplicate tool start, tool result error, paused questions, terminal error, and unknown events.
+- Automated gates: `tsc --project frontend/tsconfig.json --noEmit` passed; `npm test` passed all six cases; `npm run build` passed; full `env/bin/bench --site tact.local run-tests --app frappe_ai` passed 499 tests (10 unit, 421 integration, 68 other); `git diff --check` passed. The changed frontend source regenerated `frappe_ai/public/frappe_ai_panel/frappe_ai_panel.js`; CSS is unchanged.
+- Live smoke is pending: desk panel and standalone page bootstrap, session switch, stream, stop, pause/resume, attachments, and inspector. This workspace has no browser runner and no reachable local frontend (`tact.local:8000` DNS lookup and `127.0.0.1:8000` connection failed), so these interactions were not observed.

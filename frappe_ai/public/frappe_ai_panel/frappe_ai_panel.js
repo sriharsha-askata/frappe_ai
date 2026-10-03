@@ -13318,8 +13318,13 @@ var FrappeAIPanel = (() => {
         return { ...event, name: event.run };
       case "text":
         return { ...event, delta: event.content || "" };
-      default:
+      case "tool_started":
+      case "tool_ended":
+      case "done":
+      case "error":
         return event;
+      default:
+        return { type: "unknown", original: event };
     }
   }
   var startRun = (body, onEvent, signal) => openRun("frappe_ai.api.frontend.start_run", body, {}, onEvent, signal);
@@ -13439,6 +13444,111 @@ var FrappeAIPanel = (() => {
     return { title: title || toolLabel(name), danger: name === "delete" };
   }
 
+  // src/state/runEvents.ts
+  function prepareQuestions(questions) {
+    return (questions || []).map((question) => ({ ...question, _answer: void 0 }));
+  }
+  function cloneExecution(item) {
+    return { ...item, input_summary: item.input_summary.map((row) => ({ ...row })) };
+  }
+  function cloneTranscript(messages) {
+    return messages.map(
+      (message) => message.role === "user" ? { ...message, attachments: [...message.attachments] } : {
+        ...message,
+        executions: message.executions.map(cloneExecution),
+        questions: message.questions.map((question) => ({ ...question })),
+        feedback: message.feedback ? { ...message.feedback } : null
+      }
+    );
+  }
+  function findAssistant(messageId, messages) {
+    return messages.find((item) => item.role === "assistant" && item.id === messageId);
+  }
+  function buildExecution(id, rawName, args, existing) {
+    var _a, _b, _c, _d;
+    const identity = parseToolIdentity(rawName);
+    return {
+      id,
+      kind: identity.kind,
+      tool_name: identity.toolName,
+      display_title: toolLabel(identity.toolName),
+      connection_name: identity.connectionName,
+      status: (existing == null ? void 0 : existing.status) || "running",
+      duration_ms: (_a = existing == null ? void 0 : existing.duration_ms) != null ? _a : null,
+      input_summary: summarizeValues(parseArgs(args)),
+      result_summary: (existing == null ? void 0 : existing.result_summary) || "",
+      raw_input: parseArgs(args),
+      raw_output: (_b = existing == null ? void 0 : existing.raw_output) != null ? _b : null,
+      error: (_c = existing == null ? void 0 : existing.error) != null ? _c : null,
+      approval_status: (_d = existing == null ? void 0 : existing.approval_status) != null ? _d : null
+    };
+  }
+  function applyRunEvent(state, event, messageId) {
+    var _a;
+    const transcript = cloneTranscript(state.transcript);
+    const message = findAssistant(messageId, transcript);
+    if (!message) return state;
+    switch (event.type) {
+      case "run_started":
+        message.run = event.name;
+        return {
+          ...state,
+          currentRun: { run: event.name, status: "Running" },
+          currentSession: state.currentSession || { id: event.session, name: event.session, title: __("New chat"), preview: __("New chat") },
+          transcript
+        };
+      case "text":
+        message.content += event.delta || "";
+        return { ...state, transcript };
+      case "tool_started": {
+        const existing = message.executions.find((item) => item.id === event.id);
+        if (existing) {
+          Object.assign(existing, buildExecution(event.id, event.name, event.arguments, { ...existing, status: "running" }));
+        } else {
+          message.executions.push(buildExecution(event.id, event.name, event.arguments));
+        }
+        return { ...state, transcript };
+      }
+      case "tool_ended": {
+        const execution = message.executions.find((item) => item.id === event.id);
+        if (!execution) return state;
+        execution.raw_output = event.result;
+        execution.result_summary = resultSummary(event.result);
+        const parsed = executionStatusFromResult(event.result);
+        execution.status = parsed.status;
+        execution.error = parsed.error;
+        execution.approval_status = parsed.approvalStatus;
+        return { ...state, transcript };
+      }
+      case "done":
+        message.pending = false;
+        message.run = message.run || ((_a = state.currentRun) == null ? void 0 : _a.run) || null;
+        if (event.status === "Paused") {
+          message.questions = prepareQuestions(event.questions || []);
+          for (const execution of message.executions) {
+            if (message.questions.some((question) => question.key === execution.id)) {
+              execution.status = "awaiting_confirmation";
+            }
+          }
+        }
+        return {
+          ...state,
+          currentRun: state.currentRun ? { ...state.currentRun, status: event.status || "Completed" } : state.currentRun,
+          transcript
+        };
+      case "error":
+        message.error = event.message;
+        message.pending = false;
+        return {
+          ...state,
+          currentRun: state.currentRun ? { ...state.currentRun, status: "Failed", error: event.message } : state.currentRun,
+          transcript
+        };
+      default:
+        return state;
+    }
+  }
+
   // src/state/store.tsx
   var import_jsx_runtime2 = __toESM(require_jsx_runtime(), 1);
   var initialState = {
@@ -13467,46 +13577,11 @@ var FrappeAIPanel = (() => {
   var attachmentUid = 0;
   var nextId = () => `n${++uid}`;
   var nextAttachmentId = () => `a${++attachmentUid}`;
-  function prepareQuestions(questions) {
-    return (questions || []).map((question) => ({ ...question, _answer: void 0 }));
-  }
-  function cloneExecution(item) {
-    return { ...item, input_summary: item.input_summary.map((row) => ({ ...row })) };
-  }
-  function cloneTranscript(messages) {
-    return messages.map(
-      (message) => message.role === "user" ? { ...message, attachments: [...message.attachments] } : {
-        ...message,
-        executions: message.executions.map(cloneExecution),
-        questions: message.questions.map((question) => ({ ...question })),
-        feedback: message.feedback ? { ...message.feedback } : null
-      }
-    );
-  }
   function requestScrollState(current, force = false) {
     return {
       ...current,
       forceScroll: force ? true : current.forceScroll,
       scrollTick: current.scrollTick + 1
-    };
-  }
-  function buildExecution(rawName, args, existing) {
-    var _a, _b, _c, _d;
-    const identity = parseToolIdentity(rawName);
-    return {
-      id: (existing == null ? void 0 : existing.id) || nextId(),
-      kind: identity.kind,
-      tool_name: identity.toolName,
-      display_title: toolLabel(identity.toolName),
-      connection_name: identity.connectionName,
-      status: (existing == null ? void 0 : existing.status) || "running",
-      duration_ms: (_a = existing == null ? void 0 : existing.duration_ms) != null ? _a : null,
-      input_summary: summarizeValues(parseArgs(args)),
-      result_summary: (existing == null ? void 0 : existing.result_summary) || "",
-      raw_input: parseArgs(args),
-      raw_output: (_b = existing == null ? void 0 : existing.raw_output) != null ? _b : null,
-      error: (_c = existing == null ? void 0 : existing.error) != null ? _c : null,
-      approval_status: (_d = existing == null ? void 0 : existing.approval_status) != null ? _d : null
     };
   }
   function setInterrupted(messages) {
@@ -13658,80 +13733,13 @@ var FrappeAIPanel = (() => {
     const clearForceScroll = (0, import_react3.useCallback)(() => {
       update((current) => current.forceScroll ? { ...current, forceScroll: false } : current);
     }, [update]);
-    const findAssistant = (0, import_react3.useCallback)((messageId, messages) => {
-      return messages.find((item) => item.role === "assistant" && item.id === messageId);
-    }, []);
     const findToolSummary = (0, import_react3.useCallback)((toolName) => {
       const agent = selectedAgentRecord(stateRef.current.selectedAgent);
       return (agent == null ? void 0 : agent.tools.summaries.find((item) => item.name === toolName)) || null;
     }, [selectedAgentRecord]);
     const handleEvent = (0, import_react3.useCallback)(
       (event, messageId) => {
-        update((current) => {
-          var _a2;
-          const transcript = cloneTranscript(current.transcript);
-          const message = findAssistant(messageId, transcript);
-          if (!message) return current;
-          switch (event.type) {
-            case "run_started":
-              message.run = event.name;
-              return {
-                ...current,
-                currentRun: { run: event.name, status: "Running" },
-                currentSession: current.currentSession || { id: event.session, name: event.session, title: __("New chat"), preview: __("New chat") },
-                transcript
-              };
-            case "text":
-              message.content += event.delta || "";
-              return { ...current, transcript };
-            case "tool_started": {
-              const existing = message.executions.find((item) => item.id === event.id);
-              if (existing) {
-                Object.assign(existing, buildExecution(event.name, event.arguments, { ...existing, id: event.id, status: "running" }));
-              } else {
-                message.executions.push({ ...buildExecution(event.name, event.arguments), id: event.id });
-              }
-              return { ...current, transcript };
-            }
-            case "tool_ended": {
-              const execution = message.executions.find((item) => item.id === event.id);
-              if (!execution) return current;
-              execution.raw_output = event.result;
-              execution.result_summary = resultSummary(event.result);
-              const parsed = executionStatusFromResult(event.result);
-              execution.status = parsed.status;
-              execution.error = parsed.error;
-              execution.approval_status = parsed.approvalStatus;
-              return { ...current, transcript };
-            }
-            case "done":
-              message.pending = false;
-              message.run = message.run || ((_a2 = current.currentRun) == null ? void 0 : _a2.run) || null;
-              if (event.status === "Paused") {
-                message.questions = prepareQuestions(event.questions || []);
-                for (const execution of message.executions) {
-                  if (message.questions.some((question) => question.key === execution.id)) {
-                    execution.status = "awaiting_confirmation";
-                  }
-                }
-              }
-              return {
-                ...current,
-                currentRun: current.currentRun ? { ...current.currentRun, status: event.status || "Completed" } : current.currentRun,
-                transcript
-              };
-            case "error":
-              message.error = event.message;
-              message.pending = false;
-              return {
-                ...current,
-                currentRun: current.currentRun ? { ...current.currentRun, status: "Failed", error: event.message } : current.currentRun,
-                transcript
-              };
-            default:
-              return current;
-          }
-        });
+        update((current) => applyRunEvent(current, event, messageId));
         if (["text", "tool_started", "tool_ended"].includes(event.type)) {
           update((current) => requestScrollState(current));
         }
@@ -13740,7 +13748,7 @@ var FrappeAIPanel = (() => {
         }
         if (event.type === "done") void refreshHistory();
       },
-      [findAssistant, refreshHistory, update]
+      [refreshHistory, update]
     );
     const send = (0, import_react3.useCallback)(
       async (rawText) => {
