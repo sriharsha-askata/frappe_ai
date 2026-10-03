@@ -2,14 +2,14 @@
 
 ## Status
 
-- Overall: Phase 0 and Phase 1 complete; user-requested post-baseline repairs complete; Phases 2–6 pending.
-- Current phase: Phase 1 completed 2026-10-03.
+- Overall: Phases 0–2 complete; user-requested post-baseline repairs complete; Phases 3–6 pending.
+- Current phase: Phase 2 completed 2026-10-03.
 - Starting commit: `6528fb3c142feac4b4f6c6dd104020fea1594603` on `final-cleanup-codex`.
 - Scope: `apps/frappe_ai` only, a separate clean Git repository at the start of Phase 0. The dirty `apps/tender_automation` repository is outside this work.
 - Completed: starting commit and public contracts inventoried; old Flow references classified; full `tact.local` Python and TypeScript baselines captured with no application code changes at the Phase 0 gate. The subsequent repair pass is recorded below.
 - In progress: none.
 - Blockers: none. Original failures and TypeScript errors remain recorded below as the immutable pre-repair baseline.
-- Remaining: Phases 2–6, in the plan's order.
+- Remaining: Phases 3–6, in the plan's order.
 
 ## Phase 0 contract inventory
 
@@ -36,7 +36,7 @@ Each name below is a dotted method path under `frappe_ai.api.<module>.<name>`. A
 - `hooks.py`: `doc_events["*"]` maps `after_insert`, `on_update`, `on_submit`, `on_cancel`, and `on_trash` to `frappe_ai.triggers.dispatch`. Cron `*/5 * * * *` calls `frappe_ai.triggers.dispatch_scheduled` and `frappe_ai.api.mcp.check_all_mcp_connections`; daily scheduling calls `frappe_ai.knowledge.ingest.sync_due_sources`. `app_include_js` and `app_include_css` load versioned files under `public/frappe_ai_panel/`.
 - `after_migrate` currently has **four** entries: `frappe_ai.assistant_tools.sync.sync_decorated_tools`, `frappe_ai.tools.builtins.sync_builtin_tools`, `frappe_ai.api.fac_tools.sync_fac_tools`, `frappe_ai.api.migration.migrate_ai_tools`. The plan's “trio” wording is stale; preserve all four.
 - `service/main.py`: unauthenticated `GET /health`; authenticated `POST /stream/{run}` verifies a bearer run token and delegates to `frappe_ai.service.routes.chat.stream_chat`, returning `text/event-stream` with `Cache-Control: no-cache` and `X-Accel-Buffering: no`.
-- `service/routes/chat.py`: `_frame` emits `event: <type>` plus a JSON `data:` frame containing `type` and payload. The six event types are `run_started` (`run`, `session`), `text` (`content`), `tool_started` (`id`, `name`, `arguments`), `tool_ended` (`id`, `name`, `result`), `error` (`message`, with optional diagnostic fields), and `done` (`status`, `iterations`, `output`, `usage`, optional `questions`). `_done_payload` builds the `done` payload. The `id` fields on tool events are implemented additions to the abbreviated table in architecture §8 and match the frontend contract.
+- `service/routes/agno_events.py`: `_frame` emits `event: <type>` plus a JSON `data:` frame containing `type` and payload. The six event types are `run_started` (`run`, `session`), `text` (`content`), `tool_started` (`id`, `name`, `arguments`), `tool_ended` (`id`, `name`, `result`), `error` (`message`, with optional diagnostic fields), and `done` (`status`, `iterations`, `output`, `usage`, optional `questions`). `_done_payload` builds the `done` payload. The `id` fields on tool events are implemented additions to the abbreviated table in architecture §8 and match the frontend contract. `service/routes/chat.py` remains the `stream_chat` orchestrator.
 - `service/frappe_client.py` callback paths: `frappe_ai.api.service.get_service_config`, `get_run_config`, `get_fallback_model_config`; `frappe_ai.api.dispatch.dispatch_tool`, `dispatch_plugin_tool`; `frappe_ai.api.api.persist_run_result`, `fail_run`, `log_diagnostic`.
 - DocType JSON: 22 files under `frappe_ai/frappe_ai/doctype/`: `ai_agent`, `ai_agent_knowledge_base`, `ai_agent_mcp_connection`, `ai_agent_memory`, `ai_agent_plugin_tool`, `ai_agent_tool`, `ai_agent_tool_config`, `ai_fac_tool`, `ai_knowledge_base`, `ai_knowledge_chunk`, `ai_knowledge_source`, `ai_mcp_connection`, `ai_mcp_tool`, `ai_model`, `ai_provider`, `ai_run`, `ai_session`, `ai_session_attachment`, `ai_session_message`, `ai_settings`, `ai_tool`, `ai_trigger`. No DocType or field renames are planned.
 
@@ -139,7 +139,7 @@ Failing unspecified-category tests:
 | --- | --- | --- |
 | 0 — contracts and baseline | Complete | Contracts and both baselines were recorded before application changes. |
 | 1 — comments and docstrings | Complete | 37 Python files and the packaging comment updated; gates recorded below. |
-| 2 — chat split | Pending | Preserve SSE contract and confirmation behavior. |
+| 2 — chat split | Complete | SSE and confirmation tests passed; module import graph is acyclic. |
 | 3 — API seams | Pending | Preserve whitelisted paths and callback behavior. |
 | 4 — triggers and knowledge | Pending | Preserve hooks and migration compatibility. |
 | 5 — frontend | Pending | Resolve recorded TypeScript issues and preserve frontend contract. |
@@ -172,3 +172,10 @@ Verification: `env/bin/bench --site tact.local run-tests --app frappe_ai` passed
 - Audited all 135 Python files under `frappe_ai/` and shortened 88 explanatory docstrings across 26 files. API and service docstrings now state their contracts directly; security, confirmation, transcript, and failure invariants remain at the relevant code. The longer `tools.builtins.execute` docstring stays because it is the model-facing contract for allowed script behavior.
 - Scope gate: compared the Python tree with a snapshot taken immediately before this follow-up. Executable ASTs are identical in all 26 edited files after removing docstrings. This isolates the docstring pass from the earlier post-baseline repairs and Phase 1 edits in the dirty working tree.
 - Verification: `python -m compileall -q frappe_ai` and `git diff --check` passed. The Flow-reference scan still has only benign workflow/control-flow matches. `env/bin/bench --site tact.local run-tests --app frappe_ai --module frappe_ai.tests.test_chat_route` passed all 5 tests.
+
+## Phase 2 — chat route split (2026-10-03)
+
+- Extracted Agno turn execution and SSE framing into `service/routes/agno_events.py`, transcript conversion and serialization into `service/routes/transcript.py`, and confirmation handling into `service/routes/confirmation.py`. `chat.py` now contains `stream_chat` and its imports only. The import chain is `transcript` → `confirmation` → `agno_events` → `chat`; `chat` also imports transcript and confirmation directly.
+- Placed `_reconstructed_tool_call_message` in `transcript.py` because `_to_agno_messages` calls it and confirmation result building calls transcript helpers. This resolves the import cycle in the plan's original ownership table. An AST comparison against the prior `chat.py` found all 25 original definitions and no changed function or class bodies.
+- Updated `test_service_app.py` imports; `test_chat_route.py` still patches `chat.AgentBuilder`. Added denial and redirect transcript assertions and a completed-tool provider-failure test. `builder.py`, the Agno version range, migration hooks, legacy dispatch, and FAC compatibility were not changed.
+- Phase 2 gate on `tact.local`: `test_chat_route` 7, `test_service_app` 11, `test_builder` 9, `test_openai_transport` 12, and `test_model` 14 tests passed. Full `env/bin/bench --site tact.local run-tests --app frappe_ai` passed 494 tests (10 unit, 416 integration, 68 unspecified-category). `python -m compileall -q frappe_ai` and `git diff --check` passed.

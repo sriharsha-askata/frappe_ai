@@ -9,7 +9,7 @@ from types import SimpleNamespace
 from unittest.mock import AsyncMock, patch
 
 from agno.models.message import Message
-from agno.run.agent import RunErrorEvent, RunOutput, RunStatus
+from agno.run.agent import RunErrorEvent, RunOutput, RunStatus, ToolCallCompletedEvent
 
 from frappe_ai.service.routes.chat import stream_chat
 
@@ -90,6 +90,11 @@ class TestStreamChatProviderAndConfirmation(unittest.IsolatedAsyncioTestCase):
 		agent.arun.assert_not_awaited()
 		client.dispatch_tool.assert_not_awaited()
 		client.persist_run_result.assert_awaited_once()
+		stored = client.persist_run_result.await_args.args[1]["messages"]
+		self.assertEqual([row["role"] for row in stored], ["system", "user", "assistant", "tool"])
+		self.assertEqual(stored[-2]["tool_calls"][0]["id"], "call-1")
+		self.assertEqual(stored[-1]["tool_call_id"], "call-1")
+		self.assertEqual(json.loads(stored[-1]["content"]), {"status": "denied"})
 
 	async def test_confirmation_approve_dispatches_and_resumes_model(self):
 		question = {"key": "call-1", "name": "create_record", "arguments": {"title": "Created"}, "prompt": "Create?"}
@@ -117,6 +122,56 @@ class TestStreamChatProviderAndConfirmation(unittest.IsolatedAsyncioTestCase):
 		payload = json.loads(frames[-1].split(b"data: ", 1)[1])
 		self.assertEqual(payload["status"], "Completed")
 		self.assertEqual(payload["output"], "The record is created.")
+		stored = client.persist_run_result.await_args.args[1]["messages"]
+		self.assertEqual(stored[0]["tool_calls"][0]["id"], "call-1")
+		self.assertEqual(stored[1]["tool_call_id"], "call-1")
+		self.assertEqual(json.loads(stored[1]["content"]), {"ok": True})
+
+	async def test_confirmation_redirect_reconstructs_tool_pair_for_model(self):
+		question = {"key": "call-1", "name": "create_record", "arguments": {"title": "Original"}, "prompt": "Create?"}
+		seen_messages = []
+
+		class RedirectAgent:
+			async def arun(self, **kwargs):
+				seen_messages.extend(kwargs["input"])
+				yield RunOutput(content="Adjusted.", messages=[Message(role="assistant", content="Adjusted.")], status=RunStatus.completed)
+
+		builder = SimpleNamespace(build=AsyncMock(return_value=(RedirectAgent(), _config([question]))))
+		client = _client()
+		with patch("frappe_ai.service.routes.chat.AgentBuilder", return_value=builder):
+			[frame async for frame in stream_chat("RUN-6", "Administrator", "SES-1", client, answers={"call-1": "Use a different title"})]
+
+		self.assertEqual(seen_messages[-2].role, "assistant")
+		self.assertEqual(seen_messages[-2].tool_calls[0]["id"], "call-1")
+		self.assertEqual(seen_messages[-1].tool_call_id, "call-1")
+		self.assertEqual(json.loads(seen_messages[-1].content)["user_feedback"], "Use a different title")
+		client.dispatch_tool.assert_not_awaited()
+		client.dispatch_plugin_tool.assert_not_awaited()
+
+	async def test_provider_failure_after_completed_tool_does_not_retry(self):
+		class ToolThenFailureAgent:
+			async def arun(self, **_kwargs):
+				yield ToolCallCompletedEvent(
+					tool=SimpleNamespace(
+						tool_call_id="call-1", tool_name="create_record", tool_args={},
+						tool_call_error=False, result={"ok": True},
+					),
+					content="completed",
+				)
+				yield RunErrorEvent(content="provider failed")
+
+		builder = SimpleNamespace(build=AsyncMock(return_value=(ToolThenFailureAgent(), _config())))
+		client = _client()
+		client.get_fallback_model_config.return_value = {"model_id": "other-model"}
+
+		with patch("frappe_ai.service.routes.chat.AgentBuilder", return_value=builder):
+			frames = [frame async for frame in stream_chat("RUN-7", "Administrator", "SES-1", client)]
+
+		client.get_fallback_model_config.assert_not_awaited()
+		client.fail_run.assert_awaited_once()
+		client.persist_run_result.assert_not_awaited()
+		self.assertIn(b"event: tool_ended", frames[1])
+		self.assertIn(b"event: error", frames[-1])
 
 	async def test_approved_legacy_tool_still_uses_legacy_dispatch(self):
 		question = {"key": "call-1", "name": "create_record", "arguments": {"title": "Created"}, "prompt": "Create?"}

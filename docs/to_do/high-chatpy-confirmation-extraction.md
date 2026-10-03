@@ -2,7 +2,7 @@
 
 **Type:** Improvement (refactor)
 **Severity:** High
-**Status:** Open — approved, not yet implemented
+**Status:** Done — implemented in readability refactor Phase 2 (2026-10-03)
 **Source:** Architecture review, 2026-09-06 (Finding H-2 / Decision 2)
 
 ---
@@ -75,5 +75,11 @@ refactoring plan — see the architecture review's §18).
 
 ## Verification
 
-Full `test_chat_route.py` suite passes unchanged after extraction, with only
-import-path updates to mock targets if any exist.
+Full `test_chat_route.py` suite passes after extraction; existing mock targets
+remain valid.
+
+Phase 2 moved confirmation handling to `service/routes/confirmation.py`. The
+`_reconstructed_tool_call_message` implementation lives in `transcript.py`, where
+`_to_agno_messages` calls it; this keeps the module imports acyclic. The route
+tests now also cover denial and redirect transcripts and the completed-tool
+retry guard.

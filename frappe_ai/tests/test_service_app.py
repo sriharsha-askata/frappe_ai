@@ -30,7 +30,7 @@ from fastapi.testclient import TestClient  # noqa: E402
 
 from frappe_ai.service.auth import mint_run_token  # noqa: E402
 from frappe_ai.service.main import app, settings  # noqa: E402
-from frappe_ai.service.routes.chat import MAX_STORED_TOOL_CONTENT_CHARS, _trim_stored_tool_content, _to_agno_messages  # noqa: E402
+from frappe_ai.service.routes.transcript import MAX_STORED_TOOL_CONTENT_CHARS, _trim_stored_tool_content, _to_agno_messages  # noqa: E402
 
 
 class TestHealthEndpoint(unittest.TestCase):

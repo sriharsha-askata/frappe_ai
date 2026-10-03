@@ -88,6 +88,11 @@ The objective is therefore narrow: **change the execution substrate, preserve th
 5. **Tool dispatch & persistence** — every Frappe-touching tool call, and every message/run
    write, goes back to Frappe over HTTP carrying the originating user's identity.
 
+The FastAPI chat route is split across `service/routes/chat.py` (`stream_chat`
+orchestration), `service/routes/agno_events.py` (Agno events and SSE frames),
+`service/routes/confirmation.py` (approval and pause/resume results), and
+`service/routes/transcript.py` (message conversion and serialization).
+
 ---
 
 ## 4. Responsibility Boundaries
