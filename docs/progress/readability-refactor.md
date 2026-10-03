@@ -2,14 +2,14 @@
 
 ## Status
 
-- Overall: Phases 0–3 complete; user-requested post-baseline repairs complete; Phases 4–6 pending.
-- Current phase: Phase 3 completed 2026-10-03.
+- Overall: Phases 0–4 complete; user-requested post-baseline repairs complete; Phases 5–6 pending.
+- Current phase: Phase 4 completed 2026-10-03.
 - Starting commit: `6528fb3c142feac4b4f6c6dd104020fea1594603` on `final-cleanup-codex`.
 - Scope: `apps/frappe_ai` only, a separate clean Git repository at the start of Phase 0. The dirty `apps/tender_automation` repository is outside this work.
 - Completed: starting commit and public contracts inventoried; old Flow references classified; full `tact.local` Python and TypeScript baselines captured with no application code changes at the Phase 0 gate. The subsequent repair pass is recorded below.
 - In progress: none.
 - Blockers: none. Original failures and TypeScript errors remain recorded below as the immutable pre-repair baseline.
-- Remaining: Phases 4–6, in the plan's order.
+- Remaining: Phases 5–6, in the plan's order.
 
 ## Phase 0 contract inventory
 
@@ -187,3 +187,9 @@ Verification: `env/bin/bench --site tact.local run-tests --app frappe_ai` passed
 - Replaced both dispatch acting-user save/restore blocks with `_acting_user_context`, entered after authentication, run ownership, binding, and confirmation checks. Kept the three API modules' service-secret verifiers independent. Shortened only the `api.py` module docstring; all ten whitelisted paths remain.
 - Added tests for identity restoration on service lookup and tool errors, service and plugin owner rejection, and FAC permission denial. Existing tests cover single-use approval and budget consumption.
 - Phase 3 gate on `tact.local`: `test_api` 60, `test_service_api` 15, `test_budgets` 6, `test_mcp` 9, and `test_decorated_tools` 7 tests passed. `python -m compileall -q frappe_ai/api` and `git diff --check` passed.
+
+## Phase 4 — Triggers, knowledge, tools, controllers (2026-10-03)
+
+- Moved the service request, SSE terminal handling, error payload parsing, and terminal run polling unchanged from `triggers/triggers.py` to `triggers/service_runner.py`. Trigger dispatch, scheduling, event matching, run creation, and the four `triggers/__init__.py` exports remain in place.
+- Updated `test_triggers.py` to import and patch the runner at its new module path. Clarified comments in the knowledge store, knowledge DocType controllers, agent memory, and FAC compatibility; no ingestion, search, tool migration, or authorization logic changed. Kept the separate 300-character builtin and 500-character dispatch error limits.
+- Phase 4 gate on `tact.local`: `test_triggers` passed 14 tests; full `env/bin/bench --site tact.local run-tests --app frappe_ai` passed 499 tests (10 unit, 421 integration, 68 other). `python -m compileall -q frappe_ai` and `git diff --check` passed. Codebase-memory graph indexing was unavailable because its MCP tools were not exposed in this session.

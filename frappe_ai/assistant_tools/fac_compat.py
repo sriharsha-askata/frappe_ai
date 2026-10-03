@@ -1,3 +1,5 @@
+"""Adapt decorated tools to FAC only when all expected extension points match."""
+
 from __future__ import annotations
 
 import importlib

@@ -11,10 +11,10 @@ from frappe.tests import IntegrationTestCase
 
 from frappe_ai.tools.builtins import sync_builtin_tools
 from frappe_ai.triggers import dispatch, dispatch_scheduled, fire, fire_manual_trigger
+from frappe_ai.triggers.service_runner import _run_via_service
 from frappe_ai.triggers.triggers import (
 	UNTRUSTED_CONTENT_GUARD,
 	_claim_scheduled_window,
-	_run_via_service,
 	_with_untrusted_content_guard,
 )
 
@@ -114,7 +114,7 @@ class TestTriggers(IntegrationTestCase):
 		doc = frappe.get_doc({"doctype": "ToDo", "description": "fire"}).insert(ignore_permissions=True)
 
 		with (
-			patch("frappe_ai.triggers.triggers._run_via_service"),
+			patch("frappe_ai.triggers.service_runner._run_via_service"),
 			patch("frappe_ai.triggers.triggers.frappe.db.commit") as commit,
 		):
 			run_name = fire(trig.name, target_doctype="ToDo", target_name=doc.name)
@@ -170,7 +170,7 @@ class TestTriggers(IntegrationTestCase):
 		trig = self._due_scheduled_trigger("Trigger Scheduled Fire Agent", "Scheduled Fire Test")
 
 		with (
-			patch("frappe_ai.triggers.triggers._run_via_service"),
+			patch("frappe_ai.triggers.service_runner._run_via_service"),
 			patch("frappe_ai.triggers.triggers.frappe.db.commit"),
 		):
 			run_name = fire(trig.name)
@@ -227,7 +227,7 @@ class TestTriggers(IntegrationTestCase):
 		).insert(ignore_permissions=True)
 
 		with (
-			patch("frappe_ai.triggers.triggers._run_via_service"),
+			patch("frappe_ai.triggers.service_runner._run_via_service"),
 			patch("frappe_ai.triggers.triggers.frappe.db.commit") as commit,
 		):
 			result = fire_manual_trigger(
@@ -258,13 +258,13 @@ class TestTriggers(IntegrationTestCase):
 		frappe.conf.frappe_ai_service_secret = "test-secret"
 		try:
 			with (
-				patch("frappe_ai.triggers.triggers.mint_run_token", return_value="token"),
-				patch("frappe_ai.triggers.triggers.requests.post", return_value=Response()),
-				patch("frappe_ai.triggers.triggers.get_service_url", return_value="http://service"),
+				patch("frappe_ai.triggers.service_runner.mint_run_token", return_value="token"),
+				patch("frappe_ai.triggers.service_runner.requests.post", return_value=Response()),
+				patch("frappe_ai.triggers.service_runner.get_service_url", return_value="http://service"),
 				patch("frappe_ai.triggers.triggers.frappe.get_cached_value", return_value=600),
 				patch("frappe_ai.triggers.triggers.frappe.db.get_value", return_value="Running"),
 				patch("frappe_ai.triggers.triggers.frappe.db.commit"),
-				patch("frappe_ai.triggers.triggers.TERMINAL_STATUS_WAIT_SECONDS", 0),
+				patch("frappe_ai.triggers.service_runner.TERMINAL_STATUS_WAIT_SECONDS", 0),
 				patch("frappe_ai.triggers.triggers.frappe.log_error"),
 			):
 				with self.assertRaisesRegex(RuntimeError, "provider failed"):
@@ -288,13 +288,13 @@ class TestTriggers(IntegrationTestCase):
 		frappe.conf.frappe_ai_service_secret = "test-secret"
 		try:
 			with (
-				patch("frappe_ai.triggers.triggers.mint_run_token", return_value="token"),
-				patch("frappe_ai.triggers.triggers.requests.post", return_value=Response()),
-				patch("frappe_ai.triggers.triggers.get_service_url", return_value="http://service"),
+				patch("frappe_ai.triggers.service_runner.mint_run_token", return_value="token"),
+				patch("frappe_ai.triggers.service_runner.requests.post", return_value=Response()),
+				patch("frappe_ai.triggers.service_runner.get_service_url", return_value="http://service"),
 				patch("frappe_ai.triggers.triggers.frappe.get_cached_value", return_value=600),
 				patch("frappe_ai.triggers.triggers.frappe.db.get_value", side_effect=["Running", "Completed"]),
 				patch("frappe_ai.triggers.triggers.frappe.db.commit") as commit,
-				patch("frappe_ai.triggers.triggers.time.sleep"),
+				patch("frappe_ai.triggers.service_runner.time.sleep"),
 				patch("frappe_ai.triggers.triggers.frappe.log_error"),
 			):
 				_run_via_service("RUN-1", "SESSION-1", "test@example.com")

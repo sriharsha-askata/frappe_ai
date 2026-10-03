@@ -3,11 +3,10 @@
 
 """`AI Knowledge Chunk` stores indexed text and source provenance.
 
-**Naming is load-bearing**: `autoname: autoincrement` means `self.name` is a plain
-integer, and that integer **is** the LanceDB `chunks` table's row `id` — see
-`frappe_ai/knowledge/store.py`. MariaDB holds the authoritative chunk text; LanceDB
-holds only vectors and FTS indexes keyed by this name. Changing the naming rule
-silently breaks retrieval hydration.
+`autoname: autoincrement` makes `self.name` the integer ID used by the LanceDB
+`chunks` row (see `frappe_ai/knowledge/store.py`). MariaDB owns chunk text and
+provenance; LanceDB holds a derived text copy for search alongside vectors and
+indexes. Changing the naming rule breaks retrieval hydration.
 """
 
 from __future__ import annotations

@@ -1,6 +1,8 @@
 # Copyright (c) 2026, Frappe Technologies and contributors
 # License: MIT. See LICENSE
 
+"""Validate agent memories and keep their search index in sync on update."""
+
 from __future__ import annotations
 
 import frappe

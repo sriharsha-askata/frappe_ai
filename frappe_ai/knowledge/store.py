@@ -3,9 +3,9 @@
 
 """Site-scoped LanceDB search index derived from MariaDB chunks.
 
-MariaDB owns chunk text and metadata. Index rows use chunk names as IDs and
-can be rebuilt; embedding identity and width live in LanceDB schema metadata
-(ADR 0002)."""
+MariaDB owns chunk text and metadata. LanceDB keeps a rebuildable text copy for
+full-text search and uses chunk names as row IDs; embedding identity and width
+live in its schema metadata (ADR 0002)."""
 
 from __future__ import annotations
 

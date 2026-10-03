@@ -3,9 +3,9 @@
 
 """`AI Knowledge Base` binds searchable content to agents.
 
-Authorization model: the knowledge-base binding on the
-agent **is** the authorization boundary. Chunks are not re-checked per user at retrieval
-time. Do not bind a KB containing restricted content to an agent available to all users.
+An agent's knowledge-base binding authorizes ordinary KB content. Retrieval also
+checks the acting user's read permission for chunks sourced from DocType records.
+Do not bind a KB containing other restricted content to a broadly available agent.
 """
 
 from __future__ import annotations
