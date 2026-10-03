@@ -286,6 +286,18 @@ class TestDispatchToolActingUserScoping(IntegrationTestCase):
 			)
 		self.assertIn("error", result)
 
+	def test_tool_exception_restores_guest_identity(self):
+		run = _run_for()
+		frappe.set_user("Guest")
+		original_local_user = frappe.local.user
+		with patch("frappe.get_request_header", new=_patch_request_header(TEST_SECRET)):
+			result = dispatch.dispatch_tool(
+				tool="read", user="Administrator", arguments={"doctype": "Not A Real DocType"}, run=run
+			)
+		self.assertIn("error", result)
+		self.assertEqual(frappe.session.user, "Guest")
+		self.assertEqual(frappe.local.user, original_local_user)
+
 	def test_tool_call_budget_is_enforced(self):
 		"""The budget must actually stop the run, not just record usage."""
 		run = _run_for(max_tool_calls=2)
@@ -382,6 +394,38 @@ class TestDispatchPluginToolScope(IntegrationTestCase):
 
 		self.assertIn("result", result)
 		retrieve.assert_called_once_with("hello", kbs=[knowledge_base])
+
+	def test_plugin_owner_mismatch_is_rejected(self):
+		run, _knowledge_base = self._run_with_knowledge_scope()
+		frappe.db.set_value("AI Run", run, "owner", "Guest", update_modified=False)
+		with patch("frappe_ai.api.dispatch._verify_service_secret"):
+			with self.assertRaises(frappe.PermissionError):
+				dispatch.dispatch_plugin_tool(tool="search_knowledge", user="Administrator", run=run)
+
+	def test_fac_permission_denial_restores_guest_identity(self):
+		run, _knowledge_base = self._run_with_knowledge_scope()
+
+		class Registry:
+			def get_tool(self, _name):
+				return SimpleNamespace(category="read_only")
+
+			def execute_tool(self, _name, _arguments):
+				raise frappe.PermissionError("FAC denied this tool")
+
+		frappe.set_user("Guest")
+		original_local_user = frappe.local.user
+		with (
+			patch("frappe_ai.api.dispatch._verify_service_secret"),
+			patch("frappe_ai.api.budgets.consume"),
+			patch("frappe_assistant_core.core.tool_registry.get_tool_registry", return_value=Registry()),
+			patch("frappe.log_error"),
+		):
+			result = dispatch.dispatch_plugin_tool(
+				tool="search_knowledge", user="Administrator", arguments={"query": "hello"}, run=run
+			)
+		self.assertIn("FAC denied this tool", result["error"])
+		self.assertEqual(frappe.session.user, "Guest")
+		self.assertEqual(frappe.local.user, original_local_user)
 
 	def test_update_memory_uses_run_agent_not_model_arguments(self):
 		run, _knowledge_base = self._run_with_knowledge_scope()

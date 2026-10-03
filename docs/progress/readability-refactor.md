@@ -2,14 +2,14 @@
 
 ## Status
 
-- Overall: Phases 0–2 complete; user-requested post-baseline repairs complete; Phases 3–6 pending.
-- Current phase: Phase 2 completed 2026-10-03.
+- Overall: Phases 0–3 complete; user-requested post-baseline repairs complete; Phases 4–6 pending.
+- Current phase: Phase 3 completed 2026-10-03.
 - Starting commit: `6528fb3c142feac4b4f6c6dd104020fea1594603` on `final-cleanup-codex`.
 - Scope: `apps/frappe_ai` only, a separate clean Git repository at the start of Phase 0. The dirty `apps/tender_automation` repository is outside this work.
 - Completed: starting commit and public contracts inventoried; old Flow references classified; full `tact.local` Python and TypeScript baselines captured with no application code changes at the Phase 0 gate. The subsequent repair pass is recorded below.
 - In progress: none.
 - Blockers: none. Original failures and TypeScript errors remain recorded below as the immutable pre-repair baseline.
-- Remaining: Phases 3–6, in the plan's order.
+- Remaining: Phases 4–6, in the plan's order.
 
 ## Phase 0 contract inventory
 
@@ -179,3 +179,11 @@ Verification: `env/bin/bench --site tact.local run-tests --app frappe_ai` passed
 - Placed `_reconstructed_tool_call_message` in `transcript.py` because `_to_agno_messages` calls it and confirmation result building calls transcript helpers. This resolves the import cycle in the plan's original ownership table. An AST comparison against the prior `chat.py` found all 25 original definitions and no changed function or class bodies.
 - Updated `test_service_app.py` imports; `test_chat_route.py` still patches `chat.AgentBuilder`. Added denial and redirect transcript assertions and a completed-tool provider-failure test. `builder.py`, the Agno version range, migration hooks, legacy dispatch, and FAC compatibility were not changed.
 - Phase 2 gate on `tact.local`: `test_chat_route` 7, `test_service_app` 11, `test_builder` 9, `test_openai_transport` 12, and `test_model` 14 tests passed. Full `env/bin/bench --site tact.local run-tests --app frappe_ai` passed 494 tests (10 unit, 416 integration, 68 unspecified-category). `python -m compileall -q frappe_ai` and `git diff --check` passed.
+
+## Phase 3 — Frappe API seams (2026-10-03)
+
+- Moved the 12 presentation-only helpers from `api/frontend.py` to `api/frontend_view.py`; kept database access, permission checks, bootstrap orchestration, and all whitelisted methods in `frontend.py`.
+- Split `get_run_config` into private run-graph loading and payload assembly helpers. Service-secret verification, acting-user restoration, ownership checks, and the seven payload keys remain unchanged.
+- Replaced both dispatch acting-user save/restore blocks with `_acting_user_context`, entered after authentication, run ownership, binding, and confirmation checks. Kept the three API modules' service-secret verifiers independent. Shortened only the `api.py` module docstring; all ten whitelisted paths remain.
+- Added tests for identity restoration on service lookup and tool errors, service and plugin owner rejection, and FAC permission denial. Existing tests cover single-use approval and budget consumption.
+- Phase 3 gate on `tact.local`: `test_api` 60, `test_service_api` 15, `test_budgets` 6, `test_mcp` 9, and `test_decorated_tools` 7 tests passed. `python -m compileall -q frappe_ai/api` and `git diff --check` passed.

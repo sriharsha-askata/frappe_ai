@@ -199,6 +199,29 @@ class TestGetRunConfigAuth(IntegrationTestCase):
 		self.assertEqual(result["agent"]["name"], agent)
 		self.assertEqual(json.loads(json.dumps(result["config_snapshot"])), {"auto_approve": False})
 
+	def test_missing_run_restores_acting_user_and_permissions(self):
+		frappe.set_user("Guest")
+		original_local_user = frappe.local.user
+		original_ignore_permissions = getattr(frappe.flags, "ignore_permissions", False)
+		with patch("frappe.get_request_header", new=_patch_request_header(TEST_SECRET)):
+			with self.assertRaises(frappe.DoesNotExistError):
+				service.get_run_config("missing-phase-3-run", "Administrator")
+		self.assertEqual(frappe.session.user, "Guest")
+		self.assertEqual(frappe.local.user, original_local_user)
+		self.assertEqual(frappe.flags.ignore_permissions, original_ignore_permissions)
+
+	def test_session_owner_mismatch_is_rejected(self):
+		agent = _model_and_agent("Service Owner Check Agent")
+		session = frappe.get_doc(
+			{"doctype": "AI Session", "agent": agent, "source": "Trigger", "title": "Owner Check Session"}
+		).insert(ignore_permissions=True)
+		run = create_run(source="Trigger", input="hello", session=session.name, config_snapshot={})
+		frappe.set_user("Guest")
+		with patch("frappe.get_request_header", new=_patch_request_header(TEST_SECRET)):
+			with self.assertRaises(frappe.PermissionError):
+				service.get_run_config(run.name, "Guest")
+		self.assertEqual(frappe.session.user, "Guest")
+
 
 class TestServiceHealth(IntegrationTestCase):
 	"""Cover `service_health` when no service URL is configured."""

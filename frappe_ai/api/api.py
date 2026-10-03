@@ -1,11 +1,7 @@
 # Copyright (c) 2026, Frappe Technologies and contributors
 # License: MIT. See LICENSE
 
-"""Browser-facing API for runs, sessions, and feedback.
-
-`start_run` and `resume_run` persist the turn in Frappe, then return a short-lived
-token and URL for the browser to stream directly from FastAPI. The service calls
-`persist_run_result` or `fail_run` over HTTP to save the outcome."""
+"""Browser-facing run, session, feedback, and service callback endpoints."""
 
 from __future__ import annotations
 

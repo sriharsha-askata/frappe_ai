@@ -10,6 +10,7 @@ return bounded error results so they do not terminate the run."""
 from __future__ import annotations
 
 import hmac
+from contextlib import contextmanager
 from typing import Any
 
 import frappe
@@ -37,21 +38,16 @@ def dispatch_tool(
 		frappe.throw(_("Tool {0} is disabled.").format(tool), title=_("Tool Disabled"))
 	_enforce_confirmation(run, tool, call_id, arguments, bool(tool_doc.requires_confirmation))
 
-	previous_user = frappe.session.user
-	previous_local_user = getattr(frappe.local, "user", None)
-	frappe.set_user(user)
-	frappe.local.user = user
-	try:
-		from frappe_ai.api.budgets import consume
-		consume(run, mutation=tool in {"create", "update", "delete", "run_action"}, records=_record_count(arguments or {}))
-		runtime_tool = tool_doc.to_tool()
-		result = runtime_tool(**(arguments or {}))
-		return {"result": result}
-	except Exception as e:
-		return {"error": _error_text(e)}
-	finally:
-		frappe.set_user(previous_user)
-		frappe.local.user = previous_local_user
+	with _acting_user_context(user):
+		try:
+			from frappe_ai.api.budgets import consume
+
+			consume(run, mutation=tool in {"create", "update", "delete", "run_action"}, records=_record_count(arguments or {}))
+			runtime_tool = tool_doc.to_tool()
+			result = runtime_tool(**(arguments or {}))
+			return {"result": result}
+		except Exception as e:
+			return {"error": _error_text(e)}
 
 
 @frappe.whitelist(allow_guest=True)
@@ -72,11 +68,7 @@ def dispatch_plugin_tool(
 	_require_plugin_binding(run, tool)
 	_enforce_confirmation(run, tool, call_id, arguments, _plugin_requires_confirmation(run, tool))
 
-	previous_user = frappe.session.user
-	previous_local_user = getattr(frappe.local, "user", None)
-	frappe.set_user(user)
-	frappe.local.user = user
-	try:
+	with _acting_user_context(user):
 		from frappe_assistant_core.core.tool_registry import get_tool_registry
 		from frappe_ai.api.budgets import consume
 
@@ -128,6 +120,17 @@ def dispatch_plugin_tool(
 			)
 			return {"error": _error_text(e)}
 		return {"result": result}
+
+
+@contextmanager
+def _acting_user_context(user: str):
+	"""Install the checked run owner for tool execution, then restore the caller."""
+	previous_user = frappe.session.user
+	previous_local_user = getattr(frappe.local, "user", None)
+	frappe.set_user(user)
+	frappe.local.user = user
+	try:
+		yield
 	finally:
 		frappe.set_user(previous_user)
 		frappe.local.user = previous_local_user

@@ -125,57 +125,65 @@ def get_run_config(run: str, user: str) -> dict:
 	# limited to loading this already-bound run/session/agent graph.
 	frappe.flags.ignore_permissions = True
 	try:
-		run_row = frappe.db.get_value("AI Run", run, "*", as_dict=True)
-		if not run_row:
-			frappe.throw(_("Run {0} was not found.").format(run), frappe.DoesNotExistError)
-		run_doc = frappe.get_doc({"doctype": "AI Run", **run_row})
-		if run_doc.status != "Running" and run_doc.status != "Paused":
-			frappe.throw(_("Run {0} is not active (status: {1}).").format(run, run_doc.status))
-
-		session_doc = frappe.get_doc("AI Session", run_doc.session)
-		if session_doc.owner != user:
-			frappe.throw(_("Run {0} does not belong to {1}.").format(run, user), frappe.PermissionError)
-
-		agent_doc = frappe.get_doc("AI Agent", session_doc.agent)
-		model_name = session_doc.model or agent_doc.model
-		if not frappe.has_permission("AI Model", "read", model_name):
-			frappe.throw(
-				_("{0} is not permitted to use AI Model {1}.").format(user, model_name), frappe.PermissionError
-			)
-		model_doc = frappe.get_doc("AI Model", model_name)
-		if not model_doc.enabled:
-			frappe.throw(_("AI Model {0} is disabled.").format(model_name), title=_("Disabled Model"))
-
-		plugin_tools = _resolve_agent_plugin_tools(agent_doc, user)
-		return {
-			"agent": {
-				"name": agent_doc.name,
-				"instructions": agent_doc.instructions,
-				"max_iterations": agent_doc.max_iterations,
-				"temperature": agent_doc.temperature,
-				"top_p": agent_doc.top_p,
-				"reasoning": bool(agent_doc.reasoning),
-				"markdown": bool(agent_doc.markdown),
-				"auto_approve": bool(
-					(json.loads(run_doc.config_snapshot) if run_doc.config_snapshot else {}).get("auto_approve")
-				),
-			},
-			"model": _model_call_config(model_doc),
-			"tools": plugin_tools,
-			"mcp_connections": _resolve_agent_mcp_connections(
-				agent_doc, direct_tool_names={tool["name"] for tool in plugin_tools}
-			),
-			"messages": session_doc.build_prompt_messages(),
-			"config_snapshot": json.loads(run_doc.config_snapshot) if run_doc.config_snapshot else {},
-			# Pending confirmations from the prior segment, `[{key, name, arguments,
-			# prompt}, ...]` — the arguments a resume's approved calls must actually be
-			# dispatched with. Empty on a fresh (non-resumed) run.
-			"questions": json.loads(run_doc.questions) if run_doc.questions else [],
-		}
+		run_doc, session_doc, agent_doc, model_doc = _load_run_graph(run, user)
+		return _run_config_payload(run_doc, session_doc, agent_doc, model_doc, user)
 	finally:
 		frappe.set_user(original_user)
 		frappe.local.user = original_local_user
 		frappe.flags.ignore_permissions = original_ignore_permissions
+
+
+def _load_run_graph(run: str, user: str):
+	"""Load the active run, owned session, agent, and usable model in that order."""
+	run_row = frappe.db.get_value("AI Run", run, "*", as_dict=True)
+	if not run_row:
+		frappe.throw(_("Run {0} was not found.").format(run), frappe.DoesNotExistError)
+	run_doc = frappe.get_doc({"doctype": "AI Run", **run_row})
+	if run_doc.status != "Running" and run_doc.status != "Paused":
+		frappe.throw(_("Run {0} is not active (status: {1}).").format(run, run_doc.status))
+
+	session_doc = frappe.get_doc("AI Session", run_doc.session)
+	if session_doc.owner != user:
+		frappe.throw(_("Run {0} does not belong to {1}.").format(run, user), frappe.PermissionError)
+
+	agent_doc = frappe.get_doc("AI Agent", session_doc.agent)
+	model_name = session_doc.model or agent_doc.model
+	if not frappe.has_permission("AI Model", "read", model_name):
+		frappe.throw(_("{0} is not permitted to use AI Model {1}.").format(user, model_name), frappe.PermissionError)
+	model_doc = frappe.get_doc("AI Model", model_name)
+	if not model_doc.enabled:
+		frappe.throw(_("AI Model {0} is disabled.").format(model_name), title=_("Disabled Model"))
+	return run_doc, session_doc, agent_doc, model_doc
+
+
+def _run_config_payload(run_doc, session_doc, agent_doc, model_doc, user: str) -> dict:
+	"""Assemble the payload consumed by the service's AgentBuilder."""
+	plugin_tools = _resolve_agent_plugin_tools(agent_doc, user)
+	return {
+		"agent": {
+			"name": agent_doc.name,
+			"instructions": agent_doc.instructions,
+			"max_iterations": agent_doc.max_iterations,
+			"temperature": agent_doc.temperature,
+			"top_p": agent_doc.top_p,
+			"reasoning": bool(agent_doc.reasoning),
+			"markdown": bool(agent_doc.markdown),
+			"auto_approve": bool(
+				(json.loads(run_doc.config_snapshot) if run_doc.config_snapshot else {}).get("auto_approve")
+			),
+		},
+		"model": _model_call_config(model_doc),
+		"tools": plugin_tools,
+		"mcp_connections": _resolve_agent_mcp_connections(
+			agent_doc, direct_tool_names={tool["name"] for tool in plugin_tools}
+		),
+		"messages": session_doc.build_prompt_messages(),
+		"config_snapshot": json.loads(run_doc.config_snapshot) if run_doc.config_snapshot else {},
+		# Pending confirmations from the prior segment, `[{key, name, arguments,
+		# prompt}, ...]` — the arguments a resume's approved calls must actually be
+		# dispatched with. Empty on a fresh (non-resumed) run.
+		"questions": json.loads(run_doc.questions) if run_doc.questions else [],
+	}
 
 
 @frappe.whitelist(allow_guest=True)
