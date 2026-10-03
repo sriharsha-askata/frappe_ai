@@ -25,10 +25,10 @@ export function ExecutionCard({ execution, message }: { execution: any; message?
 		execution.status === "awaiting_confirmation"
 			? __("Awaiting confirmation")
 			: execution.status === "running"
-				? __("Running")
-				: execution.status === "error"
-					? __("Failed")
-					: __("Completed");
+			? __("Running")
+			: execution.status === "error"
+			? __("Failed")
+			: __("Completed");
 
 	return (
 		<button

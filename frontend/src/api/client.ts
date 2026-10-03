@@ -1,7 +1,7 @@
 import { __ } from "../lib/translate";
 
 type RequestOptions = {
-	method?: 'GET' | 'POST';
+	method?: "GET" | "POST";
 	params?: Record<string, any>;
 	body?: Record<string, any> | FormData;
 };

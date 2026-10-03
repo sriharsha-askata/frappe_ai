@@ -55,13 +55,13 @@ export function summarizeValues(values: Record<string, any>) {
 				typeof value === "string"
 					? value
 					: Array.isArray(value)
-						? value.join(", ")
-						: value && typeof value === "object"
-							? Object.entries(value)
-									.slice(0, 2)
-									.map(([key, item]) => `${key}: ${String(item)}`)
-									.join(", ")
-							: String(value),
+					? value.join(", ")
+					: value && typeof value === "object"
+					? Object.entries(value)
+							.slice(0, 2)
+							.map(([key, item]) => `${key}: ${String(item)}`)
+							.join(", ")
+					: String(value),
 		}))
 		.filter((row) => row.value && row.value !== "undefined");
 }
@@ -96,10 +96,10 @@ export function executionStatusFromResult(result: string | null): {
 				parsed.status === "approved"
 					? "approved"
 					: parsed.status === "denied"
-						? "denied"
-						: parsed.status === "redirect"
-							? "redirected"
-							: null;
+					? "denied"
+					: parsed.status === "redirect"
+					? "redirected"
+					: null;
 			return { status, error: parsed.error || null, approvalStatus };
 		}
 	} catch {
@@ -114,7 +114,13 @@ export function summarizeSchema(schema: any) {
 		.slice(0, 6)
 		.map(([name, field]: any) => ({
 			name,
-			type: field?.type || field?.anyOf?.map((item: any) => item.type).filter(Boolean).join(" | ") || "value",
+			type:
+				field?.type ||
+				field?.anyOf
+					?.map((item: any) => item.type)
+					.filter(Boolean)
+					.join(" | ") ||
+				"value",
 			description: field?.description || "",
 		}));
 }
@@ -139,8 +145,7 @@ export function confirmTitle(name: string, args: unknown) {
 			doctype ? `${count(parsed.names)} ${doctype}` : __("records"),
 		]);
 	} else if (name === "execute") {
-		title =
-			(typeof parsed.description === "string" && parsed.description.trim()) || __("Run Python code");
+		title = (typeof parsed.description === "string" && parsed.description.trim()) || __("Run Python code");
 	}
 	return { title: title || toolLabel(name), danger: name === "delete" };
 }

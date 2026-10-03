@@ -32,7 +32,9 @@ export function MessageList() {
 			}}
 		>
 			<div className="faip-message-stack">
-				{!transcript.length ? <EmptyState setup={needsSetup} hasModels={models.length > 0} hasAgents={agents.length > 0} /> : null}
+				{!transcript.length ? (
+					<EmptyState setup={needsSetup} hasModels={models.length > 0} hasAgents={agents.length > 0} />
+				) : null}
 				{transcript.map((message) =>
 					message.role === "user" ? (
 						<React.Fragment key={message.id}>

@@ -35,8 +35,8 @@ export function Composer() {
 	const placeholder = !loaded
 		? __("Loading…")
 		: needsSetup
-			? __("Setup required…")
-			: __("Ask {0}…", [agentRecord?.title || __("your agent")]);
+		? __("Setup required…")
+		: __("Ask {0}…", [agentRecord?.title || __("your agent")]);
 
 	useEffect(() => {
 		textareaRef.current?.focus();
@@ -110,7 +110,12 @@ export function Composer() {
 
 			<div className="faip-composer-footer">
 				<div className="faip-composer-tools">
-					<button type="button" className="faip-icon-button" disabled={inputDisabled} onClick={() => fileInputRef.current?.click()}>
+					<button
+						type="button"
+						className="faip-icon-button"
+						disabled={inputDisabled}
+						onClick={() => fileInputRef.current?.click()}
+					>
 						<Paperclip size={15} />
 					</button>
 					<input

@@ -6,11 +6,10 @@ from __future__ import annotations
 import json
 import time
 
-import requests
-from requests import RequestException
-
 import frappe
+import requests
 from frappe import _
+from requests import RequestException
 
 from frappe_ai.api._service_url import get_service_url
 from frappe_ai.service.auth import mint_run_token
@@ -23,7 +22,9 @@ def _run_via_service(run: str, session: str, user: str) -> None:
 	"""Start the FastAPI run and consume its SSE stream until terminal state."""
 	secret = frappe.conf.get("frappe_ai_service_secret")
 	if not secret:
-		frappe.throw(_("frappe_ai_service_secret is not set in site_config.json."), title=_("Service Not Configured"))
+		frappe.throw(
+			_("frappe_ai_service_secret is not set in site_config.json."), title=_("Service Not Configured")
+		)
 	service_url = get_service_url()
 	stream_timeout = frappe.get_cached_value("AI Settings", "AI Settings", "stream_timeout") or 600
 	token = mint_run_token(run=run, session=session, user=user, secret=secret)
@@ -91,9 +92,9 @@ def _run_via_service(run: str, session: str, user: str) -> None:
 			error_message = _stream_error_message(terminal_payload) if terminal_event == "error" else None
 			raise RuntimeError(
 				error_message
-				or _(
-					"frappe_ai service emitted {0} but the run is still {1}."
-				).format(terminal_event, status or _("missing"))
+				or _("frappe_ai service emitted {0} but the run is still {1}.").format(
+					terminal_event, status or _("missing")
+				)
 			)
 		if not saw_terminal_event:
 			status = frappe.db.get_value("AI Run", run, "status")
@@ -127,7 +128,9 @@ def _run_via_service(run: str, session: str, user: str) -> None:
 			title="frappe_ai Service Stream: transport error",
 			message=frappe.as_json({"run": run, "session": session, "status": status, "error": str(exc)}),
 		)
-		raise RuntimeError(_("frappe_ai service stream failed before the run reached a terminal state: {0}").format(exc))
+		raise RuntimeError(
+			_("frappe_ai service stream failed before the run reached a terminal state: {0}").format(exc)
+		)
 
 
 def _stream_error_message(payload: str) -> str | None:

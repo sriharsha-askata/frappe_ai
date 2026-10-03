@@ -92,6 +92,12 @@ The FastAPI chat route is split across `service/routes/chat.py` (`stream_chat`
 orchestration), `service/routes/agno_events.py` (Agno events and SSE frames),
 `service/routes/confirmation.py` (approval and pause/resume results), and
 `service/routes/transcript.py` (message conversion and serialization).
+`api/frontend_view.py` shapes frontend responses without database access, while
+`api/frontend.py` owns the whitelisted endpoints and database orchestration.
+`triggers/service_runner.py` handles service requests and terminal run polling;
+`triggers/triggers.py` owns trigger dispatch and scheduling.
+In the React frontend, `frontend/src/state/types.ts` defines store data types and
+`frontend/src/state/runEvents.ts` applies normalized stream events to store state.
 
 ---
 

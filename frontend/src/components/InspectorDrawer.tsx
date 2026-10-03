@@ -5,7 +5,11 @@ import { __ } from "../lib/translate";
 
 function JsonBlock({ value }: { value: any }) {
 	if (value === undefined || value === null || value === "") return null;
-	return <pre className="faip-code-block">{typeof value === "string" ? value : JSON.stringify(value, null, 2)}</pre>;
+	return (
+		<pre className="faip-code-block">
+			{typeof value === "string" ? value : JSON.stringify(value, null, 2)}
+		</pre>
+	);
 }
 
 export function InspectorDrawer() {
@@ -62,7 +66,12 @@ export function InspectorDrawer() {
 							<div className="faip-inspector-section-title">{__("Tools")}</div>
 							<div className="faip-inspector-list">
 								{payload.tools.summaries.map((tool: any) => (
-									<button key={tool.name} type="button" className="faip-inspector-row" onClick={() => openToolInspector(tool)}>
+									<button
+										key={tool.name}
+										type="button"
+										className="faip-inspector-row"
+										onClick={() => openToolInspector(tool)}
+									>
 										<div>
 											<div className="faip-inspector-row-title">{tool.display_name}</div>
 											<div className="faip-inspector-row-meta">{tool.summary}</div>
@@ -83,7 +92,9 @@ export function InspectorDrawer() {
 									>
 										<div>
 											<div className="faip-inspector-row-title">{connection.display_name}</div>
-											<div className="faip-inspector-row-meta">{connection.status_message || connection.status}</div>
+											<div className="faip-inspector-row-meta">
+												{connection.status_message || connection.status}
+											</div>
 										</div>
 									</button>
 								))}
@@ -110,7 +121,11 @@ export function InspectorDrawer() {
 								<strong>{payload.agent.title}</strong>
 							</div>
 						</div>
-						<p>{__("Model selection is metadata for this workspace. Switch agents from navigation to change the default.")}</p>
+						<p>
+							{__(
+								"Model selection is metadata for this workspace. Switch agents from navigation to change the default."
+							)}
+						</p>
 					</>
 				) : null}
 
@@ -145,7 +160,12 @@ export function InspectorDrawer() {
 							{payload.tool_summaries_available && payload.tool_summaries.length ? (
 								<div className="faip-inspector-list">
 									{payload.tool_summaries.map((tool: any) => (
-										<button key={tool.name} type="button" className="faip-inspector-row" onClick={() => openToolInspector(tool)}>
+										<button
+											key={tool.name}
+											type="button"
+											className="faip-inspector-row"
+											onClick={() => openToolInspector(tool)}
+										>
 											<div className="faip-inspector-row-title">{tool.display_name || tool.name}</div>
 										</button>
 									))}
@@ -204,7 +224,11 @@ export function InspectorDrawer() {
 							</div>
 						</div>
 						{payload.tool ? (
-							<button type="button" className="faip-secondary-button" onClick={() => openToolInspector(payload.tool)}>
+							<button
+								type="button"
+								className="faip-secondary-button"
+								onClick={() => openToolInspector(payload.tool)}
+							>
 								{__("Open tool")}
 							</button>
 						) : null}
@@ -230,7 +254,9 @@ export function InspectorDrawer() {
 							>
 								<div>
 									<div className="faip-inspector-row-title">{item.execution.display_title}</div>
-									<div className="faip-inspector-row-meta">{item.execution.result_summary || item.execution.status}</div>
+									<div className="faip-inspector-row-meta">
+										{item.execution.result_summary || item.execution.status}
+									</div>
 								</div>
 							</button>
 						))}

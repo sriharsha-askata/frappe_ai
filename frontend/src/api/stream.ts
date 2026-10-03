@@ -7,7 +7,14 @@ export type RunEvent =
 	| { type: "text"; delta: string; content?: string }
 	| { type: "tool_started"; id: string; name: string; arguments: unknown }
 	| { type: "tool_ended"; id: string; name: string; result: string | null }
-	| { type: "done"; status: string; questions?: Question[]; iterations?: number; output?: unknown; usage?: unknown }
+	| {
+			type: "done";
+			status: string;
+			questions?: Question[];
+			iterations?: number;
+			output?: unknown;
+			usage?: unknown;
+	  }
 	| { type: "error"; message: string; code?: string; status_code?: number; retryable?: boolean }
 	| { type: "unknown"; original: unknown };
 
@@ -48,9 +55,7 @@ async function openRun(
 	if (!streamResponse.ok) {
 		const streamError = await streamResponse.json().catch(() => ({}));
 		throw new Error(
-			streamError.detail ||
-				serverMessage(streamError) ||
-				__("Request failed ({0})", [streamResponse.status])
+			streamError.detail || serverMessage(streamError) || __("Request failed ({0})", [streamResponse.status])
 		);
 	}
 	if (!streamResponse.body) {

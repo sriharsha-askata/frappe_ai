@@ -23,14 +23,9 @@ function timeLabel(value?: string) {
 	return date.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
 }
 
-export function PageSidebar({
-	onClose,
-	onNavigate,
-}: {
-	onClose: () => void;
-	onNavigate: () => void;
-}) {
-	const { agents, selectedAgent, setAgent, history, currentSession, switchSession, newChat, searchSessions } = useStore();
+export function PageSidebar({ onClose, onNavigate }: { onClose: () => void; onNavigate: () => void }) {
+	const { agents, selectedAgent, setAgent, history, currentSession, switchSession, newChat, searchSessions } =
+		useStore();
 	const [query, setQuery] = useState("");
 	const [items, setItems] = useState(history);
 
@@ -67,7 +62,12 @@ export function PageSidebar({
 					<div className="faip-nav-title">Frappe AI</div>
 					<div className="faip-nav-subtitle">{__("Navigation")}</div>
 				</div>
-				<button type="button" className="faip-icon-button faip-nav-close" onClick={onClose} aria-label="Close sidebar">
+				<button
+					type="button"
+					className="faip-icon-button faip-nav-close"
+					onClick={onClose}
+					aria-label="Close sidebar"
+				>
 					<X size={16} />
 				</button>
 			</div>
@@ -86,7 +86,11 @@ export function PageSidebar({
 
 			<div className="faip-page-search">
 				<Search size={14} />
-				<input value={query} onChange={(event) => setQuery(event.target.value)} placeholder={__("Search sessions")} />
+				<input
+					value={query}
+					onChange={(event) => setQuery(event.target.value)}
+					placeholder={__("Search sessions")}
+				/>
 			</div>
 
 			<div className="faip-nav-section">
@@ -123,7 +127,9 @@ export function PageSidebar({
 									<button
 										type="button"
 										key={item.name}
-										className={`faip-nav-item is-session ${item.name === currentSession?.name ? "is-active" : ""}`}
+										className={`faip-nav-item is-session ${
+											item.name === currentSession?.name ? "is-active" : ""
+										}`}
 										onClick={() => {
 											void switchSession(item.name);
 											onNavigate();

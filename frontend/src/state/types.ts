@@ -158,4 +158,3 @@ export type StoreContextValue = StoreState & {
 	closeInspector: () => void;
 	testMcpConnection: (name: string) => Promise<void>;
 };
-

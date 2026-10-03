@@ -33,7 +33,11 @@ export function EmptyState({
 			) : (
 				<>
 					<h3>{__("Start in the workspace")}</h3>
-					<p>{__("Use a prompt, then inspect tools, MCP activity, and execution details without leaving the transcript.")}</p>
+					<p>
+						{__(
+							"Use a prompt, then inspect tools, MCP activity, and execution details without leaving the transcript."
+						)}
+					</p>
 					<div className="faip-empty-feature-grid">
 						<div className="faip-empty-feature">
 							<Database size={16} />
@@ -50,7 +54,12 @@ export function EmptyState({
 					</div>
 					<div className="faip-empty-prompts">
 						{prompts.map((prompt) => (
-							<button key={prompt} type="button" className="faip-prompt-card" onClick={() => void send(prompt)}>
+							<button
+								key={prompt}
+								type="button"
+								className="faip-prompt-card"
+								onClick={() => void send(prompt)}
+							>
 								{prompt}
 							</button>
 						))}

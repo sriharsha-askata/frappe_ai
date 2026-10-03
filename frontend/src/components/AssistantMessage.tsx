@@ -12,7 +12,9 @@ export function AssistantMessage({ message }: { message: any }) {
 		<div className="faip-assistant">
 			{message.content ? <div className="faip-assistant-text faip-text-block">{message.content}</div> : null}
 			{message.executions.map((execution: any) => {
-				const question = message.questions.find((item: any) => item.key === execution.id && item._answer === undefined);
+				const question = message.questions.find(
+					(item: any) => item.key === execution.id && item._answer === undefined
+				);
 				if (question) {
 					return (
 						<ConfirmCard

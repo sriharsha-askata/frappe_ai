@@ -13494,7 +13494,12 @@ var FrappeAIPanel = (() => {
         return {
           ...state,
           currentRun: { run: event.name, status: "Running" },
-          currentSession: state.currentSession || { id: event.session, name: event.session, title: __("New chat"), preview: __("New chat") },
+          currentSession: state.currentSession || {
+            id: event.session,
+            name: event.session,
+            title: __("New chat"),
+            preview: __("New chat")
+          },
           transcript
         };
       case "text":
@@ -13503,7 +13508,10 @@ var FrappeAIPanel = (() => {
       case "tool_started": {
         const existing = message.executions.find((item) => item.id === event.id);
         if (existing) {
-          Object.assign(existing, buildExecution(event.id, event.name, event.arguments, { ...existing, status: "running" }));
+          Object.assign(
+            existing,
+            buildExecution(event.id, event.name, event.arguments, { ...existing, status: "running" })
+          );
         } else {
           message.executions.push(buildExecution(event.id, event.name, event.arguments));
         }
@@ -13593,10 +13601,7 @@ var FrappeAIPanel = (() => {
     }
     return messages;
   }
-  function StoreProvider({
-    children,
-    host
-  }) {
+  function StoreProvider({ children, host }) {
     var _a;
     const [state, dispatch] = (0, import_react3.useReducer)(reducer, initialState);
     const stateRef = (0, import_react3.useRef)(state);
@@ -13668,7 +13673,12 @@ var FrappeAIPanel = (() => {
         const seq = ++switchSeq.current;
         update((current) => ({
           ...current,
-          currentSession: current.history.find((item) => item.name === name) || { id: name, name, title: name, preview: name },
+          currentSession: current.history.find((item) => item.name === name) || {
+            id: name,
+            name,
+            title: name,
+            preview: name
+          },
           currentRun: null,
           transcript: [],
           attachments: []
@@ -13711,9 +13721,12 @@ var FrappeAIPanel = (() => {
       },
       [update]
     );
-    const setModel = (0, import_react3.useCallback)((name) => {
-      update((current) => ({ ...current, selectedModel: name || null }));
-    }, [update]);
+    const setModel = (0, import_react3.useCallback)(
+      (name) => {
+        update((current) => ({ ...current, selectedModel: name || null }));
+      },
+      [update]
+    );
     const newChat = (0, import_react3.useCallback)(() => {
       if (stateRef.current.sending) return;
       update((current) => ({
@@ -13733,10 +13746,13 @@ var FrappeAIPanel = (() => {
     const clearForceScroll = (0, import_react3.useCallback)(() => {
       update((current) => current.forceScroll ? { ...current, forceScroll: false } : current);
     }, [update]);
-    const findToolSummary = (0, import_react3.useCallback)((toolName) => {
-      const agent = selectedAgentRecord(stateRef.current.selectedAgent);
-      return (agent == null ? void 0 : agent.tools.summaries.find((item) => item.name === toolName)) || null;
-    }, [selectedAgentRecord]);
+    const findToolSummary = (0, import_react3.useCallback)(
+      (toolName) => {
+        const agent = selectedAgentRecord(stateRef.current.selectedAgent);
+        return (agent == null ? void 0 : agent.tools.summaries.find((item) => item.name === toolName)) || null;
+      },
+      [selectedAgentRecord]
+    );
     const handleEvent = (0, import_react3.useCallback)(
       (event, messageId) => {
         update((current) => applyRunEvent(current, event, messageId));
@@ -13968,12 +13984,15 @@ var FrappeAIPanel = (() => {
       },
       [update]
     );
-    const removeAttachment = (0, import_react3.useCallback)((uidToRemove) => {
-      update((current) => ({
-        ...current,
-        attachments: current.attachments.filter((item) => item.uid !== uidToRemove)
-      }));
-    }, [update]);
+    const removeAttachment = (0, import_react3.useCallback)(
+      (uidToRemove) => {
+        update((current) => ({
+          ...current,
+          attachments: current.attachments.filter((item) => item.uid !== uidToRemove)
+        }));
+      },
+      [update]
+    );
     const closeInspector = (0, import_react3.useCallback)(() => {
       update((current) => ({ ...current, inspector: { ...current.inspector, open: false } }));
     }, [update]);
@@ -13989,9 +14008,12 @@ var FrappeAIPanel = (() => {
         model: agent.model
       });
     }, [openInspector, selectedAgentRecord]);
-    const openMcpInspector = (0, import_react3.useCallback)((connection) => {
-      openInspector("mcp", connection.display_name, connection);
-    }, [openInspector]);
+    const openMcpInspector = (0, import_react3.useCallback)(
+      (connection) => {
+        openInspector("mcp", connection.display_name, connection);
+      },
+      [openInspector]
+    );
     const openToolInspector = (0, import_react3.useCallback)(
       (tool) => {
         openInspector("tool", tool.display_name || tool.name, {
@@ -14213,10 +14235,19 @@ var FrappeAIPanel = (() => {
           ),
           /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)("div", { className: "faip-composer-footer", children: [
             /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)("div", { className: "faip-composer-tools", children: [
-              /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("button", { type: "button", className: "faip-icon-button", disabled: inputDisabled, onClick: () => {
-                var _a2;
-                return (_a2 = fileInputRef.current) == null ? void 0 : _a2.click();
-              }, children: /* @__PURE__ */ (0, import_jsx_runtime3.jsx)(Paperclip, { size: 15 }) }),
+              /* @__PURE__ */ (0, import_jsx_runtime3.jsx)(
+                "button",
+                {
+                  type: "button",
+                  className: "faip-icon-button",
+                  disabled: inputDisabled,
+                  onClick: () => {
+                    var _a2;
+                    return (_a2 = fileInputRef.current) == null ? void 0 : _a2.click();
+                  },
+                  children: /* @__PURE__ */ (0, import_jsx_runtime3.jsx)(Paperclip, { size: 15 })
+                }
+              ),
               /* @__PURE__ */ (0, import_jsx_runtime3.jsx)(
                 "input",
                 {
@@ -14301,10 +14332,19 @@ var FrappeAIPanel = (() => {
           ] }),
           /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)("div", { className: "faip-inspector-section", children: [
             /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("div", { className: "faip-inspector-section-title", children: __("Tools") }),
-            /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("div", { className: "faip-inspector-list", children: payload.tools.summaries.map((tool) => /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("button", { type: "button", className: "faip-inspector-row", onClick: () => openToolInspector(tool), children: /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)("div", { children: [
-              /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("div", { className: "faip-inspector-row-title", children: tool.display_name }),
-              /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("div", { className: "faip-inspector-row-meta", children: tool.summary })
-            ] }) }, tool.name)) })
+            /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("div", { className: "faip-inspector-list", children: payload.tools.summaries.map((tool) => /* @__PURE__ */ (0, import_jsx_runtime4.jsx)(
+              "button",
+              {
+                type: "button",
+                className: "faip-inspector-row",
+                onClick: () => openToolInspector(tool),
+                children: /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)("div", { children: [
+                  /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("div", { className: "faip-inspector-row-title", children: tool.display_name }),
+                  /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("div", { className: "faip-inspector-row-meta", children: tool.summary })
+                ] })
+              },
+              tool.name
+            )) })
           ] }),
           /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)("div", { className: "faip-inspector-section", children: [
             /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("div", { className: "faip-inspector-section-title", children: __("MCP connections") }),
@@ -14338,7 +14378,9 @@ var FrappeAIPanel = (() => {
               /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("strong", { children: payload.agent.title })
             ] })
           ] }),
-          /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("p", { children: __("Model selection is metadata for this workspace. Switch agents from navigation to change the default.") })
+          /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("p", { children: __(
+            "Model selection is metadata for this workspace. Switch agents from navigation to change the default."
+          ) })
         ] }) : null,
         inspector.mode === "mcp" ? /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)(import_jsx_runtime4.Fragment, { children: [
           /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)("div", { className: "faip-inspector-stat-grid", children: [
@@ -14371,7 +14413,16 @@ var FrappeAIPanel = (() => {
           ),
           /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)("div", { className: "faip-inspector-section", children: [
             /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("div", { className: "faip-inspector-section-title", children: __("Tool list") }),
-            payload.tool_summaries_available && payload.tool_summaries.length ? /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("div", { className: "faip-inspector-list", children: payload.tool_summaries.map((tool) => /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("button", { type: "button", className: "faip-inspector-row", onClick: () => openToolInspector(tool), children: /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("div", { className: "faip-inspector-row-title", children: tool.display_name || tool.name }) }, tool.name)) }) : /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("p", { children: __("Tool metadata is not available for this connection yet.") })
+            payload.tool_summaries_available && payload.tool_summaries.length ? /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("div", { className: "faip-inspector-list", children: payload.tool_summaries.map((tool) => /* @__PURE__ */ (0, import_jsx_runtime4.jsx)(
+              "button",
+              {
+                type: "button",
+                className: "faip-inspector-row",
+                onClick: () => openToolInspector(tool),
+                children: /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("div", { className: "faip-inspector-row-title", children: tool.display_name || tool.name })
+              },
+              tool.name
+            )) }) : /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("p", { children: __("Tool metadata is not available for this connection yet.") })
           ] })
         ] }) : null,
         inspector.mode === "tool" ? /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)(import_jsx_runtime4.Fragment, { children: [
@@ -14414,7 +14465,15 @@ var FrappeAIPanel = (() => {
               /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("strong", { children: payload.execution.tool_name })
             ] })
           ] }),
-          payload.tool ? /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("button", { type: "button", className: "faip-secondary-button", onClick: () => openToolInspector(payload.tool), children: __("Open tool") }) : null,
+          payload.tool ? /* @__PURE__ */ (0, import_jsx_runtime4.jsx)(
+            "button",
+            {
+              type: "button",
+              className: "faip-secondary-button",
+              onClick: () => openToolInspector(payload.tool),
+              children: __("Open tool")
+            }
+          ) : null,
           /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)("div", { className: "faip-inspector-section", children: [
             /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("div", { className: "faip-inspector-section-title", children: __("Inputs") }),
             /* @__PURE__ */ (0, import_jsx_runtime4.jsx)(JsonBlock, { value: payload.execution.raw_input })
@@ -14584,7 +14643,9 @@ var FrappeAIPanel = (() => {
     return /* @__PURE__ */ (0, import_jsx_runtime8.jsxs)("div", { className: "faip-assistant", children: [
       message.content ? /* @__PURE__ */ (0, import_jsx_runtime8.jsx)("div", { className: "faip-assistant-text faip-text-block", children: message.content }) : null,
       message.executions.map((execution) => {
-        const question = message.questions.find((item) => item.key === execution.id && item._answer === void 0);
+        const question = message.questions.find(
+          (item) => item.key === execution.id && item._answer === void 0
+        );
         if (question) {
           return /* @__PURE__ */ (0, import_jsx_runtime8.jsx)(
             ConfirmCard,
@@ -14631,7 +14692,9 @@ var FrappeAIPanel = (() => {
         ] })
       ] }) : /* @__PURE__ */ (0, import_jsx_runtime9.jsxs)(import_jsx_runtime9.Fragment, { children: [
         /* @__PURE__ */ (0, import_jsx_runtime9.jsx)("h3", { children: __("Start in the workspace") }),
-        /* @__PURE__ */ (0, import_jsx_runtime9.jsx)("p", { children: __("Use a prompt, then inspect tools, MCP activity, and execution details without leaving the transcript.") }),
+        /* @__PURE__ */ (0, import_jsx_runtime9.jsx)("p", { children: __(
+          "Use a prompt, then inspect tools, MCP activity, and execution details without leaving the transcript."
+        ) }),
         /* @__PURE__ */ (0, import_jsx_runtime9.jsxs)("div", { className: "faip-empty-feature-grid", children: [
           /* @__PURE__ */ (0, import_jsx_runtime9.jsxs)("div", { className: "faip-empty-feature", children: [
             /* @__PURE__ */ (0, import_jsx_runtime9.jsx)(Database, { size: 16 }),
@@ -14646,7 +14709,16 @@ var FrappeAIPanel = (() => {
             /* @__PURE__ */ (0, import_jsx_runtime9.jsx)("span", { children: __("Inspect execution details") })
           ] })
         ] }),
-        /* @__PURE__ */ (0, import_jsx_runtime9.jsx)("div", { className: "faip-empty-prompts", children: prompts.map((prompt) => /* @__PURE__ */ (0, import_jsx_runtime9.jsx)("button", { type: "button", className: "faip-prompt-card", onClick: () => void send(prompt), children: prompt }, prompt)) })
+        /* @__PURE__ */ (0, import_jsx_runtime9.jsx)("div", { className: "faip-empty-prompts", children: prompts.map((prompt) => /* @__PURE__ */ (0, import_jsx_runtime9.jsx)(
+          "button",
+          {
+            type: "button",
+            className: "faip-prompt-card",
+            onClick: () => void send(prompt),
+            children: prompt
+          },
+          prompt
+        )) })
       ] })
     ] });
   }
@@ -14732,10 +14804,7 @@ var FrappeAIPanel = (() => {
     if (Number.isNaN(date.getTime())) return "";
     return date.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
   }
-  function PageSidebar({
-    onClose,
-    onNavigate
-  }) {
+  function PageSidebar({ onClose, onNavigate }) {
     const { agents, selectedAgent, setAgent, history, currentSession, switchSession, newChat, searchSessions: searchSessions2 } = useStore();
     const [query, setQuery] = (0, import_react8.useState)("");
     const [items, setItems] = (0, import_react8.useState)(history);
@@ -14766,7 +14835,16 @@ var FrappeAIPanel = (() => {
           /* @__PURE__ */ (0, import_jsx_runtime12.jsx)("div", { className: "faip-nav-title", children: "Frappe AI" }),
           /* @__PURE__ */ (0, import_jsx_runtime12.jsx)("div", { className: "faip-nav-subtitle", children: __("Navigation") })
         ] }),
-        /* @__PURE__ */ (0, import_jsx_runtime12.jsx)("button", { type: "button", className: "faip-icon-button faip-nav-close", onClick: onClose, "aria-label": "Close sidebar", children: /* @__PURE__ */ (0, import_jsx_runtime12.jsx)(X, { size: 16 }) })
+        /* @__PURE__ */ (0, import_jsx_runtime12.jsx)(
+          "button",
+          {
+            type: "button",
+            className: "faip-icon-button faip-nav-close",
+            onClick: onClose,
+            "aria-label": "Close sidebar",
+            children: /* @__PURE__ */ (0, import_jsx_runtime12.jsx)(X, { size: 16 })
+          }
+        )
       ] }),
       /* @__PURE__ */ (0, import_jsx_runtime12.jsxs)(
         "button",
@@ -14785,7 +14863,14 @@ var FrappeAIPanel = (() => {
       ),
       /* @__PURE__ */ (0, import_jsx_runtime12.jsxs)("div", { className: "faip-page-search", children: [
         /* @__PURE__ */ (0, import_jsx_runtime12.jsx)(Search, { size: 14 }),
-        /* @__PURE__ */ (0, import_jsx_runtime12.jsx)("input", { value: query, onChange: (event) => setQuery(event.target.value), placeholder: __("Search sessions") })
+        /* @__PURE__ */ (0, import_jsx_runtime12.jsx)(
+          "input",
+          {
+            value: query,
+            onChange: (event) => setQuery(event.target.value),
+            placeholder: __("Search sessions")
+          }
+        )
       ] }),
       /* @__PURE__ */ (0, import_jsx_runtime12.jsxs)("div", { className: "faip-nav-section", children: [
         /* @__PURE__ */ (0, import_jsx_runtime12.jsx)("div", { className: "faip-nav-section-title", children: __("Agents") }),
@@ -14924,11 +15009,19 @@ var FrappeAIPanel = (() => {
             ),
             /* @__PURE__ */ (0, import_jsx_runtime13.jsxs)("button", { type: "button", className: "faip-workspace-agent", onClick: openAgentInspector, children: [
               /* @__PURE__ */ (0, import_jsx_runtime13.jsx)("div", { className: "faip-workspace-agent-title", title: (agentRecord == null ? void 0 : agentRecord.title) || __("Agent"), children: (agentRecord == null ? void 0 : agentRecord.title) || __("Agent") }),
-              /* @__PURE__ */ (0, import_jsx_runtime13.jsxs)("div", { className: "faip-workspace-agent-meta", title: ((_a = agentRecord == null ? void 0 : agentRecord.model) == null ? void 0 : _a.title) || __("Agent default"), children: [
-                (agentRecord == null ? void 0 : agentRecord.readiness.label) || __("Unavailable"),
-                " \xB7 ",
-                ((_b = agentRecord == null ? void 0 : agentRecord.model) == null ? void 0 : _b.title) || __("Agent default")
-              ] })
+              /* @__PURE__ */ (0, import_jsx_runtime13.jsxs)(
+                "div",
+                {
+                  className: "faip-workspace-agent-meta",
+                  title: ((_a = agentRecord == null ? void 0 : agentRecord.model) == null ? void 0 : _a.title) || __("Agent default"),
+                  children: [
+                    (agentRecord == null ? void 0 : agentRecord.readiness.label) || __("Unavailable"),
+                    " \xB7",
+                    " ",
+                    ((_b = agentRecord == null ? void 0 : agentRecord.model) == null ? void 0 : _b.title) || __("Agent default")
+                  ]
+                }
+              )
             ] })
           ] }),
           /* @__PURE__ */ (0, import_jsx_runtime13.jsxs)("div", { className: "faip-workspace-header-right", ref: actionsRef, children: [
@@ -14984,14 +15077,32 @@ var FrappeAIPanel = (() => {
                 }
               ),
               actionsOpen ? /* @__PURE__ */ (0, import_jsx_runtime13.jsxs)("div", { className: "faip-overflow-menu", children: [
-                /* @__PURE__ */ (0, import_jsx_runtime13.jsxs)("button", { type: "button", className: "faip-menu-item", onClick: handleOpenTools, disabled: !(agentRecord == null ? void 0 : agentRecord.tools.summaries.length), children: [
-                  /* @__PURE__ */ (0, import_jsx_runtime13.jsx)(Wrench, { size: 14 }),
-                  __("Tools")
-                ] }),
-                /* @__PURE__ */ (0, import_jsx_runtime13.jsxs)("button", { type: "button", className: "faip-menu-item", onClick: handleOpenMcps, disabled: !(agentRecord == null ? void 0 : agentRecord.mcp_connections.length), children: [
-                  /* @__PURE__ */ (0, import_jsx_runtime13.jsx)(Server, { size: 14 }),
-                  __("MCPs")
-                ] }),
+                /* @__PURE__ */ (0, import_jsx_runtime13.jsxs)(
+                  "button",
+                  {
+                    type: "button",
+                    className: "faip-menu-item",
+                    onClick: handleOpenTools,
+                    disabled: !(agentRecord == null ? void 0 : agentRecord.tools.summaries.length),
+                    children: [
+                      /* @__PURE__ */ (0, import_jsx_runtime13.jsx)(Wrench, { size: 14 }),
+                      __("Tools")
+                    ]
+                  }
+                ),
+                /* @__PURE__ */ (0, import_jsx_runtime13.jsxs)(
+                  "button",
+                  {
+                    type: "button",
+                    className: "faip-menu-item",
+                    onClick: handleOpenMcps,
+                    disabled: !(agentRecord == null ? void 0 : agentRecord.mcp_connections.length),
+                    children: [
+                      /* @__PURE__ */ (0, import_jsx_runtime13.jsx)(Server, { size: 14 }),
+                      __("MCPs")
+                    ]
+                  }
+                ),
                 /* @__PURE__ */ (0, import_jsx_runtime13.jsxs)("button", { type: "button", className: "faip-menu-item", onClick: handleOpenActivity, children: [
                   /* @__PURE__ */ (0, import_jsx_runtime13.jsx)(PanelsTopLeft, { size: 14 }),
                   __("Activity")
@@ -15006,7 +15117,10 @@ var FrappeAIPanel = (() => {
         ] }),
         /* @__PURE__ */ (0, import_jsx_runtime13.jsx)("div", { className: "faip-workspace-context", children: /* @__PURE__ */ (0, import_jsx_runtime13.jsxs)("div", { children: [
           /* @__PURE__ */ (0, import_jsx_runtime13.jsx)("div", { className: "faip-workspace-context-title", children: (currentSession == null ? void 0 : currentSession.title) || __("New chat") }),
-          /* @__PURE__ */ (0, import_jsx_runtime13.jsx)("div", { className: "faip-workspace-context-meta", children: latestExecution ? latestExecution.kind === "mcp_tool" ? __("Latest activity: {0} via {1}", [latestExecution.display_title, latestExecution.connection_name || __("MCP")]) : __("Latest activity: {0}", [latestExecution.display_title]) : __("Workspace transcript and execution details stay in sync here.") })
+          /* @__PURE__ */ (0, import_jsx_runtime13.jsx)("div", { className: "faip-workspace-context-meta", children: latestExecution ? latestExecution.kind === "mcp_tool" ? __("Latest activity: {0} via {1}", [
+            latestExecution.display_title,
+            latestExecution.connection_name || __("MCP")
+          ]) : __("Latest activity: {0}", [latestExecution.display_title]) : __("Workspace transcript and execution details stay in sync here.") })
         ] }) }),
         /* @__PURE__ */ (0, import_jsx_runtime13.jsxs)("div", { className: "faip-workspace-content", children: [
           /* @__PURE__ */ (0, import_jsx_runtime13.jsx)(MessageList, {}),

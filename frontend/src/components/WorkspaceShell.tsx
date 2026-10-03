@@ -1,5 +1,14 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
-import { Ellipsis, Maximize2, Menu, Minimize2, PanelRightClose, PanelsTopLeft, Server, Wrench } from "lucide-react";
+import {
+	Ellipsis,
+	Maximize2,
+	Menu,
+	Minimize2,
+	PanelRightClose,
+	PanelsTopLeft,
+	Server,
+	Wrench,
+} from "lucide-react";
 import { Composer } from "./Composer";
 import { InspectorDrawer } from "./InspectorDrawer";
 import { MessageList } from "./MessageList";
@@ -102,13 +111,19 @@ export function WorkspaceShell({
 							<div className="faip-workspace-agent-title" title={agentRecord?.title || __("Agent")}>
 								{agentRecord?.title || __("Agent")}
 							</div>
-							<div className="faip-workspace-agent-meta" title={agentRecord?.model?.title || __("Agent default")}>
-								{agentRecord?.readiness.label || __("Unavailable")} · {agentRecord?.model?.title || __("Agent default")}
+							<div
+								className="faip-workspace-agent-meta"
+								title={agentRecord?.model?.title || __("Agent default")}
+							>
+								{agentRecord?.readiness.label || __("Unavailable")} ·{" "}
+								{agentRecord?.model?.title || __("Agent default")}
 							</div>
 						</button>
 					</div>
 					<div className="faip-workspace-header-right" ref={actionsRef}>
-						<span className="faip-status-pill faip-workspace-status">{runStatusLabel(currentRun, sending)}</span>
+						<span className="faip-status-pill faip-workspace-status">
+							{runStatusLabel(currentRun, sending)}
+						</span>
 						<button
 							type="button"
 							className="faip-secondary-button faip-header-action is-tools"
@@ -147,11 +162,21 @@ export function WorkspaceShell({
 							</button>
 							{actionsOpen ? (
 								<div className="faip-overflow-menu">
-									<button type="button" className="faip-menu-item" onClick={handleOpenTools} disabled={!agentRecord?.tools.summaries.length}>
+									<button
+										type="button"
+										className="faip-menu-item"
+										onClick={handleOpenTools}
+										disabled={!agentRecord?.tools.summaries.length}
+									>
 										<Wrench size={14} />
 										{__("Tools")}
 									</button>
-									<button type="button" className="faip-menu-item" onClick={handleOpenMcps} disabled={!agentRecord?.mcp_connections.length}>
+									<button
+										type="button"
+										className="faip-menu-item"
+										onClick={handleOpenMcps}
+										disabled={!agentRecord?.mcp_connections.length}
+									>
 										<Server size={14} />
 										{__("MCPs")}
 									</button>
@@ -181,7 +206,10 @@ export function WorkspaceShell({
 						<div className="faip-workspace-context-meta">
 							{latestExecution
 								? latestExecution.kind === "mcp_tool"
-									? __("Latest activity: {0} via {1}", [latestExecution.display_title, latestExecution.connection_name || __("MCP")])
+									? __("Latest activity: {0} via {1}", [
+											latestExecution.display_title,
+											latestExecution.connection_name || __("MCP"),
+									  ])
 									: __("Latest activity: {0}", [latestExecution.display_title])
 								: __("Workspace transcript and execution details stay in sync here.")}
 						</div>

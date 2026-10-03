@@ -1,5 +1,12 @@
 import { __ } from "../lib/translate";
-import { executionStatusFromResult, parseArgs, parseToolIdentity, resultSummary, summarizeValues, toolLabel } from "../lib/toolMeta";
+import {
+	executionStatusFromResult,
+	parseArgs,
+	parseToolIdentity,
+	resultSummary,
+	summarizeValues,
+	toolLabel,
+} from "../lib/toolMeta";
 import type { RunEvent } from "../api/stream";
 import type { ExecutionItem, Question, SessionRecord, StoreState, TranscriptMessage } from "./types";
 
@@ -30,7 +37,12 @@ export function findAssistant(messageId: string, messages: TranscriptMessage[]) 
 		| undefined;
 }
 
-function buildExecution(id: string, rawName: string, args: unknown, existing?: Partial<ExecutionItem>): ExecutionItem {
+function buildExecution(
+	id: string,
+	rawName: string,
+	args: unknown,
+	existing?: Partial<ExecutionItem>
+): ExecutionItem {
 	const identity = parseToolIdentity(rawName);
 	return {
 		id,
@@ -59,8 +71,14 @@ export function applyRunEvent(state: StoreState, event: RunEvent, messageId: str
 			return {
 				...state,
 				currentRun: { run: event.name, status: "Running" },
-				currentSession: state.currentSession ||
-					({ id: event.session, name: event.session, title: __("New chat"), preview: __("New chat") } as SessionRecord),
+				currentSession:
+					state.currentSession ||
+					({
+						id: event.session,
+						name: event.session,
+						title: __("New chat"),
+						preview: __("New chat"),
+					} as SessionRecord),
 				transcript,
 			};
 		case "text":
@@ -69,7 +87,10 @@ export function applyRunEvent(state: StoreState, event: RunEvent, messageId: str
 		case "tool_started": {
 			const existing = message.executions.find((item) => item.id === event.id);
 			if (existing) {
-				Object.assign(existing, buildExecution(event.id, event.name, event.arguments, { ...existing, status: "running" }));
+				Object.assign(
+					existing,
+					buildExecution(event.id, event.name, event.arguments, { ...existing, status: "running" })
+				);
 			} else {
 				message.executions.push(buildExecution(event.id, event.name, event.arguments));
 			}
@@ -99,7 +120,9 @@ export function applyRunEvent(state: StoreState, event: RunEvent, messageId: str
 			}
 			return {
 				...state,
-				currentRun: state.currentRun ? { ...state.currentRun, status: event.status || "Completed" } : state.currentRun,
+				currentRun: state.currentRun
+					? { ...state.currentRun, status: event.status || "Completed" }
+					: state.currentRun,
 				transcript,
 			};
 		case "error":
@@ -107,7 +130,9 @@ export function applyRunEvent(state: StoreState, event: RunEvent, messageId: str
 			message.pending = false;
 			return {
 				...state,
-				currentRun: state.currentRun ? { ...state.currentRun, status: "Failed", error: event.message } : state.currentRun,
+				currentRun: state.currentRun
+					? { ...state.currentRun, status: "Failed", error: event.message }
+					: state.currentRun,
 				transcript,
 			};
 		default:

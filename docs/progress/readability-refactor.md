@@ -2,14 +2,14 @@
 
 ## Status
 
-- Overall: Phases 0–4 complete; Phase 5 code and automated gates complete, live UI smoke pending; Phase 6 pending.
-- Current phase: Phase 5 implementation completed 2026-10-03; live UI smoke pending.
+- Overall: Phases 0–4 complete; Phase 5 code and automated gates complete, live UI smoke pending; Phase 6 work complete with its final gate conditional.
+- Current phase: Phase 6 integration completed 2026-10-03; the all-phases-green gate remains open.
 - Starting commit: `6528fb3c142feac4b4f6c6dd104020fea1594603` on `final-cleanup-codex`.
 - Scope: `apps/frappe_ai` only, a separate clean Git repository at the start of Phase 0. The dirty `apps/tender_automation` repository is outside this work.
 - Completed: starting commit and public contracts inventoried; old Flow references classified; full `tact.local` Python and TypeScript baselines captured with no application code changes at the Phase 0 gate. The subsequent repair pass is recorded below.
-- In progress: Phase 5 live UI smoke gate.
-- Blockers: No browser runner or reachable local frontend in this workspace for the manual smoke gate. Original failures and TypeScript errors remain recorded below as the immutable pre-repair baseline.
-- Remaining: Phase 5 live UI smoke, then Phase 6.
+- In progress: Phase 5 live UI smoke gate and disposition of the starting commit's Ruff findings.
+- Blockers: No browser runner or reachable local frontend in this workspace for the manual smoke gate. Ruff reports 54 findings at both the starting commit and the Phase 6 result. Original test failures and TypeScript errors remain recorded below as the immutable pre-repair baseline.
+- Remaining: Complete Phase 5 live UI smoke and resolve or explicitly waive the 54 baseline Ruff findings before declaring all phases green.
 
 ## Phase 0 contract inventory
 
@@ -143,7 +143,7 @@ Failing unspecified-category tests:
 | 3 — API seams | Complete | Focused tests and syntax gates passed. |
 | 4 — triggers and knowledge | Complete | Full 499-test gate passed. |
 | 5 — frontend | Code complete; live UI smoke pending | Typecheck, six event tests, build, and full 499-test app suite passed. |
-| 6 — integration | Pending | Compare full gates against this baseline. |
+| 6 — integration | Work complete; final gate conditional | Full 499-test suite, frontend gates, scoped pre-commit, and contract audit passed; Phase 5 live smoke and 54 baseline Ruff findings keep the all-phases-green gate open. |
 
 ## User-requested post-baseline repairs (2026-10-03)
 
@@ -201,3 +201,12 @@ Verification: `env/bin/bench --site tact.local run-tests --app frappe_ai` passed
 - Added six pure event tests with an esbuild bundle and Node `node:test`, using the existing fallback dependency path. The cases cover text accumulation, duplicate tool start, tool result error, paused questions, terminal error, and unknown events.
 - Automated gates: `tsc --project frontend/tsconfig.json --noEmit` passed; `npm test` passed all six cases; `npm run build` passed; full `env/bin/bench --site tact.local run-tests --app frappe_ai` passed 499 tests (10 unit, 421 integration, 68 other); `git diff --check` passed. The changed frontend source regenerated `frappe_ai/public/frappe_ai_panel/frappe_ai_panel.js`; CSS is unchanged.
 - Live smoke is pending: desk panel and standalone page bootstrap, session switch, stream, stop, pause/resume, attachments, and inspector. This workspace has no browser runner and no reachable local frontend (`tact.local:8000` DNS lookup and `127.0.0.1:8000` connection failed), so these interactions were not observed.
+
+## Phase 6 — integration, tooling, documentation (2026-10-03)
+
+- Full `tact.local` app suite passed 499 tests (10 unit, 421 integration, 68 other) on the first Phase 6 run (`/tmp/frappe-ai-phase6-tests-2026-10-03-escalated.log`) and the final confirmation run (`/tmp/frappe-ai-phase6-confirmation-tests-2026-10-03.log`). This compares with the immutable Phase 0 baseline of 492 tests, 3 failures, and 8 errors (`/tmp/frappe-ai-phase0-tests-2026-10-03-escalated.log`). The post-baseline repair pass had already resolved those failures; Phase 6 added no new test failures. An intermediate full run hit a MariaDB deadlock while inserting a discovered MCP tool (`/tmp/frappe-ai-phase6-final-tests-2026-10-03.log`); the affected `test_mcp` module passed 9/9 on retry (`/tmp/frappe-ai-phase6-mcp-retry-2026-10-03.log`), followed by the clean full run. The sandboxed first attempt again could not open the database socket; it did not reach test discovery.
+- Contract comparison against starting commit `6528fb3c142feac4b4f6c6dd104020fea1594603`: 35 whitelisted dotted paths unchanged; `after_migrate`, `doc_events`, scheduler, and asset hooks unchanged; FastAPI `/health` and `/stream/{run}` unchanged; six SSE event names unchanged after the route split; 22 DocType JSON files unchanged; all eight service callback paths unchanged. Updated `001-architecture.md` only for the new `api/frontend_view.py`, `triggers/service_runner.py`, `frontend/src/state/types.ts`, and `frontend/src/state/runEvents.ts` paths. The three new route module paths were already documented.
+- Tooling: added frontend `format` and `format:check` scripts with Prettier 2.7.1 and tab/110-column settings, formatted the frontend sources, and regenerated `frappe_ai_panel.js`. TypeScript check, six frontend event tests, `npm run build`, `npm run format:check`, trigger-runner compile, scoped pre-commit hooks, and `git diff --check` passed. The pinned Ruff 0.8.1 full-tree check still reports 54 findings; the same 54 existed at the starting commit, with no new findings after fixing the import order in `service_runner.py`. Pre-commit ran on the Phase 6 documentation, runner, and tooling files. Prettier was run from an isolated temporary install because the public npm registry cannot resolve the existing private `@asakta-react-kit/core` dependency during a project install. The shared bench's `filelock` was restored to its original 3.18.0 after tool provisioning.
+- Documentation: confirmation extraction remains marked Done in `high-chatpy-confirmation-extraction.md` and has been moved from Open to Closed in `docs/to_do/README.md`. No obsolete document was restored. The AI tool retirement track was not advanced: all four `after_migrate` hooks, legacy dispatch, `migrate_ai_tools`, and `run_ai_tool_migration` remain callable, and no legacy DocType was deleted.
+- Separate unchanged issues: [MCP budget bypass](../to_do/high-mcp-budget-bypass.md), [tool arguments in Error Log](../to_do/medium-error-log-records-tool-arguments.md), and stale `Running` runs on `tact.local` (49 observed after the Phase 0 baseline; no dedicated to-do found and no cleanup performed).
+- Final gate: conditional. Phase 5 desk/standalone live UI smoke is still pending, and the 54 baseline Ruff findings need resolution or an explicit waiver before the plan's all-phases-green gate can be claimed. No user-visible behavior change was intended by the Phase 6 edits.

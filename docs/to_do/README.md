@@ -23,7 +23,6 @@ still pending.
 | File | Type | Severity | One-line summary |
 |---|---|---|---|
 | [high-mcp-budget-bypass.md](high-mcp-budget-bypass.md) | Bug / security gap | High | Remote MCP tool calls bypass all per-run execution budgets |
-| [high-chatpy-confirmation-extraction.md](high-chatpy-confirmation-extraction.md) | Improvement | High | Confirmation pause/resume logic should move out of the 860-line `chat.py` |
 | [medium-tool-migration-telemetry.md](medium-tool-migration-telemetry.md) | Improvement | Medium — do early | No usage data distinguishing legacy vs. FAC tool-call volume |
 | [medium-correlation-id.md](medium-correlation-id.md) | Improvement | Medium | No correlation ID ties a run's Frappe and FastAPI logs together |
 | [medium-error-truncation-inconsistency.md](medium-error-truncation-inconsistency.md) | Improvement | Medium | Error-truncation limit duplicated at 500/300 across five files |
@@ -37,6 +36,11 @@ readiness review of 2026-09-10
 ([`progress/production-readiness-review-2026-09-10.md`](../progress/production-readiness-review-2026-09-10.md)).
 See those write-ups for the tracing and evidence behind each entry; these files
 carry only what's needed to act on each one independently.
+
+## Closed by the readability refactor
+
+[Confirmation extraction](high-chatpy-confirmation-extraction.md) was completed
+in Phase 2 on 2026-10-03.
 
 ## Closed by the 2026-09-10 review
 

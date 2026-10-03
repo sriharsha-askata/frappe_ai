@@ -1,12 +1,4 @@
-import React, {
-	createContext,
-	useCallback,
-	useContext,
-	useEffect,
-	useMemo,
-	useReducer,
-	useRef,
-} from "react";
+import React, { createContext, useCallback, useContext, useEffect, useMemo, useReducer, useRef } from "react";
 import * as api from "../api/client";
 import { resumeRun, startRun } from "../api/stream";
 import type { RunEvent } from "../api/stream";
@@ -76,13 +68,7 @@ function setInterrupted(messages: TranscriptMessage[]) {
 	return messages;
 }
 
-export function StoreProvider({
-	children,
-	host,
-}: {
-	children: React.ReactNode;
-	host?: SessionHostAdapter;
-}) {
+export function StoreProvider({ children, host }: { children: React.ReactNode; host?: SessionHostAdapter }) {
 	const [state, dispatch] = useReducer(reducer, initialState);
 	const stateRef = useRef(state);
 	const sessionRestored = useRef(false);
@@ -102,7 +88,8 @@ export function StoreProvider({
 	);
 
 	const selectedAgentRecord = useCallback(
-		(name: string | null, items = stateRef.current.agents) => items.find((item) => item.name === name) || null,
+		(name: string | null, items = stateRef.current.agents) =>
+			items.find((item) => item.name === name) || null,
 		[]
 	);
 
@@ -157,7 +144,12 @@ export function StoreProvider({
 			const seq = ++switchSeq.current;
 			update((current) => ({
 				...current,
-				currentSession: current.history.find((item) => item.name === name) || { id: name, name, title: name, preview: name },
+				currentSession: current.history.find((item) => item.name === name) || {
+					id: name,
+					name,
+					title: name,
+					preview: name,
+				},
 				currentRun: null,
 				transcript: [],
 				attachments: [],
@@ -198,9 +190,12 @@ export function StoreProvider({
 		[update]
 	);
 
-	const setModel = useCallback((name: string | null) => {
-		update((current) => ({ ...current, selectedModel: name || null }));
-	}, [update]);
+	const setModel = useCallback(
+		(name: string | null) => {
+			update((current) => ({ ...current, selectedModel: name || null }));
+		},
+		[update]
+	);
 
 	const newChat = useCallback(() => {
 		if (stateRef.current.sending) return;
@@ -224,10 +219,13 @@ export function StoreProvider({
 		update((current) => (current.forceScroll ? { ...current, forceScroll: false } : current));
 	}, [update]);
 
-	const findToolSummary = useCallback((toolName: string) => {
-		const agent = selectedAgentRecord(stateRef.current.selectedAgent);
-		return agent?.tools.summaries.find((item) => item.name === toolName) || null;
-	}, [selectedAgentRecord]);
+	const findToolSummary = useCallback(
+		(toolName: string) => {
+			const agent = selectedAgentRecord(stateRef.current.selectedAgent);
+			return agent?.tools.summaries.find((item) => item.name === toolName) || null;
+		},
+		[selectedAgentRecord]
+	);
 
 	const handleEvent = useCallback(
 		(event: RunEvent, messageId: string) => {
@@ -471,12 +469,15 @@ export function StoreProvider({
 		[update]
 	);
 
-	const removeAttachment = useCallback((uidToRemove: string) => {
-		update((current) => ({
-			...current,
-			attachments: current.attachments.filter((item) => item.uid !== uidToRemove),
-		}));
-	}, [update]);
+	const removeAttachment = useCallback(
+		(uidToRemove: string) => {
+			update((current) => ({
+				...current,
+				attachments: current.attachments.filter((item) => item.uid !== uidToRemove),
+			}));
+		},
+		[update]
+	);
 
 	const closeInspector = useCallback(() => {
 		update((current) => ({ ...current, inspector: { ...current.inspector, open: false } }));
@@ -496,9 +497,12 @@ export function StoreProvider({
 		});
 	}, [openInspector, selectedAgentRecord]);
 
-	const openMcpInspector = useCallback((connection: MCPAConnection) => {
-		openInspector("mcp", connection.display_name, connection);
-	}, [openInspector]);
+	const openMcpInspector = useCallback(
+		(connection: MCPAConnection) => {
+			openInspector("mcp", connection.display_name, connection);
+		},
+		[openInspector]
+	);
 
 	const openToolInspector = useCallback(
 		(tool: AgentToolSummary) => {
