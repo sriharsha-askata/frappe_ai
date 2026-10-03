@@ -30,6 +30,8 @@ def _client():
 	return SimpleNamespace(
 		persist_run_result=AsyncMock(),
 		fail_run=AsyncMock(),
+		get_fallback_model_config=AsyncMock(return_value=None),
+		log_diagnostic=AsyncMock(),
 		dispatch_tool=AsyncMock(return_value={"result": {"ok": True}}),
 		dispatch_plugin_tool=AsyncMock(return_value={"result": {"ok": True}}),
 	)

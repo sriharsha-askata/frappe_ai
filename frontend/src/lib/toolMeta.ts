@@ -88,7 +88,7 @@ export function executionStatusFromResult(result: string | null) {
 		const parsed = JSON.parse(result);
 		if (parsed && typeof parsed === "object") {
 			const status = parsed.error ? "error" : "completed";
-			const approvalStatus =
+			const approvalStatus: "approved" | "denied" | "redirected" | null =
 				parsed.status === "approved"
 					? "approved"
 					: parsed.status === "denied"

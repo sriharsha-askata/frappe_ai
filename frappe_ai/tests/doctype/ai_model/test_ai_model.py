@@ -155,6 +155,10 @@ class TestAIModelParams(IntegrationTestCase):
 
 
 class TestAIModelDefault(IntegrationTestCase):
+	def setUp(self):
+		super().setUp()
+		frappe.db.set_value("AI Model", {"is_default": 1}, "is_default", 0, update_modified=False)
+
 	def tearDown(self):
 		frappe.db.rollback()
 

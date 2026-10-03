@@ -14857,13 +14857,10 @@ var FrappeAIPanel = (() => {
     const [sidebarOpen, setSidebarOpen] = (0, import_react9.useState)(variant === "standalone");
     const [actionsOpen, setActionsOpen] = (0, import_react9.useState)(false);
     const actionsRef = (0, import_react9.useRef)(null);
-    const latestExecution = (0, import_react9.useMemo)(
-      () => {
-        var _a2;
-        return ((_a2 = [...transcript].reverse().find((item) => item.role === "assistant" && item.executions.length)) == null ? void 0 : _a2.executions[0]) || null;
-      },
-      [transcript]
-    );
+    const latestExecution = (0, import_react9.useMemo)(() => {
+      const message = [...transcript].reverse().find((item) => item.role === "assistant" && item.executions.length);
+      return (message == null ? void 0 : message.role) === "assistant" ? message.executions[0] || null : null;
+    }, [transcript]);
     (0, import_react9.useEffect)(() => {
       function onPointerDown(event) {
         var _a2;

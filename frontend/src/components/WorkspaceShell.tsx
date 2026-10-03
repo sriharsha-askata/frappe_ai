@@ -41,13 +41,12 @@ export function WorkspaceShell({
 	const [actionsOpen, setActionsOpen] = useState(false);
 	const actionsRef = useRef<HTMLDivElement | null>(null);
 
-	const latestExecution = useMemo(
-		() =>
-			[...transcript]
-				.reverse()
-				.find((item) => item.role === "assistant" && item.executions.length)?.executions[0] || null,
-		[transcript]
-	);
+	const latestExecution = useMemo(() => {
+		const message = [...transcript]
+			.reverse()
+			.find((item) => item.role === "assistant" && item.executions.length);
+		return message?.role === "assistant" ? message.executions[0] || null : null;
+	}, [transcript]);
 
 	useEffect(() => {
 		function onPointerDown(event: MouseEvent) {

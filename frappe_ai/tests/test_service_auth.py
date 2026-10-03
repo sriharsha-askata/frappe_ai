@@ -9,12 +9,19 @@ Plain `unittest.TestCase`, not `IntegrationTestCase` — `auth.py` is stdlib-onl
 
 from __future__ import annotations
 
+import base64
 import time
 import unittest
 
 from frappe_ai.service.auth import InvalidRunToken, mint_run_token, verify_run_token
 
 SECRET = "test-service-secret"
+
+
+def _tamper_field(token: str, index: int, replacement: str) -> str:
+	parts = base64.urlsafe_b64decode(token).decode("utf-8").split("\x1f")
+	parts[index] = replacement
+	return base64.urlsafe_b64encode("\x1f".join(parts).encode("utf-8")).decode("ascii")
 
 
 class TestRunTokenRoundtrip(unittest.TestCase):
@@ -35,27 +42,21 @@ class TestRunTokenRoundtrip(unittest.TestCase):
 class TestRunTokenTampering(unittest.TestCase):
 	def test_tampered_run_rejected(self):
 		token = mint_run_token(run="RUN-1", session="SESS-1", user="user@example.com", secret=SECRET)
-		parts = token.split("\x1f")
-		parts[0] = "RUN-2"  # swap in a different run, signature no longer matches
-		tampered = "\x1f".join(parts)
+		tampered = _tamper_field(token, 0, "RUN-2")
 
 		with self.assertRaises(InvalidRunToken):
 			verify_run_token(tampered, SECRET)
 
 	def test_tampered_user_rejected(self):
 		token = mint_run_token(run="RUN-1", session="SESS-1", user="user@example.com", secret=SECRET)
-		parts = token.split("\x1f")
-		parts[2] = "attacker@example.com"
-		tampered = "\x1f".join(parts)
+		tampered = _tamper_field(token, 2, "attacker@example.com")
 
 		with self.assertRaises(InvalidRunToken):
 			verify_run_token(tampered, SECRET)
 
 	def test_tampered_signature_rejected(self):
 		token = mint_run_token(run="RUN-1", session="SESS-1", user="user@example.com", secret=SECRET)
-		parts = token.split("\x1f")
-		parts[-1] = "0" * len(parts[-1])
-		tampered = "\x1f".join(parts)
+		tampered = _tamper_field(token, 4, "0" * 64)
 
 		with self.assertRaises(InvalidRunToken):
 			verify_run_token(tampered, SECRET)

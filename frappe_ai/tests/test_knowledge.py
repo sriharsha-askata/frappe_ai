@@ -826,14 +826,15 @@ class TestIngest(IntegrationTestCase):
 		self.assertEqual(frappe.db.count("AI Knowledge Chunk", {"source": source.name}), 0)
 		self.assertEqual(self._lance_count(), 0)
 
-	def test_empty_source_completes_with_zero_chunks(self):
+	def test_empty_source_fails_with_zero_chunks(self):
 		source = self._make_source(content="   ")
 		self._ingest(source.name)
 
 		source.reload()
-		self.assertEqual(source.status, "Completed")
+		self.assertEqual(source.status, "Failed")
 		self.assertEqual(source.chunk_count, 0)
 		self.assertEqual(source.is_embedded, 0)
+		self.assertEqual(source.error_log, "Extraction produced no embedded chunks.")
 		self.assertEqual(self._chunks(source.name), [])
 
 	def test_failed_source_marks_failed_and_raises(self):

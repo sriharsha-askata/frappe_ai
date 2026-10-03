@@ -108,7 +108,6 @@ def _permissioned_get_list(doctype, *args, **kwargs):
 		doctype,
 		*args,
 		ignore_permissions=False,
-		ignore_user_permissions=False,
 		user=frappe.session.user,
 		**kwargs,
 	)
@@ -142,7 +141,7 @@ def _permissioned_exists(doctype, filters=None) -> bool:
 
 
 def _permissioned_count(doctype, filters=None) -> int:
-	rows = _permissioned_get_list(doctype, filters=filters, fields=[{"COUNT": "*", "as": "total"}])
+	rows = _permissioned_get_list(doctype, filters=filters, fields=["count(*) as total"])
 	return rows[0].get("total") if rows else 0
 
 
