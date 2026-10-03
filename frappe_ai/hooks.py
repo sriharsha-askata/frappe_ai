@@ -23,7 +23,7 @@ def _frappe_ai_panel_asset(filename: str) -> str:
 # Apps
 # ------------------
 
-# required_apps = []
+required_apps = ["frappe/frappe_assistant_core"]
 
 # Each item in the list will be shown as an app in the apps page
 # add_to_apps_screen = [

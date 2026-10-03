@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from typing import Annotated
+from unittest.mock import patch
 
 from frappe.tests import UnitTestCase
 
@@ -10,6 +11,20 @@ from frappe_ai.assistant_tools.registry import get_decorated_plugins, restore_de
 
 
 class TestDecoratedTools(UnitTestCase):
+	def test_public_api_exports_tool_sync(self):
+		from frappe_ai.assistant_tools import sync_decorated_tools
+
+		self.assertTrue(callable(sync_decorated_tools))
+
+	def test_tool_sync_fails_when_fac_compatibility_cannot_be_installed(self):
+		from frappe_ai.assistant_tools import sync_decorated_tools
+
+		with (
+			patch("frappe_ai.assistant_tools.sync.install_fac_compatibility", return_value=False),
+			self.assertRaisesRegex(RuntimeError, "compatibility"),
+		):
+			sync_decorated_tools()
+
 	def setUp(self):
 		self._registry_snapshot = get_decorated_plugins()
 

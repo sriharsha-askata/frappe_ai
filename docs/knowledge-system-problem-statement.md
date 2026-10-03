@@ -18,9 +18,10 @@ The current implementation works end to end, but several concerns are coupled:
 - Operators need to know whether a source is actually searchable.
 - The system must keep the embedding model and vector dimensions consistent.
 
-The main architectural question is whether every indexed passage must be persisted
-as an `AI Knowledge Chunk` Frappe DocType row, or whether chunks can remain internal
-to the vector index.
+The original architectural question was whether every indexed passage must be
+persisted as an `AI Knowledge Chunk` Frappe DocType row. [ADR 0017](decisions/0017-mariadb-authoritative-lancedb-disposable.md)
+resolved it: MariaDB stores authoritative chunks; LanceDB is a rebuildable index.
+The discussion below remains background for that decision.
 
 ## Domain model
 

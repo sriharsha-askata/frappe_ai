@@ -6,11 +6,12 @@ knowledge, event-driven automation, persistent memory, and a full audit trail.
 **Architecture:** Frappe (config, persistence, permissions) + FastAPI (async orchestration)
 + Agno (agent framework) + LanceDB (vectors).
 
-**Current status (2026-08-21):** Core runtime/parity phases 1–5 are implemented, and
+**Current status (2026-10-03):** Core runtime/parity phases 1–5 are implemented, and
 the Phase 6 React frontend runtime is in place. Remaining frontend work is dedicated
 page-shell layout and end-to-end parity verification. Current implementation work is
-the Assistant Core/FAC migration: direct plugin bindings are implemented, while tender
-workflow verification and the final legacy-tool audit remain. Production hardening is
+the Assistant Core/FAC migration: direct plugin bindings are implemented, while active
+Spec Review, Historical Match, and CAD workflow verification and the final legacy-tool
+audit remain. SAP Match is retired on `tact.local`. Production hardening is
 still incomplete. See the [migration progress tracker](progress/flow-to-frappe-ai-migration.md)
 and the [Assistant Core migration tracker](progress/ai-tool-retirement-via-assistant-core.md).
 
@@ -45,18 +46,16 @@ and the [Assistant Core migration tracker](progress/ai-tool-retirement-via-assis
 | [001 — Architecture](specifications/001-architecture.md) | Component boundaries, request lifecycles, auth model, data architecture, streaming protocol, failure handling, deployment |
 | [002 — Feature Mapping](specifications/002-feature-mapping.md) | Every `flow` capability and its `frappe_ai` equivalent, marked Port / Adapt / Redesign / New / Drop. The parity checklist. |
 | [003 — DocType Reference](specifications/003-doctype-reference.md) | All 22 current DocTypes: fields, types, naming rules, controllers, permissions |
-| [006 — Dynamic MCP Server Profiles](specifications/006-dynamic-mcp-server-profiles.md) | Archived earlier profile proposal; current MCP work is tracked in 007 |
 | [005 — Frontend Contract](specifications/005-frontend-contract.md) | Stable same-origin JSON endpoints, SSE stream protocol, host adapter boundaries, and end-to-end client flows for the standalone SPA or any custom frontend |
 | [007 — MCP Integration & Cleanup](specifications/007-mcp-integration-and-cleanup.md) | Verified plan to integrate with Assistant Core/FAC, migrate runtime authority, and retain `ai_tool`/`ai_agent_tool` as compatibility records |
 | [Frappe Assistant Core Integration Guide](FRAPPE_ASSISTANT_CORE_INTEGRATION.md) | Ownership boundary between `frappe_ai` and Assistant Core, the acting-user identity/security requirement for MCP calls, failure/fallback rules, and a step-by-step practical setup guide |
 | [011 — AI Model Capability Testing](specifications/011-ai-model-capability-testing.md) | Explicit saved-model Chat capability suite and result contract |
 
-**Open problem statement** (not yet a numbered spec — no ADR has resolved its central
-question):
+**Knowledge-system background:**
 
 | Doc | Contents |
 |---|---|
-| [Knowledge System Problem Statement](knowledge-system-problem-statement.md) | Domain model and ingestion flow for the knowledge/RAG pipeline; open question of whether `AI Knowledge Chunk` rows must be persisted in MariaDB or could live only in LanceDB |
+| [Knowledge System Problem Statement](knowledge-system-problem-statement.md) | Domain model and ingestion flow for the knowledge/RAG pipeline; its storage question was resolved by [ADR 0017](decisions/0017-mariadb-authoritative-lancedb-disposable.md) |
 
 ## Decisions
 

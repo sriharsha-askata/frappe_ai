@@ -118,6 +118,7 @@ def dispatch_plugin_tool(
 	if not frappe.db.exists("User", user):
 		frappe.throw(_("User {0} does not exist.").format(user), frappe.DoesNotExistError)
 	_require_active_run(run, user)
+	_require_plugin_binding(run, tool)
 	_enforce_confirmation(run, tool, call_id, arguments, _plugin_requires_confirmation(run, tool))
 
 	previous_user = frappe.session.user
@@ -128,7 +129,16 @@ def dispatch_plugin_tool(
 		from frappe_assistant_core.core.tool_registry import get_tool_registry
 		from frappe_ai.api.budgets import consume
 
-		consume(run, mutation=tool in {"create_document", "update_document", "delete_document", "run_workflow"}, records=_record_count(arguments or {}))
+		registry = get_tool_registry()
+		tool_instance = registry.get_tool(tool)
+		if not tool_instance:
+			frappe.throw(_("Tool {0} was not found in the Assistant Core registry.").format(tool), frappe.DoesNotExistError)
+		mutation = _plugin_tool_is_mutating(tool, tool_instance)
+		consume(
+			run,
+			mutation=mutation,
+			records=_record_count(arguments or {}) if mutation else 1,
+		)
 		tool_arguments = dict(arguments or {})
 		agent, model, knowledge_bases = _resolve_plugin_context(run)
 		if tool == "search_knowledge":
@@ -152,7 +162,7 @@ def dispatch_plugin_tool(
 			tool_arguments["__frappe_ai_model"] = model
 
 		try:
-			result = get_tool_registry().execute_tool(tool, tool_arguments)
+			result = registry.execute_tool(tool, tool_arguments)
 		except Exception as e:
 			# Log the exact arguments the model sent alongside the failure: a
 			# tool's own ValidationError (e.g. "no matching file found") reads the
@@ -200,6 +210,29 @@ def _require_active_run(run: str | None, user: str) -> None:
 _RUN_SCOPED_TOOLS = frozenset({"search_knowledge", "update_memory", "load_full_document_text"})
 
 
+def _require_plugin_binding(run: str, tool: str) -> None:
+	"""Require the run's agent to expose ``tool`` before considering approval.
+
+	Binding controls whether an agent may use a tool; confirmation controls whether a
+	particular call may proceed. Keeping these checks separate prevents ``auto_approve``
+	from turning an unbound registry tool into an authorized one.
+	"""
+	if tool in _RUN_SCOPED_TOOLS:
+		return
+	run_doc = frappe.get_doc("AI Run", run)
+	session_doc = frappe.get_doc("AI Session", run_doc.session)
+	agent_doc = frappe.get_doc("AI Agent", session_doc.agent)
+	if any(
+		row.enabled and row.fac_tool == tool
+		for row in agent_doc.get("plugin_tools") or []
+	):
+		return
+	frappe.throw(
+		_("Tool {0} is not enabled for agent {1}.").format(tool, agent_doc.name),
+		frappe.PermissionError,
+	)
+
+
 def _plugin_requires_confirmation(run: str, tool: str) -> bool:
 	"""Whether the run's agent requires approval for `tool`.
 
@@ -242,11 +275,20 @@ def _enforce_confirmation(
 
 
 def _record_count(arguments: dict) -> int:
-	for key in ("records", "documents", "values"):
-		value = arguments.get(key)
-		if isinstance(value, list):
-			return max(len(value), 1)
-	return 1
+	list_sizes = [len(value) for value in arguments.values() if isinstance(value, list)]
+	return max([1, *list_sizes])
+
+
+def _plugin_tool_is_mutating(tool: str, tool_instance: Any) -> bool:
+	"""Treat every plugin category except explicit ``read_only`` as mutating.
+
+	Unknown and legacy categories fail safe: under-counting a write weakens the run
+	budget, while counting an unknown read as a mutation only makes the budget more
+	conservative.
+	"""
+	configured_category = frappe.db.get_value("FAC Tool Configuration", tool, "tool_category")
+	category = str(configured_category or getattr(tool_instance, "category", "") or "").strip().lower()
+	return category != "read_only"
 
 
 def _resolve_plugin_context(run: str | None) -> tuple[str | None, str | None, list[str]]:

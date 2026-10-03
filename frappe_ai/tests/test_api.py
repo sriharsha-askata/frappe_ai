@@ -361,6 +361,9 @@ class TestDispatchPluginToolScope(IntegrationTestCase):
 		run, knowledge_base = self._run_with_knowledge_scope()
 
 		class Registry:
+			def get_tool(self, _name):
+				return SearchKnowledgeTool()
+
 			def execute_tool(self, _name, arguments):
 				return SearchKnowledgeTool().execute(arguments)
 
@@ -384,6 +387,9 @@ class TestDispatchPluginToolScope(IntegrationTestCase):
 		run, _knowledge_base = self._run_with_knowledge_scope()
 
 		class Registry:
+			def get_tool(self, _name):
+				return UpdateMemoryTool()
+
 			def execute_tool(self, _name, arguments):
 				return UpdateMemoryTool().execute(arguments)
 
@@ -409,6 +415,124 @@ class TestDispatchPluginToolScope(IntegrationTestCase):
 			keywords=None,
 			source_run=run,
 		)
+
+	def test_auto_approve_does_not_authorize_an_unbound_plugin_tool(self):
+		run, _knowledge_base = self._run_with_knowledge_scope()
+		frappe.db.set_value(
+			"AI Run",
+			run,
+			"config_snapshot",
+			json.dumps({"auto_approve": True}),
+			update_modified=False,
+		)
+
+		class Registry:
+			def execute_tool(self, _name, _arguments):
+				return {"executed": True}
+
+		with (
+			patch("frappe_ai.api.dispatch._verify_service_secret"),
+			patch("frappe_ai.api.budgets.consume"),
+			patch("frappe_assistant_core.core.tool_registry.get_tool_registry", return_value=Registry()),
+			self.assertRaises(frappe.PermissionError),
+		):
+			dispatch.dispatch_plugin_tool(
+				tool="persist_spec_review_result",
+				user="Administrator",
+				arguments={"extracted_items": []},
+				run=run,
+			)
+
+	def test_plugin_budget_uses_tool_category_and_bulk_argument_size(self):
+		run, _knowledge_base = self._run_with_knowledge_scope()
+		run_doc = frappe.get_doc("AI Run", run)
+		session_doc = frappe.get_doc("AI Session", run_doc.session)
+		agent_doc = frappe.get_doc("AI Agent", session_doc.agent)
+		agent_doc.append(
+			"plugin_tools",
+			{
+				"fac_tool": "persist_spec_review_result",
+				"enabled": 1,
+				"requires_confirmation": 0,
+			},
+		)
+		with patch("frappe_ai.frappe_ai.doctype.ai_agent.ai_agent.AIAgent._ensure_knowledge_search_tool"):
+			agent_doc.save(ignore_permissions=True)
+		frappe.db.set_value(
+			"FAC Tool Configuration",
+			"persist_spec_review_result",
+			"tool_category",
+			"write",
+			update_modified=False,
+		)
+
+		class Registry:
+			def get_tool(self, _name):
+				return SimpleNamespace(category="read_only")
+
+			def execute_tool(self, _name, _arguments):
+				return {"persisted": True}
+
+		arguments = {"extracted_items": [{"item": "A"}, {"item": "B"}, {"item": "C"}]}
+		with (
+			patch("frappe_ai.api.dispatch._verify_service_secret"),
+			patch("frappe_ai.api.budgets.consume") as consume,
+			patch("frappe_assistant_core.core.tool_registry.get_tool_registry", return_value=Registry()),
+		):
+			result = dispatch.dispatch_plugin_tool(
+				tool="persist_spec_review_result",
+				user="Administrator",
+				arguments=arguments,
+				run=run,
+			)
+
+		self.assertEqual(result, {"result": {"persisted": True}})
+		consume.assert_called_once_with(run, mutation=True, records=3)
+
+	def test_read_only_plugin_does_not_apply_mutation_record_limit(self):
+		run, _knowledge_base = self._run_with_knowledge_scope()
+		run_doc = frappe.get_doc("AI Run", run)
+		session_doc = frappe.get_doc("AI Session", run_doc.session)
+		agent_doc = frappe.get_doc("AI Agent", session_doc.agent)
+		agent_doc.append(
+			"plugin_tools",
+			{
+				"fac_tool": "match_historical_enquiries",
+				"enabled": 1,
+				"requires_confirmation": 0,
+			},
+		)
+		with patch("frappe_ai.frappe_ai.doctype.ai_agent.ai_agent.AIAgent._ensure_knowledge_search_tool"):
+			agent_doc.save(ignore_permissions=True)
+		frappe.db.set_value(
+			"FAC Tool Configuration",
+			"match_historical_enquiries",
+			"tool_category",
+			"read_only",
+			update_modified=False,
+		)
+
+		class Registry:
+			def get_tool(self, _name):
+				return SimpleNamespace(category="read_only")
+
+			def execute_tool(self, _name, _arguments):
+				return {"matches_by_detail": []}
+
+		arguments = {"target_details": [{}], "candidates": [{}] * 101}
+		with (
+			patch("frappe_ai.api.dispatch._verify_service_secret"),
+			patch("frappe_ai.api.budgets.consume") as consume,
+			patch("frappe_assistant_core.core.tool_registry.get_tool_registry", return_value=Registry()),
+		):
+			dispatch.dispatch_plugin_tool(
+				tool="match_historical_enquiries",
+				user="Administrator",
+				arguments=arguments,
+				run=run,
+			)
+
+		consume.assert_called_once_with(run, mutation=False, records=1)
 
 
 class TestGetAgentTools(IntegrationTestCase):

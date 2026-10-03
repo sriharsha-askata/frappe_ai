@@ -11,7 +11,7 @@
 |---|---|
 | **Status** | 🟨 Core parity runtime is implemented; Assistant Core/FAC migration and reconciliation are active |
 | **Current phase** | Phase 6 frontend reconciliation plus Assistant Core/FAC migration |
-| **Next phase** | Verify the three tender workflows, complete the legacy-tool audit, finish page-shell parity, then production hardening |
+| **Next phase** | Verify active Spec Review, Historical Match, and CAD workflows; complete the legacy-tool audit and page-shell parity, then production hardening. SAP Match was retired on `tact.local` on 2026-10-03. |
 | **Started** | 2026-08-05 |
 | **Target** | not set |
 | **Blockers** | No single global blocker. Tender workflow verification still needs a valid model credential; remote MCP mutation calls bypass the local budget counters; full bench migration remains dependent on Redis availability in this environment. MariaDB, Bench web, FastAPI, workers, and scheduler were verified healthy on 2026-08-21; database tests must run with host-level service access because the restricted sandbox cannot access the host database socket. |
@@ -1075,6 +1075,13 @@ Provider routing policies · evaluation framework + golden conversations · retr
 metrics (the natural place to revisit hybrid-vs-vector empirically) · prompt A/B testing ·
 hallucination metrics · tool success analytics · queue-based execution · pluggable vector
 store abstraction.
+
+**Model behavior proposals needing a decision:** Automatically select the enabled
+default model when creating an agent. Decide whether a token-limit failure may retry
+with the default model; the current fallback retries only before a tool completes,
+and [ADR 0007](../decisions/0007-failure-over-durable-execution.md) favors failing
+over repeating work after side effects. These were previously listed in the obsolete
+August 2026 review-topics note.
 
 **Mid-session model switching** — implemented and verified on 2026-08-07. A supplied model
 updates an existing session when no run is `Running` or `Paused`; disabled models and

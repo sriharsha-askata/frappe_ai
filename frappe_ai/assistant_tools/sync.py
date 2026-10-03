@@ -11,7 +11,8 @@ from frappe_ai.assistant_tools.registry import get_decorated_plugins
 
 def sync_decorated_tools() -> dict:
 	"""Reconcile decorated plugins/tools into FAC configuration without replacing admin policy."""
-	install_fac_compatibility()
+	if not install_fac_compatibility():
+		raise RuntimeError("Assistant Core compatibility could not be installed")
 	load_registered_plugin_modules()
 	plugins = get_decorated_plugins()
 	standalone = discover_standalone_tools(force=True)

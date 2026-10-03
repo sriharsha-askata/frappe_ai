@@ -1,5 +1,13 @@
 # Work Plan: MCP Integration & DocType Cleanup for frappe_ai
 
+> **Current-site update (2026-10-03):** SAP Match is retired on `tact.local`.
+> Its agent, manual trigger, and plugin-tool bindings are disabled, with records
+> retained for audit. No active agent has an MCP binding. The 2026-08-19 live
+> inventory and three-workflow migration instructions below are historical;
+> current workflow verification covers Spec Review, Historical Match, and CAD.
+> See the [retirement tracker](../progress/ai-tool-retirement-via-assistant-core.md)
+> for the current site status and remaining gates.
+
 > **Corrected 2026-08-19.** The original Phase 3-5 (agent migration, dead-code
 > removal, tool system removal) assumed Assistant Core already covered every
 > `AI Tool` row. A live audit against `tact.local` found that false: `ai_tool` /
@@ -670,11 +678,12 @@ reports are reviewed, and compatibility callers are isolated and documented.
 - [x] Added idempotent legacy migration/reporting path
 - [x] Retain `AI Tool` and `AI Agent Tool` as compatibility/migration DocTypes
 - [ ] Remove legacy DocTypes from active runtime authority - Partial; several references remain
-- [x] All three tender agents repointed to direct FAC bindings; MCP fallback retained during migration
-- [ ] Spec Review workflow passes through direct FAC - Pending; required before Tender MCP removal
-- [ ] Historical Match workflow passes through direct FAC - Pending; required before Tender MCP removal
-- [ ] SAP Match workflow passes through direct FAC - Pending; required before Tender MCP removal
-- [ ] Tender MCP connection removed after workflow verification - Pending
+- [x] Active tender agents use direct FAC bindings; `tact.local` has no active agent MCP bindings (2026-10-03)
+- [ ] Spec Review workflow passes through direct FAC with known-good results
+- [ ] Historical Match workflow passes through direct FAC with known-good results
+- [x] SAP Match agent, trigger, and plugin-tool bindings disabled on `tact.local` (retired 2026-10-03; records retained)
+- [ ] CAD workflow passes through direct FAC with known-good results
+- [x] No Tender MCP connection or active agent MCP binding remains on `tact.local` (verified 2026-10-03)
 - [x] Focused API and builder tests pass
 - [ ] Full successful LLM/FAC tool-call E2E pass - Blocked by fake model credentials
 

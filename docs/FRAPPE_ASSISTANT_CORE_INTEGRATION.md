@@ -1,7 +1,6 @@
 # Frappe Assistant Core Integration Guide
 
-> The dynamic MCP publication model in [006 — Dynamic MCP Server Profiles](specifications/006-dynamic-mcp-server-profiles.md)
-> is archived. The active integration and migration plan is [007 — MCP Integration & Cleanup](specifications/007-mcp-integration-and-cleanup.md).
+> The active integration and migration plan is [007 — MCP Integration & Cleanup](specifications/007-mcp-integration-and-cleanup.md).
 
 This document explains how `frappe_ai` can use `frappe_assistant_core`, what
 that gives us, and which parts of `frappe_ai` should eventually be reduced. It is a
@@ -10,15 +9,16 @@ step-by-step operational guide for connecting an `AI Agent` to Assistant Core or
 another MCP server. The current status is tracked in the Assistant Core progress
 document.
 
-## Current implementation (2026-08-21)
+## Current implementation (2026-10-03)
 
 `frappe_ai` now supports two Assistant Core paths:
 
 - **Direct plugin linkage** through `AI Agent Plugin Tool`, preferred for tools hosted
   on the same site. These calls resolve through Assistant Core's in-process registry and
   return through `frappe_ai`'s acting-user dispatch boundary.
-- **Remote MCP connections** through `AI MCP Connection`, used for external servers and
-  retained as a migration fallback for tender tools.
+- **Remote MCP connections** through `AI MCP Connection`, used for external servers.
+  No active agent on `tact.local` currently has an MCP binding. SAP Match is retired;
+  its agent, trigger, and bindings are disabled.
 
 The legacy `AI Tool`/`AI Agent Tool` records remain for compatibility and migration input;
 they are not being deleted as part of the current work.
@@ -48,7 +48,7 @@ Browser
   -> frappe_ai / Frappe creates AI Run and run token
   -> frappe_ai FastAPI builds Agno Agent
   -> same-site: direct Assistant Core registry dispatch
-  -> remote/fallback: Agno MCP client calls Assistant Core MCP endpoint
+  -> remote connection: Agno MCP client calls an MCP endpoint
   -> Assistant Core authenticates, validates permissions, and executes BaseTool
   -> Assistant Core records its tool audit
   -> frappe_ai records the agent run and transcript
@@ -97,7 +97,7 @@ clients without adding a separate server process.
 
 | Capability | Current owner | Future canonical owner | Action in `frappe_ai` |
 |---|---|---|---|
-| Generic document read/list/create/update/delete | Both apps | Assistant Core | Direct FAC linkage preferred; MCP fallback during migration |
+| Generic document read/list/create/update/delete | Both apps | Assistant Core | Direct FAC linkage preferred on the same site |
 | DocType metadata and search | Both apps | Assistant Core | Migrate after schema/permission parity verification |
 | Reports and workflows | Assistant Core or plugins | Assistant Core | Consume through MCP |
 | Generic Python/code execution | Both apps | Explicit per-tool decision | Do not merge automatically |

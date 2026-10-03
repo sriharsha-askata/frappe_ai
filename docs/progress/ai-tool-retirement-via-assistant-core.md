@@ -9,11 +9,18 @@
 
 | | |
 |---|---|
-| **Status** | 🟡 Tender migration is Priority 1 |
-| **Current phase** | Verify direct tender workflows before MCP removal |
+| **Status** | 🟡 Verify active tender workflows and finish the legacy-tool audit |
+| **Current phase** | Verify Spec Review, Historical Match, and CAD through direct FAC |
 | **Started** | 2026-08-19 |
-| **Last audited** | 2026-08-21 |
-| **Blockers** | Known-good tender workflow verification; no live model credentials for LLM-driven workflow tests |
+| **Last audited** | 2026-10-03 (`tact.local` inventory; no end-to-end run performed) |
+| **Blockers** | Workflow result verification, legacy-tool classification, and remote MCP budget coverage |
+
+**2026-10-03 site decision:** SAP Match is retired. `Tender SAP Match Agent`, its manual
+trigger, and its four plugin-tool bindings were disabled on `tact.local`; their rows and
+past runs remain for audit. The active tender verification set is Spec Review,
+Historical Match, and CAD. No active agent has an MCP binding, and no Tender MCP
+connection is present on this site. The August migration notes below record what was
+true then; they are not a current inventory.
 
 ### Phase summary
 
@@ -117,8 +124,8 @@ adapter required, manual rewrite, intentionally retained, or unmatched.
 | `run_action` | `frappe_ai` `BaseTool` or proven Assistant Core workflow equivalent | Compare current semantics for submit, cancel, amend, rename, workflow, and whitelisted methods. | All current action variants have explicit coverage. |
 | `search_knowledge` | `frappe_ai` `BaseTool` wrapper | Reuse the existing LanceDB/MariaDB retrieval path and enforce the run's agent knowledge-base scope. | Scope-override and retrieval behavior tests pass. |
 | `update_memory` | `frappe_ai` `BaseTool` wrapper | Reuse the existing memory write path; stamp agent, user scope, and source run server-side. | Model-supplied scope override tests pass. |
-| Tender context, persistence, and failure tools | `tender_automation` `BaseTool` implementations | Keep tender business logic in `tender_automation`; register each tool once through hooks. | Spec Review, Historical Match, and SAP Match complete through direct FAC. |
-| Tender MCP-only tools | `tender_automation` `BaseTool` implementations | Retain MCP only as migration fallback; remove duplicate MCP bindings after workflow verification. | All three workflows pass without Tender MCP. |
+| Tender context, persistence, and failure tools | `tender_automation` `BaseTool` implementations | Keep tender business logic in `tender_automation`; register each tool once through hooks. | Active Spec Review, Historical Match, and CAD workflows complete through direct FAC. |
+| Retired SAP Match tools | Archived site records | Keep the agent, trigger, bindings, and runs disabled or archived for audit; do not require SAP workflow parity for tool retirement. | No active trigger or agent depends on these tools. |
 | Custom Imported tools | Owning app's `BaseTool` or temporary compatibility path | Migrate one implementation at a time; no automatic conversion based only on import path. | Owner confirms behavior and permissions. |
 | Custom Script tools | Reviewed version-controlled `BaseTool` or explicit exception | Do not silently execute database-stored code through FAC. | Every Script row has a reviewed disposition. |
 
@@ -229,8 +236,10 @@ exception, and rerunning the migration produces no duplicate bindings.
 - [ ] Test memory writes cannot choose another agent, user scope, or source run.
 - [ ] Test tool failures are normalized into the model/run path and do not leave runs stuck.
 - [ ] Test Assistant Core and `frappe_ai` audit records.
-- [ ] Run Spec Review, Historical Match, and SAP Match through direct FAC bindings with
+- [ ] Run active Spec Review, Historical Match, and CAD workflows through direct FAC bindings with
   known-good data and compare results to the recorded baseline.
+- [x] Disable the retired SAP Match agent, manual trigger, and plugin-tool bindings on
+  `tact.local` (2026-10-03); retain their records for audit.
 - [ ] Test that a service restart, callback failure, and stream termination leave runs in
   a recoverable terminal state.
 
@@ -331,7 +340,8 @@ and rollback rehearsal are complete.
 - [ ] Every production agent uses `AI Agent Plugin Tool` for migrated tools.
 - [ ] No new agent setup creates legacy `AI Tool` bindings.
 - [ ] Permissions, confirmation, budgets, schemas, outputs, and audits are verified.
-- [ ] Tender workflows pass through direct FAC without MCP fallback.
+- [ ] Active tender workflows pass through direct FAC without MCP fallback; SAP Match
+  remains disabled as a retired workflow.
 - [ ] `execute` has a reviewed sandbox decision.
 - [ ] `run_action` has an explicit replacement and parity evidence.
 - [ ] Every unmatched or retained legacy row has a documented owner and reason.
@@ -436,23 +446,16 @@ decision is accepted; do not mark a phase complete based only on code presence.
 - Budgets are counted by the Frappe dispatch endpoints, but the independent remote
   MCP transport still bypasses those counters.
 
-## Priority 1 — Tender migration
+## Priority 1 — Active tender verification
 
-The tender tools are local application code. They will be registered once as
-Assistant Core `BaseTool` implementations and selected per agent through
+The tender tools are local application code. Active tools are registered as
+Assistant Core implementations and selected per agent through
 `AI Agent Plugin Tool` bindings. No plugin implementation is created per agent.
 
-The migration target is all ten local tender capabilities:
-
-- Seven Frappe-side context, persistence, and failure tools.
-- Three tools currently exposed by the local Tender MCP server:
-  `extract_tender_documents`, `match_historical_enquiries`, and
-  `search_sap_sales_data`.
-
-The existing Tender MCP connection remains available as a fallback during
-migration. Direct FAC tools take precedence, and duplicate MCP names are filtered
-from a run when the direct FAC tool is available. MCP is removed only after all
-three tender workflows pass through direct FAC execution.
+On `tact.local`, the active tender agents are Spec Review, Historical Match, and
+CAD. Their direct FAC bindings require workflow result and permission verification.
+SAP Match is retired and is excluded from that gate. No active agent has an MCP
+binding, so the former Tender MCP fallback is not a current rollback path.
 
 ## Updated (2026-08-19)
 
@@ -485,15 +488,17 @@ See [spec 007](../specifications/007-mcp-integration-and-cleanup.md) Parts 4-5
   comparison; keep hardened `safe_exec` until approved.
 - Add behavior-equivalence tests for the now agent-scoped `search_knowledge` and
   `update_memory` wrappers.
-- Run known-good Spec Review, Historical Match, and SAP workflows through direct FAC
-  bindings while retaining MCP fallback; remove the Tender MCP configuration only
-  after those workflows pass.
+- Run known-good Spec Review, Historical Match, and CAD workflows through direct FAC
+  bindings; compare results with known-good baselines.
 - Resolve `run_action`, migrate/audit every production `AI Tool` row, and record
   unmatched or ambiguous rows.
 - Remove legacy DocTypes from the active runtime authority while retaining
   `AI Tool` and `AI Agent Tool` as compatibility/migration records.
 
 ## Verification performed
+
+The following bullets record verification as of August 2026. They do not prove
+the current site configuration or the October workflow gates.
 
 - `frappe_ai.tests.test_api`: **34/34 passing** on 2026-08-21 with host-level database access, including the two direct-FAC scope tests.
 - `frappe_ai.tests.test_builder`: 2/2 passing.
@@ -523,13 +528,17 @@ See [spec 007](../specifications/007-mcp-integration-and-cleanup.md) Parts 4-5
 - A real model credential is required to prove streamed success, FAC tool-call
   selection, and confirmation pause/resume through the LLM.
 - Remote MCP execution still needs a budget-enforcement design and implementation.
-- The three tender workflows still need known-good end-to-end execution through
-  direct FAC tools before the Tender MCP connection can be removed.
+- Active Spec Review, Historical Match, and CAD workflows still need known-good
+  end-to-end result verification through direct FAC.
+- The 2026-10-03 site inventory found 12 legacy `AI Tool` rows, eight `AI Agent Tool`
+  rows belonging to deleted test agents, and three disabled SAP bindings pointing to
+  missing FAC configurations. Classify these before deleting the legacy system.
 
 ## Change Log
 
 | Date | Change |
 |---|---|
+| 2026-10-03 | SAP Match retired by user decision. Disabled its agent, manual trigger, and four plugin-tool bindings on `tact.local`, preserving records. Current verification gate covers Spec Review, Historical Match, and CAD. |
 | 2026-08-19 | Progress file created. Audit + verification + spec 010 written, then merged into spec 007. Dead orphaned doctype dirs removed. |
 | 2026-08-19 | Designed direct Assistant Core plugin linkage (`AI Agent Plugin Tool`) as a preferred alternative to MCP for local tools; folded into spec 007 Phase 4/5 and DocTypes Summary. Design only — no schema/code implemented yet. |
 | 2026-08-19 | Fixed builder.py MCPTools bug. Verified on live bench: check_connection returns is_connected=true with 24 tools, start_run returns valid stream_url. Phase 1 complete. |
