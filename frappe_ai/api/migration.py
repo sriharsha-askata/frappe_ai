@@ -10,23 +10,19 @@ from __future__ import annotations
 from typing import Any
 
 import frappe
-from frappe import _
 
 
 def migrate_ai_tools() -> dict[str, Any]:
 	"""Migrate legacy AI Tool selections to direct FAC bindings idempotently."""
-	report: dict[str, Any] = {"migrated": [], "unmatched": [], "ambiguous": [], "skipped": []}
+	report: dict[str, Any] = {"migrated": [], "unmatched": [], "ambiguous": [], "skipped": [], "conflicts": []}
 	if not frappe.db.exists("DocType", "AI Tool"):
 		return {**report, "status": "already_migrated"}
 
 	# Populate FAC Tool Configuration through Assistant Core's normal registry
 	# synchronization before matching rows. This is safe to rerun.
-	try:
-		from frappe_assistant_core.utils.migration_hooks import _sync_tool_configurations
+	from frappe_assistant_core.utils.migration_hooks import _sync_tool_configurations
 
-		_sync_tool_configurations()
-	except Exception as exc:
-		report["sync_error"] = str(exc)
+	_sync_tool_configurations()
 	if not frappe.db.exists("DocType", "FAC Tool Configuration"):
 		report["status"] = "blocked_no_fac_configuration"
 		return report
@@ -49,16 +45,31 @@ def migrate_ai_tools() -> dict[str, Any]:
 			continue
 
 		for agent in frappe.get_all("AI Agent", fields=["name"]):
-			legacy_rows = frappe.get_all(
-				"AI Agent Tool", filters={"parent": agent.name}, fields=["tool"]
+			legacy_rows = (
+				frappe.get_all("AI Agent Tool", filters={"parent": agent.name}, fields=["tool"])
+				if frappe.db.table_exists("AI Agent Tool") else []
 			)
-			if not any((row.tool == legacy.name or row.tool == tool_name) for row in legacy_rows):
+			config_rows = (
+				frappe.get_all(
+					"AI Agent Tool Config", filters={"parent": agent.name},
+					fields=["tool_name", "source", "enabled"],
+				) if frappe.db.table_exists("AI Agent Tool Config") else []
+			)
+			manual_configs = [
+				row for row in config_rows
+				if row.source != "mcp" and row.tool_name in {legacy.name, tool_name}
+			]
+			if not any(row.tool in {legacy.name, tool_name} for row in legacy_rows) and not manual_configs:
 				continue
-			already = frappe.db.exists(
-				"AI Agent Plugin Tool", {"parent": agent.name, "fac_tool": matches[0]}
+			already = frappe.db.get_value(
+				"AI Agent Plugin Tool", {"parent": agent.name, "fac_tool": matches[0]},
+				["enabled", "requires_confirmation"], as_dict=True,
 			)
 			if already:
-				report["skipped"].append({"agent": agent.name, "tool": tool_name})
+				if int(already.enabled) != int(bool(legacy.enabled) and all(bool(row.enabled) for row in manual_configs)) or int(already.requires_confirmation) != int(legacy.requires_confirmation):
+					report["conflicts"].append({"agent": agent.name, "tool": tool_name})
+				else:
+					report["skipped"].append({"agent": agent.name, "tool": tool_name})
 				continue
 			frappe.get_doc(
 				{
@@ -67,14 +78,14 @@ def migrate_ai_tools() -> dict[str, Any]:
 					"parenttype": "AI Agent",
 					"parentfield": "plugin_tools",
 					"fac_tool": matches[0],
-					"enabled": int(legacy.enabled),
+					"enabled": int(bool(legacy.enabled) and all(bool(row.enabled) for row in manual_configs)),
 					"requires_confirmation": int(legacy.requires_confirmation),
 				}
 			).insert(ignore_permissions=True)
 			report["migrated"].append({"agent": agent.name, "tool": tool_name, "fac_tool": matches[0]})
 
 	frappe.db.commit()
-	report["status"] = "completed" if not (report["unmatched"] or report["ambiguous"]) else "completed_with_review"
+	report["status"] = "completed" if not (report["unmatched"] or report["ambiguous"] or report["conflicts"]) else "completed_with_review"
 	return report
 
 
