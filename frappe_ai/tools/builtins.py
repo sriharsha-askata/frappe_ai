@@ -458,35 +458,3 @@ BUILTIN_TOOLS: list[Tool] = [
 	run_action,
 	execute,
 ]
-
-
-def sync_builtin_tools() -> None:
-	"""Upsert builtin tools as `AI Tool` rows. Uses `db.set_value` to bypass the
-	immutability guard in `AITool.validate` (which protects user edits, not system
-	migration)."""
-	for builtin in BUILTIN_TOOLS:
-		import_path = f"frappe_ai.tools.builtins.{builtin.name}"
-		if frappe.db.exists("AI Tool", builtin.name):
-			frappe.db.set_value(
-				"AI Tool",
-				builtin.name,
-				{
-					"import_path": import_path,
-					"description": builtin.description,
-					"requires_confirmation": int(builtin.requires_confirmation),
-					"is_system_generated": 1,
-				},
-			)
-		else:
-			frappe.get_doc(
-				{
-					"doctype": "AI Tool",
-					"slug": builtin.name,
-					"title": builtin.name.replace("_", " ").title(),
-					"type": "Imported",
-					"import_path": import_path,
-					"description": builtin.description,
-					"is_system_generated": 1,
-					"requires_confirmation": int(builtin.requires_confirmation),
-				}
-			).insert(ignore_permissions=True)

@@ -5,9 +5,9 @@ from __future__ import annotations
 
 import frappe
 from frappe.tests import IntegrationTestCase
+from unittest.mock import patch
 
 from frappe_ai.memory.memory import build_memory_block, save_memory
-from frappe_ai.tools.builtins import sync_builtin_tools
 
 
 def _memory_agent(title: str = "Memory Test Agent") -> str:
@@ -17,7 +17,6 @@ def _memory_agent(title: str = "Memory Test Agent") -> str:
 		frappe.get_doc(
 			{"doctype": "AI Model", "title": "Memory Test Model", "provider": "openai", "model_id": "gpt-4o-mini"}
 		).insert(ignore_permissions=True)
-	sync_builtin_tools()
 	if not frappe.db.exists("AI Agent", title):
 		frappe.get_doc(
 			{
@@ -25,7 +24,6 @@ def _memory_agent(title: str = "Memory Test Agent") -> str:
 				"title": title,
 				"model": "Memory Test Model",
 				"instructions": "Remember facts.",
-				"tools": [{"tool_name": "update_memory"}],
 			}
 		).insert(ignore_permissions=True)
 	return title
@@ -53,7 +51,7 @@ class TestMemory(IntegrationTestCase):
 				"status": "Active",
 			}
 		).insert(ignore_permissions=True)
-		block = build_memory_block(agent, query="What is the plant code?")
+		with patch("frappe_ai.memory.memory._has_memory_tool", return_value=True):
+			block = build_memory_block(agent, query="What is the plant code?")
 		self.assertIn("<agent_memory>", block)
 		self.assertIn("PX-14", block)
-

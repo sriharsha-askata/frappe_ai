@@ -97,7 +97,7 @@ oversight — and it is bounded by three requirements.**
 
 ADR 0003's invariant is now scoped explicitly:
 
-> Every tool that executes **inside Frappe** — builtins, `AI Tool` rows, and FAC
+> Every tool that executes **inside Frappe** — builtins and FAC
 > plugin tools — acts as the run's user and can do nothing that user could not do.
 > Tools that execute **in the service** over MCP act as the connection. The
 > boundary between the two is the `AI MCP Connection` permission.

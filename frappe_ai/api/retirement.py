@@ -1,4 +1,8 @@
-"""Per-site evidence gate for retiring the legacy AI Tool schema."""
+"""Per-site evidence gate for retiring the legacy AI Tool schema.
+
+Retirement machinery: remove in Stage 2, once every site has migrated and the
+rollback window has ended (see docs/ai-tool-retirement.md).
+"""
 
 from __future__ import annotations
 

@@ -1,10 +1,11 @@
 # 003 — DocType Reference
 
-**Status:** Approved. The current implementation contains 22 DocTypes. The original
-18-DocType parity set is extended by Assistant Core/FAC migration and MCP metadata
-DocTypes added during 2026-08-19–21.
-**Scope:** All 22 current DocTypes in `frappe_ai`, including compatibility records,
-MCP metadata, and direct Assistant Core/FAC bindings.
+**Status:** Approved. The current implementation contains 19 DocTypes. The original
+parity set is extended by MCP metadata and direct Assistant Core/FAC bindings; the legacy
+`AI Tool`, `AI Agent Tool` and `AI Agent Tool Config` DocTypes were removed (see
+[ADR 0020](../decisions/0020-retire-ai-tool-for-fac.md)).
+**Scope:** All 19 current DocTypes in `frappe_ai`, including MCP metadata and direct
+Assistant Core/FAC bindings.
 
 Field definitions below were extracted from the `flow` JSON files and are exact.
 Layout fields (Section/Column/Tab Break) are omitted throughout.
@@ -19,24 +20,21 @@ Layout fields (Section/Column/Tab Break) are omitted throughout.
 | 2 | `AI Model` | Master | `Flow Model` | 1 |
 | 3 | `AI Settings` | Single | `Flow Knowledge Settings` (extended) | 1 |
 | 4 | `AI Agent` | Master | `Flow Agent` (extended) | 3 |
-| 5 | `AI Agent Tool` | Child | `Flow Agent Tool` | 3, compatibility |
-| 6 | `AI Agent Knowledge Base` | Child | `Flow Agent Knowledge Base` | 3 |
-| 7 | `AI Tool` | Master | `Flow Tool` | 3 |
-| 8 | `AI Session` | Transaction | `Flow Session` | 3 |
-| 9 | `AI Session Message` | Child | `Flow Session Message` | 3 |
-| 10 | `AI Session Attachment` | Child | `Flow Session Attachment` | 3 |
-| 11 | `AI Run` | Log | `Flow Run` | 3 |
-| 12 | `AI Knowledge Base` | Master | `Flow Knowledge Base` | 4 |
-| 13 | `AI Knowledge Source` | Master | `Flow Knowledge Source` | 4 |
-| 14 | `AI Knowledge Chunk` | Log | `Flow Knowledge Chunk` | 4 |
-| 15 | `AI Trigger` | Master | `Flow Trigger` | 5 |
-| 16 | `AI Agent Memory` | Master | `Flow Agent Memory` | 5 |
-| 17 | `AI MCP Connection` | Master | **New** | 5 |
-| 18 | `AI Agent MCP Connection` | Child | **New** | 5 |
-| 19 | `AI MCP Tool` | Child | **New** | MCP metadata |
-| 20 | `AI Agent Tool Config` | Child | **New** | compatibility/runtime metadata |
-| 21 | `AI Agent Plugin Tool` | Child | **New** | Assistant Core/FAC migration |
-| 22 | `AI FAC Tool` | Master | **New** | Assistant Core/FAC migration |
+| 5 | `AI Agent Knowledge Base` | Child | `Flow Agent Knowledge Base` | 3 |
+| 6 | `AI Session` | Transaction | `Flow Session` | 3 |
+| 7 | `AI Session Message` | Child | `Flow Session Message` | 3 |
+| 8 | `AI Session Attachment` | Child | `Flow Session Attachment` | 3 |
+| 9 | `AI Run` | Log | `Flow Run` | 3 |
+| 10 | `AI Knowledge Base` | Master | `Flow Knowledge Base` | 4 |
+| 11 | `AI Knowledge Source` | Master | `Flow Knowledge Source` | 4 |
+| 12 | `AI Knowledge Chunk` | Log | `Flow Knowledge Chunk` | 4 |
+| 13 | `AI Trigger` | Master | `Flow Trigger` | 5 |
+| 14 | `AI Agent Memory` | Master | `Flow Agent Memory` | 5 |
+| 15 | `AI MCP Connection` | Master | **New** | 5 |
+| 16 | `AI Agent MCP Connection` | Child | **New** | 5 |
+| 17 | `AI MCP Tool` | Child | **New** | MCP metadata |
+| 18 | `AI Agent Plugin Tool` | Child | **New** | Assistant Core/FAC migration |
+| 19 | `AI FAC Tool` | Master | **New** | Assistant Core/FAC migration |
 
 None are submittable. Only `AI Settings` is single.
 
@@ -167,7 +165,6 @@ persisted lazily and is not a selection field. See [ADR 0016](../decisions/0016-
 | `max_records_per_call` | Int | default 100 | production budget |
 | `max_runtime_seconds` | Int | default 600 | production budget |
 | `instructions` | Long Text | reqd | ported |
-| `tools` | Table → `AI Agent Tool Config` | deprecated compatibility field | migration |
 | `knowledge_bases` | Table MultiSelect → `AI Agent Knowledge Base` | | ported |
 | `agent_type` | Select `Agent`/`Team` | default `Agent` | **new** |
 | `temperature` | Float | default 0.7 | **new** |
@@ -178,16 +175,15 @@ persisted lazily and is not a selection field. See [ADR 0016](../decisions/0016-
 | `plugin_tools` | Table MultiSelect → `AI Agent Plugin Tool` | direct Assistant Core/FAC bindings | **new** |
 
 **Controller:**
-- `validate` — `max_iterations >= 1`; `_ensure_knowledge_search_tool()` auto-appends
-  `search_knowledge` to the compatibility tool table when knowledge bases are bound;
+- `validate` — `max_iterations >= 1`; `_ensure_knowledge_search_tool()` auto-appends the
+  `search_knowledge` FAC binding to `plugin_tools` when knowledge bases are bound;
   MCP tool metadata is populated for linked connections; `validate_immutable`.
 - `on_trash` → `block_delete(always=True)`; `before_rename` → `block_rename`.
 - `_snapshot()` — the config snapshot written to every `AI Run`.
 
 **Runtime:** `AgentBuilder.build()` in the FastAPI service replaces `assemble()`.
-New direct local bindings resolve through Assistant Core's tool registry via
-`plugin_tools`; remote tools resolve through `mcp_connections`. The legacy `tools` table
-is retained as compatibility/migration input. Permission checks (agent enabled, `AI Model`
+Local tools resolve through Assistant Core's tool registry via `plugin_tools`; remote
+tools resolve through `mcp_connections`. Permission checks (agent enabled, `AI Model`
 read permission, model enabled, and tool availability) happen in **Frappe** before config
 is released to the service.
 
@@ -195,15 +191,7 @@ is released to the service.
 
 ---
 
-## 5. AI Agent Tool (child)
-
-| Field | Type | Attributes |
-|---|---|---|
-| `tool` | Link → `AI Tool` | reqd |
-
----
-
-## 6. AI Agent Knowledge Base (child)
+## 5. AI Agent Knowledge Base (child)
 
 | Field | Type | Attributes |
 |---|---|---|
@@ -211,40 +199,7 @@ is released to the service.
 
 ---
 
-## 7. AI Tool
-
-**Naming: `field:slug`**. The slug is the name the LLM sees.
-
-| Field | Type | Attributes |
-|---|---|---|
-| `title` | Data | reqd |
-| `slug` | Data | reqd, unique |
-| `type` | Select `Imported`/`Script` | reqd, default `Imported` |
-| `enabled` | Check | default 1 |
-| `requires_confirmation` | Check | |
-| `is_system_generated` | Check | read-only |
-| `description` | Long Text | reqd — **LLM-facing** |
-| `summary` | Small Text | human-facing |
-| `import_path` | Data | for `Imported` |
-| `code` | Code (Python) | for `Script` |
-
-**Controller `validate`:** slug regex `^[a-z][a-z0-9_]*$`; type/field XOR; for Script —
-AST parse, must define a top-level `main`, **no `*args`/`**kwargs`**, must not call `main()`
-itself; `validate_immutable(("type", "import_path"))`. Delete/rename guarded.
-
-**Execution — the critical property:** `AI Tool` rows execute **in Frappe**, never in the
-service. FastAPI receives only the JSON Schema. Script tools run through the hardened
-`safe_exec` namespace (see [ADR 0006](../decisions/0006-unified-safe-exec-namespace.md) —
-this is a deliberate change from `flow`, which used the broader `frappe.utils.safe_exec`).
-
-Schema derivation (`schema_from_code()`) reads the AST **without evaluating annotations**,
-so untrusted code never executes during schema derivation.
-
-**Permissions:** System Manager full CRUD.
-
----
-
-## 8. AI Session
+## 6. AI Session
 
 **Naming: `hash`**, sort `modified DESC`.
 
@@ -274,7 +229,7 @@ permission, else `PermissionError`. Load-bearing, because persistence writes use
 
 ---
 
-## 9. AI Session Message (child)
+## 7. AI Session Message (child)
 
 | Field | Type | Attributes |
 |---|---|---|
@@ -286,7 +241,7 @@ permission, else `PermissionError`. Load-bearing, because persistence writes use
 
 ---
 
-## 10. AI Session Attachment (child)
+## 8. AI Session Attachment (child)
 
 | Field | Type | Attributes |
 |---|---|---|
@@ -302,7 +257,7 @@ files into the ephemeral `chat_attachment_chunks` LanceDB table, scoped to the s
 
 ---
 
-## 11. AI Run
+## 9. AI Run
 
 The audit record. **Naming: `hash`**, `track_changes: 0` (immutable log).
 
@@ -339,7 +294,7 @@ usage (resume-safe), then appends only the **delta** messages to the session.
 
 ---
 
-## 12. AI Knowledge Base
+## 10. AI Knowledge Base
 
 **Naming: `field:title`**.
 
@@ -359,7 +314,7 @@ time. Do not bind a KB containing restricted content to an agent available to al
 
 ---
 
-## 13. AI Knowledge Source
+## 11. AI Knowledge Source
 
 **Naming: `hash`**.
 
@@ -397,7 +352,7 @@ private/loopback/link-local/reserved/multicast addresses) and capped at 10 MB.
 
 ---
 
-## 14. AI Knowledge Chunk
+## 12. AI Knowledge Chunk
 
 **Naming: `autoincrement` — load-bearing.** The integer name is the LanceDB row `id`.
 Changing this naming rule silently breaks retrieval hydration.
@@ -420,7 +375,7 @@ The LanceDB index is disposable and rebuildable from these rows.
 
 ---
 
-## 15. AI Trigger
+## 13. AI Trigger
 
 **Naming: `field:title`**.
 
@@ -452,7 +407,7 @@ The LanceDB index is disposable and rebuildable from these rows.
 
 ---
 
-## 16. AI Agent Memory
+## 14. AI Agent Memory
 
 **Naming: `hash`**.
 
@@ -484,7 +439,7 @@ prompt-injection hardening.
 
 ---
 
-## 17. AI MCP Connection (new)
+## 15. AI MCP Connection (new)
 
 Model Context Protocol server connections. **Naming: `field:connection_name`**.
 
@@ -511,13 +466,13 @@ Each check has a 5-second timeout.
 
 ---
 
-## 18. AI Agent MCP Connection (child)
+## 16. AI Agent MCP Connection (child)
 
 | Field | Type | Attributes |
 |---|---|---|
 | `mcp_connection` | Link → `AI MCP Connection` | reqd |
 
-## 19. AI MCP Tool (child)
+## 17. AI MCP Tool (child)
 
 Stores discovered tool metadata for an `AI MCP Connection`.
 
@@ -528,22 +483,9 @@ Stores discovered tool metadata for an `AI MCP Connection`.
 | `input_schema` | JSON | |
 | `available` | Check | default 1 |
 | `last_discovered` | Datetime | read-only |
-| `matched_ai_tool` | Link → `AI Tool` | read-only |
 | `raw_metadata` | JSON | read-only |
 
-## 20. AI Agent Tool Config (child)
-
-Compatibility/runtime metadata rows retained while direct Assistant Core/FAC bindings
-are migrated.
-
-| Field | Type | Attributes |
-|---|---|---|
-| `tool_name` | Data | reqd |
-| `source` | Select `mcp`/`fac`/`manual` | default `mcp` |
-| `description` | Small Text | |
-| `enabled` | Check | default 1 |
-
-## 21. AI Agent Plugin Tool (child)
+## 18. AI Agent Plugin Tool (child)
 
 Direct in-process Assistant Core/FAC tool binding for an `AI Agent`.
 
@@ -553,7 +495,7 @@ Direct in-process Assistant Core/FAC tool binding for an `AI Agent`.
 | `requires_confirmation` | Check | default 1 |
 | `enabled` | Check | default 1 |
 
-## 22. AI FAC Tool (master)
+## 19. AI FAC Tool (master)
 
 The local catalogue of Assistant Core tools contributed by installed apps.
 **Naming: `field:tool_name`**, unique.
@@ -575,7 +517,6 @@ The local catalogue of Assistant Core tools contributed by installed apps.
 | `AI Model` | full | **read** |
 | `AI Settings` | read/write | — |
 | `AI Agent` | full | **read** |
-| `AI Tool` | full | — |
 | `AI Session` | full | **CRUD if_owner** |
 | `AI Run` | full | **read if_owner** |
 | `AI Knowledge Base` / `Source` | full | — |

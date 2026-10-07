@@ -1,14 +1,7 @@
 # Copyright (c) 2026, Frappe Technologies and contributors
 # License: MIT. See LICENSE
 
-"""Tests for `frappe_ai/api/api.py` (browser-facing whitelisted methods) and
-`frappe_ai/api/dispatch.py` (the security-critical tool-dispatch endpoint, ADR 0003).
-
-`dispatch_tool`'s `frappe.set_user(acting_user)` scoping is the decisive test here —
-it's the mechanism `001-architecture.md` §12 names explicitly: "a non-System-Manager
-user asking the agent to read a DocType they lack permission on is refused by the
-tool." Everything else in `dispatch.py` is secondary to getting that right.
-"""
+"""Browser API and Assistant Core dispatch integration tests."""
 
 from __future__ import annotations
 
@@ -22,8 +15,7 @@ from frappe.tests import IntegrationTestCase
 
 from frappe_ai.api import api, dispatch, frontend
 from frappe_ai.assistant_tools.native import SearchKnowledgeTool, UpdateMemoryTool
-from frappe_ai.frappe_ai.doctype.ai_run.ai_run import create_run, record_approvals
-from frappe_ai.tools.builtins import sync_builtin_tools
+from frappe_ai.frappe_ai.doctype.ai_run.ai_run import create_run
 
 TEST_SECRET = "test-service-secret-for-dispatch-tests"
 
@@ -45,14 +37,12 @@ def _model_and_agent(title: str = "API Test Agent") -> str:
 			{"doctype": "AI Model", "title": "API Test Model", "provider": "openai", "model_id": "gpt-4o-mini"}
 		).insert(ignore_permissions=True)
 	if not frappe.db.exists("AI Agent", title):
-		sync_builtin_tools()
 		frappe.get_doc(
 			{
 				"doctype": "AI Agent",
 				"title": title,
 				"model": "API Test Model",
 				"instructions": "You are helpful.",
-				"tools": [{"tool_name": "read"}],
 			}
 		).insert(ignore_permissions=True)
 	return title
@@ -77,241 +67,6 @@ def _run_for(agent: str = "API Test Agent", owner: str = "Administrator", **budg
 	if owner != "Administrator":
 		frappe.db.set_value("AI Run", run, "owner", owner, update_modified=False)
 	return run
-
-
-class TestDispatchToolServiceSecretAuth(IntegrationTestCase):
-	def setUp(self):
-		self._original_secret = frappe.conf.get("frappe_ai_service_secret")
-		frappe.conf.frappe_ai_service_secret = TEST_SECRET
-		sync_builtin_tools()
-
-	def tearDown(self):
-		if self._original_secret is None:
-			frappe.conf.pop("frappe_ai_service_secret", None)
-		else:
-			frappe.conf.frappe_ai_service_secret = self._original_secret
-		frappe.set_user("Administrator")
-		frappe.db.rollback()
-
-	def test_missing_secret_rejected(self):
-		with patch("frappe.get_request_header", new=_patch_request_header(None)):
-			with self.assertRaises(frappe.AuthenticationError):
-				dispatch.dispatch_tool(tool="read", user="Administrator", arguments={"doctype": "DocType"})
-
-	def test_wrong_secret_rejected(self):
-		with patch("frappe.get_request_header", new=_patch_request_header("wrong")):
-			with self.assertRaises(frappe.AuthenticationError):
-				dispatch.dispatch_tool(tool="read", user="Administrator", arguments={"doctype": "DocType"})
-
-
-class TestDispatchConfirmationEnforcement(IntegrationTestCase):
-	"""Confirmation-required tools run only for a call the user approved (recorded by
-	`resume_run`), no matter what the service asks for."""
-
-	ARGS = {"doctype": "ToDo", "names": []}
-
-	def setUp(self):
-		self._original_secret = frappe.conf.get("frappe_ai_service_secret")
-		frappe.conf.frappe_ai_service_secret = TEST_SECRET
-		sync_builtin_tools()
-		self.run_name = _run_for()
-		frappe.db.set_value(
-			"AI Run",
-			self.run_name,
-			"questions",
-			json.dumps([{"key": "call-1", "name": "delete", "arguments": self.ARGS, "prompt": "Delete?"}]),
-		)
-
-	def tearDown(self):
-		if self._original_secret is None:
-			frappe.conf.pop("frappe_ai_service_secret", None)
-		else:
-			frappe.conf.frappe_ai_service_secret = self._original_secret
-		frappe.set_user("Administrator")
-		frappe.db.rollback()
-
-	def _dispatch(self, call_id="call-1", arguments=None):
-		with patch("frappe.get_request_header", new=_patch_request_header(TEST_SECRET)):
-			return dispatch.dispatch_tool(
-				tool="delete",
-				user="Administrator",
-				arguments=self.ARGS if arguments is None else arguments,
-				run=self.run_name,
-				call_id=call_id,
-			)
-
-	def _approve(self, call_id="call-1"):
-		record_approvals(frappe.get_doc("AI Run", self.run_name), {call_id: "Approve"})
-
-	def test_unapproved_call_is_refused(self):
-		with self.assertRaises(frappe.PermissionError):
-			self._dispatch()
-
-	def test_approved_call_runs(self):
-		self._approve()
-		self.assertIsInstance(self._dispatch(), dict)
-
-	def test_approval_is_single_use(self):
-		self._approve()
-		self._dispatch()
-		with self.assertRaises(frappe.PermissionError):
-			self._dispatch()
-
-	def test_changed_arguments_are_refused(self):
-		self._approve()
-		with self.assertRaises(frappe.PermissionError):
-			self._dispatch(arguments={"doctype": "ToDo", "names": ["TODO-1"]})
-
-	def test_approval_for_another_call_id_is_refused(self):
-		self._approve()
-		with self.assertRaises(frappe.PermissionError):
-			self._dispatch(call_id="call-2")
-
-	def test_denied_or_redirected_answers_record_nothing(self):
-		record_approvals(frappe.get_doc("AI Run", self.run_name), {"call-1": "Deny"})
-		with self.assertRaises(frappe.PermissionError):
-			self._dispatch()
-
-	def test_auto_approve_run_skips_the_check(self):
-		frappe.db.set_value("AI Run", self.run_name, "config_snapshot", json.dumps({"auto_approve": True}))
-		self.assertIsInstance(self._dispatch(call_id=None), dict)
-
-	def test_non_confirmation_tool_needs_no_approval(self):
-		with patch("frappe.get_request_header", new=_patch_request_header(TEST_SECRET)):
-			result = dispatch.dispatch_tool(
-				tool="read",
-				user="Administrator",
-				arguments={"doctype": "DocType"},
-				run=self.run_name,
-				call_id=None,
-			)
-		self.assertIn("result", result)
-
-
-class TestDispatchToolActingUserScoping(IntegrationTestCase):
-	"""The decisive test (001-architecture.md §12): dispatch must run permission
-	checks as the acting `user` argument, not as whatever identity would otherwise
-	be implied by the service secret."""
-
-	def setUp(self):
-		self._original_secret = frappe.conf.get("frappe_ai_service_secret")
-		frappe.conf.frappe_ai_service_secret = TEST_SECRET
-		sync_builtin_tools()
-		if not frappe.db.exists("User", "test-dispatch-guest@example.com"):
-			frappe.get_doc(
-				{
-					"doctype": "User",
-					"email": "test-dispatch-guest@example.com",
-					"first_name": "Dispatch Guest",
-					"send_welcome_email": 0,
-					"roles": [],
-				}
-			).insert(ignore_permissions=True)
-
-	def tearDown(self):
-		if self._original_secret is None:
-			frappe.conf.pop("frappe_ai_service_secret", None)
-		else:
-			frappe.conf.frappe_ai_service_secret = self._original_secret
-		frappe.set_user("Administrator")
-		frappe.db.rollback()
-
-	def test_unprivileged_user_refused_by_tool(self):
-		run = _run_for(owner="test-dispatch-guest@example.com")
-		with patch("frappe.get_request_header", new=_patch_request_header(TEST_SECRET)):
-			result = dispatch.dispatch_tool(
-				tool="read",
-				user="test-dispatch-guest@example.com",
-				arguments={"doctype": "AI Provider"},
-				run=run,
-			)
-		self.assertIn("error", result)
-
-	def test_administrator_succeeds(self):
-		run = _run_for()
-		with patch("frappe.get_request_header", new=_patch_request_header(TEST_SECRET)):
-			result = dispatch.dispatch_tool(
-				tool="read", user="Administrator", arguments={"doctype": "DocType"}, run=run
-			)
-		self.assertIn("result", result)
-
-	def test_dispatch_without_run_is_refused(self):
-		"""A call that cannot be attributed to a run must not reach the tool, or omitting
-		`run` becomes a way around both budgets and run ownership."""
-		with patch("frappe.get_request_header", new=_patch_request_header(TEST_SECRET)):
-			with self.assertRaises(frappe.PermissionError):
-				dispatch.dispatch_tool(tool="read", user="Administrator", arguments={"doctype": "DocType"})
-
-	def test_run_owned_by_someone_else_is_refused(self):
-		run = _run_for(owner="test-dispatch-guest@example.com")
-		with patch("frappe.get_request_header", new=_patch_request_header(TEST_SECRET)):
-			with self.assertRaises(frappe.PermissionError):
-				dispatch.dispatch_tool(
-					tool="read", user="Administrator", arguments={"doctype": "DocType"}, run=run
-				)
-
-	def test_finished_run_is_refused(self):
-		run = _run_for()
-		frappe.db.set_value("AI Run", run, "status", "Completed")
-		with patch("frappe.get_request_header", new=_patch_request_header(TEST_SECRET)):
-			with self.assertRaises(frappe.PermissionError):
-				dispatch.dispatch_tool(
-					tool="read", user="Administrator", arguments={"doctype": "DocType"}, run=run
-				)
-
-	def test_unknown_run_is_refused(self):
-		with patch("frappe.get_request_header", new=_patch_request_header(TEST_SECRET)):
-			with self.assertRaises(frappe.DoesNotExistError):
-				dispatch.dispatch_tool(tool="read", user="Administrator", arguments={}, run="no-such-run")
-
-	def test_disabled_tool_rejected(self):
-		frappe.db.set_value("AI Tool", "read", "enabled", 0)
-		run = _run_for()
-		with patch("frappe.get_request_header", new=_patch_request_header(TEST_SECRET)):
-			with self.assertRaises(frappe.ValidationError):
-				dispatch.dispatch_tool(
-					tool="read", user="Administrator", arguments={"doctype": "DocType"}, run=run
-				)
-
-	def test_unknown_user_rejected(self):
-		with patch("frappe.get_request_header", new=_patch_request_header(TEST_SECRET)):
-			with self.assertRaises(frappe.DoesNotExistError):
-				dispatch.dispatch_tool(tool="read", user="not-a-real-user@example.com", arguments={})
-
-	def test_tool_exception_returned_as_error_not_raised(self):
-		run = _run_for()
-		with patch("frappe.get_request_header", new=_patch_request_header(TEST_SECRET)):
-			result = dispatch.dispatch_tool(
-				tool="read", user="Administrator", arguments={"doctype": "Not A Real DocType"}, run=run
-			)
-		self.assertIn("error", result)
-
-	def test_tool_exception_restores_guest_identity(self):
-		run = _run_for()
-		frappe.set_user("Guest")
-		original_local_user = frappe.local.user
-		with patch("frappe.get_request_header", new=_patch_request_header(TEST_SECRET)):
-			result = dispatch.dispatch_tool(
-				tool="read", user="Administrator", arguments={"doctype": "Not A Real DocType"}, run=run
-			)
-		self.assertIn("error", result)
-		self.assertEqual(frappe.session.user, "Guest")
-		self.assertEqual(frappe.local.user, original_local_user)
-
-	def test_tool_call_budget_is_enforced(self):
-		"""The budget must actually stop the run, not just record usage."""
-		run = _run_for(max_tool_calls=2)
-		with patch("frappe.get_request_header", new=_patch_request_header(TEST_SECRET)):
-			for _ in range(2):
-				ok = dispatch.dispatch_tool(
-					tool="read", user="Administrator", arguments={"doctype": "DocType"}, run=run
-				)
-				self.assertIn("result", ok)
-			exceeded = dispatch.dispatch_tool(
-				tool="read", user="Administrator", arguments={"doctype": "DocType"}, run=run
-			)
-		self.assertIn("error", exceeded)
-		self.assertIn("budget", exceeded["error"].lower())
 
 
 class TestDispatchPluginToolScope(IntegrationTestCase):
@@ -584,11 +339,10 @@ class TestGetAgentTools(IntegrationTestCase):
 		frappe.db.rollback()
 
 	def test_returns_confirmation_map(self):
-		sync_builtin_tools()
 		agent = _model_and_agent("Tools Map Agent")
-		mapping = api.get_agent_tools(agent)
-		self.assertIn("read", mapping)
-		self.assertFalse(mapping["read"])
+		with patch("frappe_ai.api.service._resolve_agent_plugin_tools", return_value=[{"name": "read", "requires_confirmation": False}]):
+			mapping = api.get_agent_tools(agent)
+		self.assertEqual(mapping, {"read": False})
 
 	def test_empty_agent_name_returns_empty(self):
 		self.assertEqual(api.get_agent_tools(""), {})
@@ -755,11 +509,10 @@ class TestStopRunAndFeedback(IntegrationTestCase):
 		self.assertEqual(result["rating"], "Up")
 
 	def test_submit_feedback_down_saves_shared_memory_when_enabled(self):
-		sync_builtin_tools()
 		agent = _model_and_agent("Feedback Memory Agent")
 		agent_doc = frappe.get_doc("AI Agent", agent)
-		if not any(row.tool_name == "update_memory" for row in agent_doc.tools):
-			agent_doc.append("tools", {"tool_name": "update_memory"})
+		if not any(row.fac_tool == "update_memory" for row in agent_doc.plugin_tools):
+			agent_doc.append("plugin_tools", {"fac_tool": "update_memory", "enabled": 1})
 			agent_doc.save(ignore_permissions=True)
 		started = api.start_run(input="hello", agent=agent)
 		frappe.db.set_value("AI Run", started["run"], "status", "Completed")
@@ -948,7 +701,7 @@ class TestFrontendAPI(IntegrationTestCase):
 		agent_row = next(row for row in data["agent"]["items"] if row["name"] == agent)
 		self.assertEqual(agent_row["mcp_connections"][0]["name"], "frontend-bootstrap-mcp")
 		self.assertEqual(agent_row["mcp_connections"][0]["status"], "connected")
-		self.assertGreaterEqual(agent_row["tools"]["count"], 1)
+		self.assertEqual(agent_row["tools"]["count"], len(agent_row["tools"]["summaries"]))
 		self.assertTrue(any(row["name"] == data["agent"]["selected"] for row in data["agent"]["items"]))
 		self.assertIsInstance(data["session"]["history"], list)
 		self.assertIsInstance(data["composer"]["supported_file_types"], list)
@@ -1072,8 +825,7 @@ class TestFrontendAPI(IntegrationTestCase):
 		tools = frontend.agent_tools(agent)
 		feedback = frontend.run_feedback(started["run"])
 
-		self.assertGreaterEqual(tools["tools"]["count"], 1)
-		self.assertTrue(any(tool["name"] == "read" for tool in tools["tools"]["summaries"]))
+		self.assertEqual(tools["tools"]["count"], len(tools["tools"]["summaries"]))
 		self.assertEqual(feedback["run"], started["run"])
 		self.assertEqual(feedback["rating"], "Up")
 		self.assertEqual(feedback["comment"], "Nice")

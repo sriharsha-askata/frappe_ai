@@ -162,6 +162,8 @@ class AgentBuilder:
 		the only place these tools actually run, in Frappe, as `user`.
 		"""
 		name = tool_cfg["name"]
+		if tool_cfg.get("source") != "fac":
+			raise AgentBuildError(f"Unsupported local tool source for {name}: {tool_cfg.get('source')}")
 		requires_confirmation = tool_cfg["requires_confirmation"]
 
 		# `fc` is injected by Agno's `_build_entrypoint_args` when present in the
@@ -175,8 +177,7 @@ class AgentBuilder:
 			if requires_confirmation and not auto_approve and call_id not in approved_call_ids:
 				raise PendingConfirmation(tool_call_id=call_id or "", name=name, arguments=kwargs)
 
-			dispatch = self.frappe_client.dispatch_plugin_tool if tool_cfg.get("source") == "fac" else self.frappe_client.dispatch_tool
-			response = await dispatch(name, user, kwargs, run, call_id)
+			response = await self.frappe_client.dispatch_plugin_tool(name, user, kwargs, run, call_id)
 			if "error" in response:
 				return {"error": response["error"]}
 			return response.get("result")

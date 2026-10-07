@@ -1,22 +1,16 @@
 # Copyright (c) 2026, Frappe Technologies and contributors
 # License: MIT. See LICENSE
 
-"""Tests for `frappe_ai/tools/builtins.py` — the ten builtin tools and
-`sync_builtin_tools()`. Permission enforcement (`find_doctypes`/`describe`/`read`/
-`create`/`update`/`delete`) is the security-relevant surface here, since these are
-exactly the tools `frappe_ai.api.dispatch.dispatch_tool` calls after
-`frappe.set_user(acting_user)` — this is the decisive test from
-`001-architecture.md` §12: "a non-System-Manager user asking the agent to read a
-DocType they lack permission on is refused by the tool."
-"""
+"""Permission and behavior tests for the functions retained by native FAC tools."""
 
 from __future__ import annotations
 
 import frappe
 from frappe.tests import IntegrationTestCase
+from unittest.mock import patch
 
+from frappe_ai.assistant_tools.native import ExecuteTool, RunActionTool
 from frappe_ai.tools.builtins import (
-	BUILTIN_TOOLS,
 	bind_search_knowledge,
 	bind_update_memory,
 	create,
@@ -24,33 +18,10 @@ from frappe_ai.tools.builtins import (
 	describe,
 	find_doctypes,
 	read,
-	sync_builtin_tools,
 	update,
 )
 
 TEST_USER = "test-frappe-ai-builtins@example.com"
-
-
-class TestSyncBuiltinTools(IntegrationTestCase):
-	def tearDown(self):
-		frappe.db.rollback()
-
-	def test_creates_all_ten_as_system_generated(self):
-		sync_builtin_tools()
-		for builtin in BUILTIN_TOOLS:
-			with self.subTest(tool=builtin.name):
-				doc = frappe.get_doc("AI Tool", builtin.name)
-				self.assertEqual(doc.type, "Imported")
-				self.assertTrue(doc.is_system_generated)
-				self.assertEqual(bool(doc.requires_confirmation), builtin.requires_confirmation)
-
-	def test_resync_updates_existing_row_via_db_set_value(self):
-		sync_builtin_tools()
-		# db.set_value bypasses validate()'s immutability guard on purpose — confirm a
-		# second sync doesn't raise even though these rows are is_system_generated.
-		sync_builtin_tools()
-		doc = frappe.get_doc("AI Tool", "read")
-		self.assertTrue(doc.is_system_generated)
 
 
 class TestFindDoctypesPermission(IntegrationTestCase):
@@ -146,12 +117,30 @@ class TestExecuteSandbox(IntegrationTestCase):
 		result = execute(code="result = 1 + 1", description="add numbers")
 		self.assertEqual(result, 2)
 
+	def test_fac_execute_keeps_hardened_sandbox(self):
+		with self.assertRaises(AttributeError):
+			ExecuteTool().execute({"code": 'result = frappe.db.sql("select 1")', "description": "Run SQL"})
+
+
+class TestFACRunActionParity(IntegrationTestCase):
+	def test_fac_wrapper_uses_existing_action_implementation(self):
+		with patch("frappe_ai.tools.builtins._apply_action", side_effect=["ok", ValueError("denied")]) as apply:
+			result = RunActionTool().execute({"doctype": "ToDo", "names": ["A", "B"], "action": "submit"})
+		self.assertEqual(result["results"], [{"name": "A", "result": "ok"}])
+		self.assertEqual(result["failures"], [{"name": "B", "error": "denied"}])
+		self.assertEqual(apply.call_count, 2)
+
+	def test_fac_wrapper_preserves_rename_contract(self):
+		with patch("frappe.rename_doc", return_value="New") as rename:
+			result = RunActionTool().execute({"doctype": "ToDo", "names": ["Old"], "action": "rename", "args": {"new_name": "New"}})
+		self.assertEqual(result, {"action": "rename", "old": "Old", "new": "New"})
+		rename.assert_called_once_with("ToDo", "Old", "New")
+
 
 class TestKnowledgeAndMemoryFailClosed(IntegrationTestCase):
 	"""`search_knowledge` and `update_memory` are both bound tools by this point."""
 
 	def setUp(self):
-		sync_builtin_tools()
 		if not frappe.db.exists("AI Provider", "openai"):
 			frappe.get_doc({"doctype": "AI Provider", "provider": "openai"}).insert(ignore_permissions=True)
 		if not frappe.db.exists("AI Model", "Builtins Memory Model"):
@@ -170,7 +159,6 @@ class TestKnowledgeAndMemoryFailClosed(IntegrationTestCase):
 					"title": "Builtins Memory Agent",
 					"model": "Builtins Memory Model",
 					"instructions": "Remember useful facts.",
-					"tools": [{"tool_name": "update_memory"}],
 				}
 			).insert(ignore_permissions=True)
 

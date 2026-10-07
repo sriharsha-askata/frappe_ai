@@ -127,18 +127,6 @@ def _update(agent: str, memory_id: str, content: str, keywords: str | None = Non
 
 
 def _has_memory_tool(agent: str) -> bool:
-	if frappe.db.exists(
-		"AI Agent Tool",
-		{"parenttype": "AI Agent", "parent": agent, "tool": MEMORY_TOOL_SLUG},
-	):
-		return True
-
-	if frappe.db.exists("DocType", "AI Agent Tool Config") and frappe.db.exists(
-		"AI Agent Tool Config",
-		{"parenttype": "AI Agent", "parent": agent, "tool_name": MEMORY_TOOL_SLUG, "enabled": 1},
-	):
-		return True
-
 	if not frappe.db.exists("DocType", "AI Agent Plugin Tool"):
 		return False
 

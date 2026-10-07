@@ -135,6 +135,6 @@ embedding search load directly on the ERP database.
 ## References
 
 - [001 — Architecture §7](../specifications/001-architecture.md)
-- [003 — DocType Reference §14](../specifications/003-doctype-reference.md)
+- [003 — DocType Reference §12](../specifications/003-doctype-reference.md)
 - `apps/flow/flow/knowledge/` — the pipeline being ported
 - `apps/flow/flow/memory/store.py` — the vectorless FTS index being ported

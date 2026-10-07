@@ -5,6 +5,11 @@ tools. `AI Tool`, `AI Agent Tool`, and `AI Agent Tool Config` are removed by the
 retirement release. `AI MCP Tool.matched_ai_tool` and `AI Agent.tools` are removed
 with them. `AI FAC Tool` is a separate mirror and remains unchanged.
 
+This runbook, `api/retirement.py`, `api/migration.py`, the two retirement patches and the
+DocType controller shims are temporary. Remove them in Stage 2 (see the
+[progress tracker](progress/ai-tool-retirement-via-assistant-core.md)) after every site has
+migrated. The decision record is [ADR 0020](decisions/0020-retire-ai-tool-for-fac.md).
+
 ## Before deploying the deletion release
 
 Repeat these steps for **every installed site** while the old DocTypes are still
@@ -20,7 +25,10 @@ and migration so no agent or tool configuration changes after the archive.
    converted automatically.
 3. Run `bench --site SITE execute frappe_ai.api.migration.migrate_ai_tools`.
    Review `unmatched`, `ambiguous`, and `conflicts`; fix every active binding.
-   The migration is safe to repeat and leaves legacy records in place.
+   The migration is safe to repeat and leaves legacy records in place. Legacy
+   binding rows whose agent no longer exists are ignored by `assert_ready`, and
+   disabled bindings of retired workflows (for example the SAP Match tools on
+   `tact.local`) do not block it; classify their tools as `retired`.
 4. Verify direct FAC permissions, confirmation, budgets, and audit results for
    each active tool family. For tender agents, run known-good Spec Review,
    Historical Match, and CAD cases and compare their persisted results. Resolve

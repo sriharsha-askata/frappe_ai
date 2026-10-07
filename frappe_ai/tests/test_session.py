@@ -32,7 +32,6 @@ def _model_and_agent(title: str = "Session Test Agent") -> str:
 				"title": title,
 				"model": "Session Test Model",
 				"instructions": "You are helpful.",
-				"tools": [{"tool_name": "read"}] if frappe.db.exists("AI Tool", "read") else [],
 			}
 		).insert(ignore_permissions=True)
 	return title
@@ -81,12 +80,10 @@ class TestAISessionPromptMessages(IntegrationTestCase):
 		frappe.db.rollback()
 
 	def test_build_prompt_messages_injects_memory_block(self):
-		sync_builtin_tools = frappe.get_attr("frappe_ai.tools.builtins.sync_builtin_tools")
-		sync_builtin_tools()
 		agent = _model_and_agent(title="Session Memory Agent")
 		doc = frappe.get_doc("AI Agent", agent)
-		if not any(row.tool_name == "update_memory" for row in doc.tools):
-			doc.append("tools", {"tool_name": "update_memory"})
+		if not any(row.fac_tool == "update_memory" for row in doc.plugin_tools):
+			doc.append("plugin_tools", {"fac_tool": "update_memory", "enabled": 1})
 			doc.save(ignore_permissions=True)
 		session = frappe.get_doc(_session(agent=agent)).insert(ignore_permissions=True)
 		run = create_run(source="Manual", input="Remember vendor preferences", session=session.name)

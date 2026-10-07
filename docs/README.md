@@ -45,9 +45,9 @@ and the [Assistant Core migration tracker](progress/ai-tool-retirement-via-assis
 |---|---|
 | [001 — Architecture](specifications/001-architecture.md) | Component boundaries, request lifecycles, auth model, data architecture, streaming protocol, failure handling, deployment |
 | [002 — Feature Mapping](specifications/002-feature-mapping.md) | Every `flow` capability and its `frappe_ai` equivalent, marked Port / Adapt / Redesign / New / Drop. The parity checklist. |
-| [003 — DocType Reference](specifications/003-doctype-reference.md) | All 22 current DocTypes: fields, types, naming rules, controllers, permissions |
+| [003 — DocType Reference](specifications/003-doctype-reference.md) | All 19 current DocTypes: fields, types, naming rules, controllers, permissions |
 | [005 — Frontend Contract](specifications/005-frontend-contract.md) | Stable same-origin JSON endpoints, SSE stream protocol, host adapter boundaries, and end-to-end client flows for the standalone SPA or any custom frontend |
-| [007 — MCP Integration & Cleanup](specifications/007-mcp-integration-and-cleanup.md) | Verified plan to integrate with Assistant Core/FAC, migrate runtime authority, and retain `ai_tool`/`ai_agent_tool` as compatibility records |
+| [007 — MCP Integration & Cleanup](specifications/007-mcp-integration-and-cleanup.md) | Verified plan to integrate with Assistant Core/FAC and retire the legacy `AI Tool` DocTypes (see [ADR 0020](decisions/0020-retire-ai-tool-for-fac.md) and the [retirement runbook](ai-tool-retirement.md)) |
 | [Frappe Assistant Core Integration Guide](FRAPPE_ASSISTANT_CORE_INTEGRATION.md) | Ownership boundary between `frappe_ai` and Assistant Core, the acting-user identity/security requirement for MCP calls, failure/fallback rules, and a step-by-step practical setup guide |
 | [011 — AI Model Capability Testing](specifications/011-ai-model-capability-testing.md) | Explicit saved-model Chat capability suite and result contract |
 
@@ -77,6 +77,7 @@ and the [Assistant Core migration tracker](progress/ai-tool-retirement-via-assis
 | [0014](decisions/0014-openai-compatible-chat-transport.md) | One OpenAI-compatible transport for all chat execution | Removes provider SDK coupling while preserving Agno orchestration, tools, confirmations, structured output, and streaming |
 | [0015](decisions/0015-configuration-time-model-capability-tests.md) | Capability checks run explicitly at configuration time | Provides actionable coverage without runtime preflight calls or real business-tool execution |
 | [0016](decisions/0016-fixed-ollama-embeddings.md) | Fixed Ollama `nomic-embed-text` embeddings | Keeps one vector space while allowing environment-specific private endpoints |
+| [0020](decisions/0020-retire-ai-tool-for-fac.md) | Retire `AI Tool` / `AI Agent Tool` / `AI Agent Tool Config` in favour of Assistant Core (FAC) tools | One tool path and one authorization path; deletion is gated by a per-site archive |
 
 ---
 
@@ -105,7 +106,7 @@ LanceDB row `id`. Changing that naming rule silently breaks retrieval.
 
 ### 3. All sandboxed code uses one hardened namespace
 
-`execute`, Script `AI Tool` rows, and `AI Trigger.condition` all run through
+`execute` and `AI Trigger.condition` run through
 `frappe_ai/utils/safe_exec.py`, which excludes `frappe.db.sql`, `frappe.qb`,
 `frappe.db.set_value`, and `frappe.get_all`.
 

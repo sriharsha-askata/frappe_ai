@@ -8,7 +8,7 @@
 ## 1. Problem and resolution
 
 `AI Session.model` is meant to let a session override its agent's default model.
-[003-doctype-reference.md](003-doctype-reference.md) §8 already documents this as
+[003-doctype-reference.md](003-doctype-reference.md) §6 already documents this as
 existing behaviour — *"model may be overridden"* (only `agent` is documented as locked)
 — and `start_run`'s own docstring in
 [api.py](../../frappe_ai/api/api.py) already claims *"model may still override the
@@ -94,7 +94,7 @@ then the full suite once to confirm no regression against the baseline pass coun
 
 ## 5. Documentation alignment
 
-- [003-doctype-reference.md](003-doctype-reference.md) §8 — extend the `AI Session`
+- [003-doctype-reference.md](003-doctype-reference.md) §6 — extend the `AI Session`
   Controller bullet to name the mechanism and guard: *"Model may be changed on an existing
   session via `start_run(session=..., model=...)`, blocked by `assert_not_blocked()` while
   a run is `Paused`/`Running`."*

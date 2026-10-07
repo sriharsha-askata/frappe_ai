@@ -1,5 +1,11 @@
 # Work Plan: MCP Integration & DocType Cleanup for frappe_ai
 
+> **Update (2026-10-06):** `AI Tool`, `AI Agent Tool` and `AI Agent Tool Config` are
+> deleted in the working tree (see [ADR 0020](../decisions/0020-retire-ai-tool-for-fac.md)
+> and the [runbook](../ai-tool-retirement.md)); per-site archive and rollout are pending.
+> Statements below about retaining those DocTypes, the "17 `AI Tool` rows" and the
+> 2026-08-19 audit describe the state at that time and are historical.
+
 > **Current-site update (2026-10-03):** SAP Match is retired on `tact.local`.
 > Its agent, manual trigger, and plugin-tool bindings are disabled, with records
 > retained for audit. No active agent has an MCP binding. The 2026-08-19 live
@@ -514,95 +520,30 @@ a narrower `frappe_ai`-contributed tool like Phase 4's, or genuinely covered).
 **Completion criteria:** Zero `AI Tool` rows remain without a verified Assistant
 Core equivalent.
 
-### Phase 7 — Retire legacy runtime authority (retain compatibility DocTypes)
+### Phase 7 — Retire the legacy tool DocTypes
 
-> **⚠️ STATUS: PAUSED (2026-08-19)** - Attempted on 2026-08-19 but **reverted** due to test failures.
-> Agents lost direct tool access without MCP connection. Users need native builtins even when MCP is not configured.
-> Reverted: Restored `tools` field in `ai_agent.json` and `ai_agent.py`.
-> **Next step**: Find safer approach to deprecate while preserving direct tool access.
+> **Status (2026-10-06): code complete, rollout pending.** The first attempt (2026-08-19)
+> was reverted because agents lost direct tool access; that gap is closed by the direct
+> `AI Agent Plugin Tool` path. See [ADR 0020](../decisions/0020-retire-ai-tool-for-fac.md)
+> and the [retirement runbook](../ai-tool-retirement.md).
 
-**Objective:** Remove legacy DocTypes from active runtime authority while retaining
-`AI Tool` and `AI Agent Tool` as compatibility and migration input. These DocTypes
-are not deleted under the current decision.
+**Objective:** Remove `AI Tool`, `AI Agent Tool`, `AI Agent Tool Config`, `AI Agent.tools`,
+`AI MCP Tool.matched_ai_tool`, the resolver and the seeded builtin rows, so FAC is the only
+local tool path.
 
-**Scope:** In — runtime deprecation and migration only; DocType deletion is out of scope under the current decision.
+**Scope:** In: runtime and schema removal, per-site archive gate, DocType and table
+removal patches, docs. Out: remote MCP budget coverage, `execute` and `run_action` parity,
+tender workflow verification (still open gates, tracked in the progress file).
 
-#### Step 7.1: Modify ai_agent.json
+**Deliverables:** deletion release (code), `api/retirement.py` archive and preflight gate,
+patches `assert_ai_tool_retirement_ready` and `delete_ai_tool_doctypes`, runbook, ADR 0020.
 
-**File**: `frappe_ai/frappe_ai/doctype/ai_agent/ai_agent.json`
+**Dependencies:** per-site archive with a disposition, owner and verification reference
+for every `AI Tool` slug; Phase 6 audit for the rows classified `migrated`.
 
-```json
-// REMOVE this field:
-{
-  "fieldname": "tools",
-  "fieldtype": "Table",
-  "label": "Tools",
-  "options": "AI Agent Tool"
-}
-```
-
-#### Step 7.2: Modify ai_agent.py
-
-**File**: `frappe_ai/frappe_ai/doctype/ai_agent/ai_agent.py`
-
-```python
-# In TYPE_CHECKING, remove:
-tools: DF.Table[AIAgentTool]
-```
-
-#### Step 7.3: Simplify service.py
-
-**File**: `frappe_ai/frappe_ai/api/service.py`
-
-```python
-# Change from:
-def _resolve_agent_tools(agent_doc) -> list[dict]:
-    resolved = []
-    for row in agent_doc.tools:
-        tool_doc = frappe.get_doc("AI Tool", row.tool)
-        # ... resolve tool ...
-    return resolved
-
-# To:
-def _resolve_agent_tools(agent_doc) -> list[dict]:
-    # Native tools removed - tools come from MCP only
-    return []
-```
-
-#### Step 7.4: Delete ai_tool Files (obsolete; do not perform)
-
-**Files to Delete**:
-```
-frappe_ai/frappe_ai/doctype/ai_tool/
-├── __init__.py
-├── ai_tool.json
-└── ai_tool.py
-```
-
-#### Step 7.5: Delete ai_agent_tool Files (obsolete; do not perform)
-
-**Files to Delete**:
-```
-frappe_ai/frappe_ai/doctype/ai_agent_tool/
-├── __init__.py
-├── ai_agent_tool.json
-└── ai_agent_tool.py
-```
-
-Update active runtime callers to prefer FAC bindings. Retain compatibility callers
-needed for migration, legacy UI, triggers, and existing records.
-`docs/specifications/003-doctype-reference.md` to drop the two DocTypes.
-(`DOCTYPE_CLEANUP_PLAN.md`, which previously tracked this history, has been
-removed — its retracted recommendation and completed cleanup step carried no
-remaining action items; this spec is the current source of truth.)
-
-**Out** — deleting the two compatibility DocTypes and their data.
-
-**Dependencies:** Phase 6 remains required for complete runtime deprecation, but it
-is not a deletion gate because the compatibility DocTypes are retained.
-
-**Completion criteria:** FAC is authoritative for new direct bindings, migration
-reports are reviewed, and compatibility callers are isolated and documented.
+**Completion criteria:** every installed site has been archived and migrated, the three
+DocTypes and tables are gone, agent and MCP forms load, and a direct FAC agent run
+completes. A second stage then removes the temporary retirement machinery.
 
 ---
 
@@ -641,9 +582,9 @@ reports are reviewed, and compatibility callers are isolated and documented.
 |------|------|-------------|
 | 6.1 | Decision | Resolve `run_action` |
 | 6.2 | Audit | Confirm all 17 `AI Tool` rows have a live Assistant Core equivalent |
-| 7.1 | Code | Remove `tools` from `ai_agent`, simplify `service.py` |
-| 7.2 | Code | Delete `ai_tool`, `ai_agent_tool` |
-| 7.3 | Docs | Update documentation |
+| 7.1 | Code | Remove `tools` from `ai_agent`, simplify `service.py` (done, uncommitted) |
+| 7.2 | Code | Delete `ai_tool`, `ai_agent_tool`, `ai_agent_tool_config` (done, uncommitted) |
+| 7.3 | Docs | Update documentation (done) |
 
 ---
 
@@ -676,8 +617,8 @@ reports are reviewed, and compatibility callers are isolated and documented.
 - [x] Added direct `plugin_tools` field and removed legacy tools from the runtime resolver
 - [x] Added `_resolve_agent_plugin_tools()` and `dispatch_plugin_tool()`
 - [x] Added idempotent legacy migration/reporting path
-- [x] Retain `AI Tool` and `AI Agent Tool` as compatibility/migration DocTypes
-- [ ] Remove legacy DocTypes from active runtime authority - Partial; several references remain
+- [x] Remove the legacy DocTypes, resolver and `dispatch_tool` path from the codebase (deletion release; uncommitted until rollout)
+- [ ] Archive, migrate and verify every site (`tact.local` still holds 12 `AI Tool` rows)
 - [x] Active tender agents use direct FAC bindings; `tact.local` has no active agent MCP bindings (2026-10-03)
 - [ ] Spec Review workflow passes through direct FAC with known-good results
 - [ ] Historical Match workflow passes through direct FAC with known-good results
@@ -728,12 +669,13 @@ reports are reviewed, and compatibility callers are isolated and documented.
 | ai_trigger | Used by other apps |
 | ai_knowledge_* | In use |
 
-### Remove — gated on Phase 6 (see Part 5)
+### Removed — per-site archive gate (see ADR 0020)
 
-| DocType | When |
-|---------|-------|
-| ai_tool | Retained for compatibility and migration input; not authoritative for new runtime bindings |
-| ai_agent_tool | Retained for compatibility and migration input; not authoritative for new runtime bindings |
+| DocType | Status |
+|---------|--------|
+| ai_tool | Removed in the deletion release; sites must be archived first |
+| ai_agent_tool | Removed in the deletion release; sites must be archived first |
+| ai_agent_tool_config | Removed in the deletion release; sites must be archived first |
 
 `ai_mcp_server_profile` and `ai_mcp_server_tool` were found to be orphaned
 `__pycache__`-only directories (no real doctype files, untracked, absent from git

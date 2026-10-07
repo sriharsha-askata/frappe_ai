@@ -35,7 +35,6 @@ class AIAgent(Document):
 			AIAgentMCPConnection,
 		)
 		from frappe_ai.frappe_ai.doctype.ai_agent_plugin_tool.ai_agent_plugin_tool import AIAgentPluginTool
-		from frappe_ai.frappe_ai.doctype.ai_agent_tool_config.ai_agent_tool_config import AIAgentToolConfig
 
 		agent_type: DF.Literal["Agent", "Team"]
 		enabled: DF.Check
@@ -54,7 +53,6 @@ class AIAgent(Document):
 		reasoning: DF.Check
 		temperature: DF.Float
 		title: DF.Data
-		tools: DF.Table[AIAgentToolConfig]
 		top_p: DF.Float
 	# end: auto-generated types
 
@@ -93,15 +91,16 @@ class AIAgent(Document):
 			frappe.throw(_("Max Iterations must be at least 1."), title=_("Invalid Max Iterations"))
 
 	def _ensure_knowledge_search_tool(self):
-		if not self.knowledge_bases:
+		if not self.knowledge_bases or not frappe.db.exists("DocType", "FAC Tool Configuration"):
 			return
-		if any(row.tool_name == KNOWLEDGE_SEARCH_SLUG for row in self.tools):
+		if not frappe.db.exists("FAC Tool Configuration", KNOWLEDGE_SEARCH_SLUG):
 			return
-		self.append("tools", {
-			"tool_name": KNOWLEDGE_SEARCH_SLUG,
-			"source": "manual",
-			"description": "Search configured knowledge bases.",
+		if any(row.fac_tool == KNOWLEDGE_SEARCH_SLUG for row in self.plugin_tools or []):
+			return
+		self.append("plugin_tools", {
+			"fac_tool": KNOWLEDGE_SEARCH_SLUG,
 			"enabled": 1,
+			"requires_confirmation": 0,
 		})
 
 	def _snapshot(self, *, model: str | None = None) -> dict[str, Any]:
@@ -109,7 +108,6 @@ class AIAgent(Document):
 			"title": self.title,
 			"model": model or self.model,
 			"instructions": self.instructions,
-			"tools": [row.tool_name for row in getattr(self, "tools", []) if row.tool_name],
 			"mcp_connections": [row.mcp_connection for row in getattr(self, "mcp_connections", [])],
 			"plugin_tools": [row.fac_tool for row in getattr(self, "plugin_tools", [])],
 			"max_iterations": self.max_iterations or DEFAULT_MAX_ITERATIONS,

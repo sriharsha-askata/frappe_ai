@@ -32,7 +32,6 @@ def _client():
 		fail_run=AsyncMock(),
 		get_fallback_model_config=AsyncMock(return_value=None),
 		log_diagnostic=AsyncMock(),
-		dispatch_tool=AsyncMock(return_value={"result": {"ok": True}}),
 		dispatch_plugin_tool=AsyncMock(return_value={"result": {"ok": True}}),
 	)
 
@@ -88,7 +87,7 @@ class TestStreamChatProviderAndConfirmation(unittest.IsolatedAsyncioTestCase):
 		payload = json.loads(frames[-1].split(b"data: ", 1)[1])
 		self.assertEqual(payload["status"], "Completed")
 		agent.arun.assert_not_awaited()
-		client.dispatch_tool.assert_not_awaited()
+		client.dispatch_plugin_tool.assert_not_awaited()
 		client.persist_run_result.assert_awaited_once()
 		stored = client.persist_run_result.await_args.args[1]["messages"]
 		self.assertEqual([row["role"] for row in stored], ["system", "user", "assistant", "tool"])
@@ -109,16 +108,13 @@ class TestStreamChatProviderAndConfirmation(unittest.IsolatedAsyncioTestCase):
 				)
 			]
 
-		# An Assistant Core tool must resume through `dispatch_plugin_tool`, the same
-		# dispatcher the streaming path picks for `source == "fac"`. Routing it to
-		# `dispatch_tool` would resolve the legacy `AI Tool` of the same name and
-		# skip FAC's role access and permission checks. The run id must also be
-		# passed through: budgets fail closed without it, and a confirmation-gated
+		# An Assistant Core tool resumes through `dispatch_plugin_tool`, the same
+		# dispatcher the streaming path uses for `source == "fac"`. The run id must
+		# be passed through: budgets fail closed without it, and a confirmation-gated
 		# tool is exactly the mutating kind the budget bounds.
 		client.dispatch_plugin_tool.assert_awaited_once_with(
 			"create_record", "Administrator", {"title": "Created"}, "RUN-3", "call-1"
 		)
-		client.dispatch_tool.assert_not_awaited()
 		payload = json.loads(frames[-1].split(b"data: ", 1)[1])
 		self.assertEqual(payload["status"], "Completed")
 		self.assertEqual(payload["output"], "The record is created.")
@@ -145,7 +141,6 @@ class TestStreamChatProviderAndConfirmation(unittest.IsolatedAsyncioTestCase):
 		self.assertEqual(seen_messages[-2].tool_calls[0]["id"], "call-1")
 		self.assertEqual(seen_messages[-1].tool_call_id, "call-1")
 		self.assertEqual(json.loads(seen_messages[-1].content)["user_feedback"], "Use a different title")
-		client.dispatch_tool.assert_not_awaited()
 		client.dispatch_plugin_tool.assert_not_awaited()
 
 	async def test_provider_failure_after_completed_tool_does_not_retry(self):
@@ -173,7 +168,7 @@ class TestStreamChatProviderAndConfirmation(unittest.IsolatedAsyncioTestCase):
 		self.assertIn(b"event: tool_ended", frames[1])
 		self.assertIn(b"event: error", frames[-1])
 
-	async def test_approved_legacy_tool_still_uses_legacy_dispatch(self):
+	async def test_approved_non_fac_tool_is_not_dispatched(self):
 		question = {"key": "call-1", "name": "create_record", "arguments": {"title": "Created"}, "prompt": "Create?"}
 		config = _config([question], tools=[{"name": "create_record", "source": "manual"}])
 		builder = SimpleNamespace(build=AsyncMock(return_value=(_ResumingAgent(), config)))
@@ -187,9 +182,6 @@ class TestStreamChatProviderAndConfirmation(unittest.IsolatedAsyncioTestCase):
 				)
 			]
 
-		client.dispatch_tool.assert_awaited_once_with(
-			"create_record", "Administrator", {"title": "Created"}, "RUN-4", "call-1"
-		)
 		client.dispatch_plugin_tool.assert_not_awaited()
 
 	async def test_approved_call_for_unbound_tool_is_not_dispatched(self):
@@ -212,7 +204,6 @@ class TestStreamChatProviderAndConfirmation(unittest.IsolatedAsyncioTestCase):
 				)
 			]
 
-		client.dispatch_tool.assert_not_awaited()
 		client.dispatch_plugin_tool.assert_not_awaited()
 
 

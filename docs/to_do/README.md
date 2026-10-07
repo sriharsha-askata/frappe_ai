@@ -23,7 +23,6 @@ still pending.
 | File | Type | Severity | One-line summary |
 |---|---|---|---|
 | [high-mcp-budget-bypass.md](high-mcp-budget-bypass.md) | Bug / security gap | High | Remote MCP tool calls bypass all per-run execution budgets |
-| [medium-tool-migration-telemetry.md](medium-tool-migration-telemetry.md) | Improvement | Medium — do early | No usage data distinguishing legacy vs. FAC tool-call volume |
 | [medium-correlation-id.md](medium-correlation-id.md) | Improvement | Medium | No correlation ID ties a run's Frappe and FastAPI logs together |
 | [medium-error-truncation-inconsistency.md](medium-error-truncation-inconsistency.md) | Improvement | Medium | Error-truncation limit duplicated at 500/300 across five files |
 | [medium-error-log-records-tool-arguments.md](medium-error-log-records-tool-arguments.md) | Bug / privacy | Medium | Tool arguments and prompt context written to Error Log |
@@ -53,12 +52,14 @@ DocType-sourced knowledge chunks being retrievable without the source document's
 read permission. They are recorded in that review rather than here because they
 are already resolved; this directory tracks only open work.
 
-## Sequencing note
+## Closed by the AI Tool retirement
 
-Severity is not the same as order-of-work. `medium-tool-migration-telemetry.md`
-is flagged to land early despite Medium severity, because it's cleanup for a
-migration that other items here (e.g. the `chat.py` extraction) touch adjacent
-code for — see that file's Priority note.
+The legacy-vs-FAC tool-call telemetry item was dropped on 2026-10-06: the legacy
+`dispatch_tool` path no longer exists, so there is nothing left to compare. The
+decision and remaining gates are in
+[ADR 0020](../decisions/0020-retire-ai-tool-for-fac.md).
+
+## Sequencing note
 
 The MCP budget item (`high-mcp-budget-bypass.md`) should not be bundled with any
 other item — see its Fix section. Its blocking design question was answered by

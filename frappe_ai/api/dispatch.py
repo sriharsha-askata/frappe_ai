@@ -1,11 +1,7 @@
 # Copyright (c) 2026, Frappe Technologies and contributors
 # License: MIT. See LICENSE
 
-"""Permission-enforcing tool dispatch for the FastAPI service (ADR 0003).
-
-Authenticate the service secret, bind each call to an active run and acting user,
-and enforce single-use approval for confirmation-gated calls. Tool exceptions
-return bounded error results so they do not terminate the run."""
+"""Permission-enforcing Assistant Core tool dispatch for the FastAPI service."""
 
 from __future__ import annotations
 
@@ -20,44 +16,12 @@ _ERROR_LIMIT = 500
 
 
 @frappe.whitelist(allow_guest=True)
-def dispatch_tool(
-	tool: str, user: str, arguments: dict | None = None, run: str | None = None, call_id: str | None = None
-) -> dict:
-	"""Execute one `AI Tool` under the acting user's permissions.
-
-	Return `{"result": ...}` or a tool-level `{"error": ...}` capped at 500
-	characters. Authentication, lookup, and disabled-tool failures still raise."""
-	_verify_service_secret()
-
-	if not frappe.db.exists("User", user):
-		frappe.throw(_("User {0} does not exist.").format(user), frappe.DoesNotExistError)
-	_require_active_run(run, user)
-
-	tool_doc = frappe.get_doc("AI Tool", tool)
-	if not tool_doc.enabled:
-		frappe.throw(_("Tool {0} is disabled.").format(tool), title=_("Tool Disabled"))
-	_enforce_confirmation(run, tool, call_id, arguments, bool(tool_doc.requires_confirmation))
-
-	with _acting_user_context(user):
-		try:
-			from frappe_ai.api.budgets import consume
-
-			consume(run, mutation=tool in {"create", "update", "delete", "run_action"}, records=_record_count(arguments or {}))
-			runtime_tool = tool_doc.to_tool()
-			result = runtime_tool(**(arguments or {}))
-			return {"result": result}
-		except Exception as e:
-			return {"error": _error_text(e)}
-
-
-@frappe.whitelist(allow_guest=True)
 def dispatch_plugin_tool(
 	tool: str, user: str, arguments: dict | None = None, run: str | None = None, call_id: str | None = None
 ) -> dict:
 	"""Execute a local Assistant Core tool under the run's acting user.
 
-	This is deliberately separate from ``dispatch_tool`` while existing sites are
-	migrated. It never falls back to AI Tool: registry availability, FAC
+	Registry availability, FAC
 	configuration, role access, and the tool's own permission checks are all
 	authoritative.
 	"""

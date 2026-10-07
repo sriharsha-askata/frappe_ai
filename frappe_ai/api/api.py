@@ -167,13 +167,9 @@ def get_agent_tools(agent: str) -> dict[str, bool]:
 	doc = frappe.get_doc("AI Agent", agent.strip())
 	frappe.has_permission("AI Agent", "read", doc.name, throw=True)
 
-	tool_names = [row.tool_name for row in doc.tools]
-	if not tool_names:
-		return {}
-	rows = frappe.get_all(
-		"AI Tool", filters={"name": ["in", tool_names]}, fields=["slug", "requires_confirmation"]
-	)
-	return {row.slug: bool(row.requires_confirmation) for row in rows}
+	from frappe_ai.api.service import _resolve_agent_plugin_tools
+
+	return {row["name"]: bool(row["requires_confirmation"]) for row in _resolve_agent_plugin_tools(doc, frappe.session.user)}
 
 
 @frappe.whitelist()

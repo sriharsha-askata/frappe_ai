@@ -31,38 +31,6 @@ from frappe_ai.frappe_ai.doctype.ai_session.ai_session import assert_session_own
 from frappe_ai.knowledge.extract import FILE_EXTENSIONS
 
 
-def _tool_summary_from_doc(tool_name: str) -> dict[str, Any] | None:
-	try:
-		tool_doc = frappe.get_doc("AI Tool", tool_name)
-	except frappe.DoesNotExistError:
-		return None
-	if not tool_doc.enabled:
-		return None
-	try:
-		runtime_tool = tool_doc.to_tool()
-	except Exception:
-		# Legacy AI Tool rows can outlive the callable they imported. Frontend
-		# bootstrap is a read path and must not be taken down by one stale row;
-		# active runtime tools are resolved independently through FAC below.
-		return None
-	return {
-		"id": runtime_tool.name,
-		"name": runtime_tool.name,
-		"display_name": tool_doc.title or runtime_tool.name,
-		"description": runtime_tool.description,
-		"requires_confirmation": bool(runtime_tool.requires_confirmation),
-		"input_schema": runtime_tool.parameters,
-		"summary": tool_doc.summary or _summarize_text(runtime_tool.description, limit=120),
-	}
-
-
-def _tool_summary_from_row(row) -> dict[str, Any] | None:
-	tool_name = getattr(row, "tool_name", None)
-	if not tool_name:
-		return None
-	return _tool_summary_from_doc(tool_name)
-
-
 def _tool_summaries(agent_doc) -> list[dict[str, Any]]:
 	items: list[dict[str, Any]] = []
 	seen: set[str] = set()
@@ -103,11 +71,6 @@ def _tool_summaries(agent_doc) -> list[dict[str, Any]]:
 			)
 			seen.add(tool_name)
 
-	for row in getattr(agent_doc, "tools", []) or []:
-		summary = _tool_summary_from_row(row)
-		if summary and summary["name"] not in seen:
-			items.append(summary)
-			seen.add(summary["name"])
 	return items
 
 

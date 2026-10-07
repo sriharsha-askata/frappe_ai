@@ -58,6 +58,14 @@ class TestAgentBudgets(unittest.IsolatedAsyncioTestCase):
 
 
 class TestAgentBuilder(unittest.TestCase):
+	def test_rejects_legacy_local_tool_source(self):
+		builder = AgentBuilder(frappe_client=None)  # type: ignore[arg-type]
+		with self.assertRaisesRegex(AgentBuildError, "Unsupported local tool source"):
+			builder._build_tool(
+				{"name": "legacy_tool", "source": "manual", "requires_confirmation": False},
+				run="RUN-1", user="Administrator", approved_call_ids=frozenset(), auto_approve=False,
+			)
+
 	def test_model_configuration_failure_has_normalized_code(self):
 		builder = AgentBuilder(frappe_client=None)  # type: ignore[arg-type]
 

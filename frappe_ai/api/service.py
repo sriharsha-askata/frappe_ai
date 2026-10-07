@@ -233,7 +233,7 @@ def _model_call_config(model_doc) -> dict:
 def _resolve_agent_plugin_tools(agent_doc, user: str) -> list[dict]:
 	"""Resolve direct local bindings from Assistant Core's authoritative registry.
 
-	The legacy AI Tool and AI FAC Tool tables are intentionally not consulted here.
+	The FAC registry is the only local runtime tool catalog.
 	A binding is exposed only when the registry says the tool is enabled and
 	accessible for the acting user; this prevents disabled or role-restricted tools
 	from leaking into the model schema.

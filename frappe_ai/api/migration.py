@@ -3,6 +3,10 @@
 The migration is intentionally data-driven and leaves a report.  It does not add
 an AI Tool-to-FAC link: after a successful run the only durable binding is the
 agent's ``AI Agent Plugin Tool.fac_tool`` row.
+
+Retirement machinery: run manually per site (see docs/ai-tool-retirement.md)
+before the deletion release is migrated. Remove in Stage 2, once every site has
+migrated and the rollback window has ended.
 """
 
 from __future__ import annotations
@@ -93,6 +97,6 @@ def migrate_ai_tools() -> dict[str, Any]:
 def run_ai_tool_migration() -> dict[str, Any]:
 	# Rewrites tool bindings on every AI Agent, so it needs the same authority as
 	# editing those agents directly. `migrate_ai_tools` itself stays uncontrolled
-	# because `after_migrate` invokes it as Administrator.
+	# so operators can run it from `bench execute` as Administrator.
 	frappe.has_permission("AI Agent", "write", throw=True)
 	return migrate_ai_tools()

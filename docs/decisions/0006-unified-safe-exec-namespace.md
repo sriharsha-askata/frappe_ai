@@ -4,6 +4,11 @@
 **Date:** 2026-08-05
 **Deciders:** Sri Harsha Dabbiru
 
+> **Note (2026-10-06):** Script and Imported `AI Tool` rows were retired
+> ([ADR 0020](0020-retire-ai-tool-for-fac.md)). References below to `AI Tool` rows and
+> `lib/resolver.py` describe the code at the time; the hardened namespace now applies to
+> `execute` and `AI Trigger.condition`, and "Imported tools" are FAC `BaseTool` classes.
+
 ---
 
 ## Why Agno does not remove this requirement

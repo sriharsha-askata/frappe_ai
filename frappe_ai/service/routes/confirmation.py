@@ -45,12 +45,11 @@ async def _dispatch_approved(
 			# run may no longer call it — an approval cannot re-grant what the
 			# current config withholds.
 			continue
-		dispatch = (
-			frappe_client.dispatch_plugin_tool
-			if tool_sources[question["name"]] == "fac"
-			else frappe_client.dispatch_tool
+		if tool_sources[question["name"]] != "fac":
+			continue
+		response = await frappe_client.dispatch_plugin_tool(
+			question["name"], user, question.get("arguments") or {}, run, call_id
 		)
-		response = await dispatch(question["name"], user, question.get("arguments") or {}, run, call_id)
 		result = response.get("result") if "error" not in response else {"error": response["error"]}
 		results.append({"id": call_id, "name": question["name"], "arguments": question.get("arguments") or {}, "result": result})
 	return results
@@ -189,8 +188,8 @@ def _denied_result(
 
 
 def _confirm_prompt(pending: PendingConfirmation) -> str:
-	"""Best-effort human-readable summary. `AI Tool.confirm_prompt` lambdas
-	(`frappe_ai.tools.builtins`) run in Frappe, not here — the service only sees the
+	"""Best-effort human-readable summary. Tool confirmation text is assembled
+	in the service from the bound FAC metadata — the service only sees the
 	JSON Schema, not the tool's Python. A generic fallback keeps the panel usable;
 	The prompt uses the stored tool name and arguments."""
 	return f"Run {pending.name} with {json.dumps(pending.arguments, default=str)}?"

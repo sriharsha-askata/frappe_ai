@@ -271,17 +271,6 @@ def _update_tool_row(row, item: dict[str, Any], discovered_at) -> None:
 	row.raw_metadata = json.dumps(item.get("raw_metadata") or {})
 	row.available = 1
 	row.last_discovered = discovered_at
-	row.matched_ai_tool = _match_ai_tool(item["tool_name"])
-
-
-def _match_ai_tool(tool_name: str) -> str | None:
-	matches = frappe.get_all(
-		"AI Tool",
-		filters={"enabled": 1},
-		or_filters=[{"name": tool_name}, {"slug": tool_name}, {"import_path": tool_name}],
-		pluck="name",
-	)
-	return matches[0] if len(matches) == 1 else None
 
 
 def _tool_row(row) -> dict[str, Any]:
@@ -290,7 +279,6 @@ def _tool_row(row) -> dict[str, Any]:
 		"description": row.description or "",
 		"input_schema": json.loads(row.input_schema) if row.input_schema else {},
 		"available": bool(row.available),
-		"matched_ai_tool": row.matched_ai_tool,
 		"last_discovered": row.last_discovered,
 	}
 

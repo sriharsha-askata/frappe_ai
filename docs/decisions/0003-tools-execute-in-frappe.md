@@ -11,7 +11,9 @@
 Moving orchestration into a separate service ([ADR 0001](0001-agno-fastapi-over-frappe-native.md))
 raises the question of where **tools** run — specifically the eight builtin tools that read
 and mutate Frappe data (`find_doctypes`, `describe`, `read`, `create`, `update`, `delete`,
-`run_action`, `execute`), plus user-authored `AI Tool` rows.
+`run_action`, `execute`), plus user-authored tools. (When this ADR was written those were
+`AI Tool` DocType rows; they are now FAC tools — see
+[ADR 0020](0020-retire-ai-tool-for-fac.md).)
 
 `flow`'s security model rests entirely on these tools executing in-process as the
 requesting user:

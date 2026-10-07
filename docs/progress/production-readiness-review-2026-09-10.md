@@ -531,11 +531,11 @@ counting), `hooks.py` (narrow `doc_events`), `api/dispatch.py` +
 
 ## 15. Files to Delete / Merge
 
-**None recommended.** The legacy `AI Tool` / `AI Agent Tool` DocTypes are retained
-deliberately for migration compatibility and still have live readers in
-`api/migration.py` and `memory/memory.py`. Deleting them now would break the
-migration path; they should be removed only after `medium-tool-migration-telemetry.md`
-confirms legacy tool-call volume has reached zero.
+**None recommended at the time of this review.** The legacy `AI Tool` / `AI Agent Tool`
+DocTypes were retained for migration compatibility. *Update 2026-10-06:* they were
+removed by the retirement release behind a per-site archive gate
+([ADR 0020](../decisions/0020-retire-ai-tool-for-fac.md)); the telemetry to-do referenced
+here was dropped as moot.
 
 ## 16. Tests Required Before Production
 

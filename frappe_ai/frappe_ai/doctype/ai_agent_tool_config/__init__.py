@@ -1,2 +1,4 @@
-# Copyright (c) 2026, Harsha and contributors
-# For license information, please see license.txt
+"""Upgrade-only import shim; the AI Agent Tool Config schema is retired.
+
+Retirement machinery: remove in Stage 2, after every site has migrated.
+"""

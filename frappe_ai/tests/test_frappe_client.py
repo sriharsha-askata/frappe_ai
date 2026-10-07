@@ -10,14 +10,14 @@ from unittest.mock import AsyncMock
 
 from frappe_ai.service.config import ServiceSettings
 from frappe_ai.service.frappe_client import (
-	DISPATCH_TOOL_METHOD,
+	DISPATCH_PLUGIN_TOOL_METHOD,
 	TOOL_DISPATCH_TIMEOUT_SECONDS,
 	FrappeClient,
 )
 
 
 class TestFrappeClient(unittest.IsolatedAsyncioTestCase):
-	async def test_dispatch_tool_uses_long_timeout(self):
+	async def test_dispatch_plugin_tool_uses_long_timeout(self):
 		client = FrappeClient(
 			ServiceSettings(
 				service_secret="secret",
@@ -27,11 +27,11 @@ class TestFrappeClient(unittest.IsolatedAsyncioTestCase):
 		)
 		client._post_json = AsyncMock(return_value={"result": "ok"})
 
-		result = await client.dispatch_tool("load_spec_review_context", "Administrator", {"enquiry": "E-1"}, "RUN-1", "call-1")
+		result = await client.dispatch_plugin_tool("load_spec_review_context", "Administrator", {"enquiry": "E-1"}, "RUN-1", "call-1")
 
 		self.assertEqual(result, {"result": "ok"})
 		client._post_json.assert_awaited_once_with(
-			DISPATCH_TOOL_METHOD,
+			DISPATCH_PLUGIN_TOOL_METHOD,
 			json={
 				"tool": "load_spec_review_context",
 				"user": "Administrator",

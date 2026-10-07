@@ -57,7 +57,7 @@ The objective is therefore narrow: **change the execution substrate, preserve th
 │                                   │   │                               │
 │  AI * DocTypes (source of truth)  │   │  AgentBuilder                 │
 │  ├─ Provider / Model / Settings   │◄──┤   DocType config → Agno Agent │
-│  ├─ Agent / Tool / MCP Connection │(3)│                               │
+│  ├─ Agent / Plugin Tool / MCP Connection │(3)│                               │
 │  ├─ Session / Message / Run       │   │  Agno run loop (async)        │
 │  ├─ Knowledge Base/Source/Chunk   │   │   ├─ LLM calls                │
 │  └─ Trigger / Agent Memory        │   │   ├─ tool calling             │
@@ -127,16 +127,16 @@ resolve the question against it.
 
 Violating this collapses per-user permissions into a single service identity, which is the
 principal risk of the two-process design. See
+[ADR 0003](../decisions/0003-tools-execute-in-frappe.md).
 
 > **Scope — MCP is an explicit exception.** MCP tools execute *inside* the FastAPI
 > process and authenticate with a credential stored on the `AI MCP Connection`
 > row, so they act as the connection rather than as the run's user. The invariant
-> above holds for every tool that executes inside Frappe — builtins, `AI Tool`
-> rows, and FAC plugin tools — and does **not** hold on the MCP path. Binding an
+> above holds for every tool that executes inside Frappe — builtins and FAC
+> plugin tools — and does **not** hold on the MCP path. Binding an
 > MCP connection to an agent grants every user of that agent whatever that
 > credential can do. This is a deliberate, bounded trade-off; see
 > [ADR 0019](../decisions/0019-mcp-acting-user-identity.md).
-[ADR 0003](../decisions/0003-tools-execute-in-frappe.md).
 
 ---
 

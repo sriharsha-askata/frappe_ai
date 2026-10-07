@@ -20,8 +20,9 @@ document.
   No active agent on `tact.local` currently has an MCP binding. SAP Match is retired;
   its agent, trigger, and bindings are disabled.
 
-The legacy `AI Tool`/`AI Agent Tool` records remain for compatibility and migration input;
-they are not being deleted as part of the current work.
+The legacy `AI Tool`, `AI Agent Tool` and `AI Agent Tool Config` DocTypes are retired
+([ADR 0020](decisions/0020-retire-ai-tool-for-fac.md)); sites are archived and migrated
+with the [retirement runbook](ai-tool-retirement.md).
 
 ## Executive Recommendation
 
@@ -59,7 +60,7 @@ Browser
 ### One canonical Frappe tool catalogue
 
 Assistant Core already discovers plugin tools and exposes their schemas through
-MCP. `frappe_ai` does not need to copy those tools into `AI Tool` rows or keep a
+MCP. `frappe_ai` does not copy those tools into its own DocTypes or keep a
 second Python registry synchronized with Assistant Core.
 
 ### One permission boundary
@@ -106,7 +107,7 @@ clients without adding a separate server process.
 | Knowledge and memory | `frappe_ai` | `frappe_ai` | Keep |
 | Triggers and scheduled agent runs | `frappe_ai` | `frappe_ai` | Keep |
 | Assistant Core plugin tools | Assistant Core | Assistant Core | Consume through direct linkage when same-site; MCP when remote |
-| Agent-specific custom tools | `frappe_ai` `AI Tool` | `frappe_ai` initially | Keep when no FAC equivalent exists |
+| Agent-specific custom tools | Owning app, as a registered `BaseTool` | Owning app | Contribute through the `assistant_tools` hook; select per agent with `AI Agent Plugin Tool` |
 | MCP endpoint and tool registry | Assistant Core | Assistant Core | Do not duplicate |
 | Agent connection selection | `frappe_ai` | `frappe_ai` | Keep as agent configuration |
 
@@ -118,27 +119,17 @@ tools it owns and for permission enforcement.
 
 ### Duplicate built-in Frappe tools
 
-`frappe_ai/tools/builtins.py` currently seeds generic tools such as `describe`,
-`read`, and `execute` into the `AI Tool` DocType. Assistant Core has a broader
-plugin-based catalogue containing equivalent document and metadata tools.
-
-The migration should:
-
-1. Compare each `frappe_ai` builtin with the Assistant Core equivalent.
-2. Verify schema, result shape, permission behavior, and confirmation needs.
-3. Configure the Assistant Core MCP connection on the relevant agents.
-4. Update the agent builder to use the Assistant Core tools.
-5. Stop creating duplicate builtin rows once all consumers are migrated.
-6. Remove only the rows and implementations proven to be redundant.
-
-Do not delete the builtins first. Existing agents, tests, and stored agent
-configurations may still refer to their `AI Tool` names.
+The generic tools `describe`, `read` and similar are served by Assistant Core's
+plugin-based catalogue; `frappe_ai` no longer seeds them as database rows. Remaining
+`frappe_ai/tools/builtins.py` and `assistant_tools/native.py` code is limited to tools with
+no Assistant Core equivalent (`search_knowledge`, `update_memory`, `execute` pending the
+sandbox decision).
 
 ### Duplicate tool registry behavior
 
-`frappe_ai` should not introduce a registry that imports Assistant Core plugin
-classes. The existing `AI Tool` resolver remains responsible only for native
-`frappe_ai` tools during the transition.
+`frappe_ai` does not introduce a registry that imports Assistant Core plugin classes.
+Agents select tools through `AI Agent Plugin Tool` rows that link to
+`FAC Tool Configuration`, and `dispatch_plugin_tool` runs them under the acting user.
 
 ### Duplicate MCP server logic
 
@@ -163,7 +154,7 @@ The following are not redundant with Assistant Core and should remain:
 - confirmation pause/resume behavior tied to `AI Run`;
 - `AI Knowledge Base`, source ingestion, retrieval, and memory;
 - `AI Trigger` and scheduled dispatch;
-- native `AI Tool` rows that implement agent-specific behavior;
+- `AI Agent Plugin Tool` bindings that select FAC tools per agent;
 - agent-level MCP connection selection and `include_tools` policy;
 - transcript and run-level observability.
 
@@ -309,28 +300,25 @@ granular operational classification remains optional hardening.
 ### Agent tool configuration UI
 
 Keep the ability to select connections and allowlist tools, but label Assistant
-Core tools as externally provided. The UI must not imply that `AI Tool` rows and
-Assistant Core tools are the same storage type.
+Core tools as externally provided.
 
 ### Native tool migration
 
-The compatibility report/migration utility compares native `AI Tool`
-slugs with Assistant Core tool names. It should identify exact duplicates,
-similar but incompatible schemas, `frappe_ai`-only tools, Assistant Core-only
-tools, and agents dependent on each tool.
-
-Only exact, tested replacements are migrated automatically. The current migration keeps
-legacy DocTypes as compatibility records.
+`api/migration.py` (retirement machinery, removed once all sites are migrated) matches legacy
+`AI Tool` slugs to Assistant Core tool names by exact name and reports unmatched, ambiguous
+and conflicting rows. Only exact matches are migrated automatically, into
+`AI Agent Plugin Tool` bindings. The legacy DocTypes are deleted by the retirement release
+([ADR 0020](decisions/0020-retire-ai-tool-for-fac.md)).
 
 ## Suggested Migration Order
 
 The sequence below is the original migration shape. Phases 0–2 and the initial MCP
 verification are complete. The active detailed plan, including direct FAC linkage,
-tender migration, budget gaps, and legacy-DocType retention, is in [spec 007](specifications/007-mcp-integration-and-cleanup.md).
+tender migration, budget gaps, and legacy-DocType retirement, is in [spec 007](specifications/007-mcp-integration-and-cleanup.md).
 
 ### Phase 0: Inventory
 
-- Export all `AI Tool` rows and agent bindings.
+- Inventory and archive all legacy tool rows and agent bindings (`api/retirement.py`).
 - List Assistant Core tools from an authenticated `tools/list` response.
 - Compare names, schemas, permissions, return shapes, confirmation behavior,
   and audit expectations.
@@ -362,15 +350,13 @@ tender migration, budget gaps, and legacy-DocType retention, is in [spec 007](sp
 
 - Migrate agents from duplicate `frappe_ai` builtins to Assistant Core.
 - Stop seeding migrated duplicate builtin rows.
-- Retire only duplicate runtime paths proven redundant; retain compatibility records and
-  migration tooling.
-- Keep a compatibility path until stored agents are migrated.
+- Retire the duplicate runtime paths; the legacy DocTypes are removed per site after the
+  archive gate passes.
 
-### Phase 5: Optional unification
+### Phase 5: Unification
 
-Only after the remote integration is stable should we consider whether native
-`AI Tool` rows should be represented in Assistant Core. This is optional and is
-not required for the initial integration.
+Native tools are contributed to Assistant Core by their owning app as `BaseTool` classes
+(the `assistant_tools` hook); there is no `AI Tool` representation.
 
 ## Failure and Fallback Rules
 
@@ -566,6 +552,5 @@ Assistant Core:
 - `apps/frappe_ai/frappe_ai/api/service.py`
 - `apps/frappe_ai/frappe_ai/service/builder.py`
 - `apps/frappe_ai/frappe_ai/tools/builtins.py`
-- `apps/frappe_ai/frappe_ai/lib/resolver.py`
 - `apps/frappe_ai/frappe_ai/api/dispatch.py`
 - `apps/frappe_ai/docs/specifications/002-feature-mapping.md`

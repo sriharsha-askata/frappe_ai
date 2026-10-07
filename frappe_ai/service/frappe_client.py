@@ -19,7 +19,6 @@ from frappe_ai.service.config import ServiceSettings
 GET_SERVICE_CONFIG_METHOD = "frappe_ai.api.service.get_service_config"
 GET_RUN_CONFIG_METHOD = "frappe_ai.api.service.get_run_config"
 GET_FALLBACK_MODEL_CONFIG_METHOD = "frappe_ai.api.service.get_fallback_model_config"
-DISPATCH_TOOL_METHOD = "frappe_ai.api.dispatch.dispatch_tool"
 DISPATCH_PLUGIN_TOOL_METHOD = "frappe_ai.api.dispatch.dispatch_plugin_tool"
 PERSIST_RUN_RESULT_METHOD = "frappe_ai.api.api.persist_run_result"
 FAIL_RUN_METHOD = "frappe_ai.api.api.fail_run"
@@ -84,25 +83,6 @@ class FrappeClient:
 	async def get_fallback_model_config(self, user: str) -> dict[str, Any]:
 		"""Fetch an enabled default model for a provider-error retry as `user`."""
 		return await self._get_json(GET_FALLBACK_MODEL_CONFIG_METHOD, params={"user": user})
-
-	async def dispatch_tool(
-		self,
-		tool: str,
-		user: str,
-		arguments: dict[str, Any] | None = None,
-		run: str | None = None,
-		call_id: str | None = None,
-	) -> dict[str, Any]:
-		"""Dispatch one tool under `user` and the active `run` (ADR 0003).
-
-		`call_id` binds confirmation-gated calls to recorded approval. A tool exception
-		returns `{"error": ...}`; transport or authentication failure raises
-		`FrappeClientError`."""
-		return await self._post_json(
-			DISPATCH_TOOL_METHOD,
-			json={"tool": tool, "user": user, "arguments": arguments or {}, "run": run, "call_id": call_id},
-			timeout=TOOL_DISPATCH_TIMEOUT_SECONDS,
-		)
 
 	async def dispatch_plugin_tool(
 		self,

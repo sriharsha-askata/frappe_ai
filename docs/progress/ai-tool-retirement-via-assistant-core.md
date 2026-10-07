@@ -9,10 +9,10 @@
 
 | | |
 |---|---|
-| **Status** | 🟡 Verify active tender workflows and finish the legacy-tool audit |
-| **Current phase** | Verify Spec Review, Historical Match, and CAD through direct FAC |
+| **Status** | 🟡 Retirement code implemented; per-site classification and rollout pending |
+| **Current phase** | Per-site rollout: classify, archive, verify Spec Review / Historical Match / CAD through direct FAC, then migrate (Stage 1 complete in code; Stage 2 machinery removal not started) |
 | **Started** | 2026-08-19 |
-| **Last audited** | 2026-10-03 (`tact.local` inventory; no end-to-end run performed) |
+| **Last audited** | 2026-10-06 (`tact.local` read-only inventory; no end-to-end workflow run performed; cleanup pass reconciled docs and code with the deletion diff) |
 | **Blockers** | Workflow result verification, legacy-tool classification, and remote MCP budget coverage |
 
 **2026-10-03 site decision:** SAP Match is retired. `Tender SAP Match Agent`, its manual
@@ -21,6 +21,15 @@ past runs remain for audit. The active tender verification set is Spec Review,
 Historical Match, and CAD. No active agent has an MCP binding, and no Tender MCP
 connection is present on this site. The August migration notes below record what was
 true then; they are not a current inventory.
+
+**2026-10-06 implementation update:** The repository now contains the deletion
+release: FAC-only local runtime dispatch, a corrected legacy binding migration,
+private per-site archive and preflight gate, and schema/table removal patches.
+`tact.local` still has 12 `AI Tool` rows and eight legacy binding rows in its
+database. No archive, schema deletion, or tender workflow verification was
+performed on that site. Follow [the retirement runbook](../ai-tool-retirement.md)
+before deploying the deletion migration to each site. The older checklist below
+records the original plan; unchecked items remain rollout/verification gates.
 
 ### Phase summary
 
@@ -32,7 +41,22 @@ true then; they are not a current inventory.
 | 4 | frappe_ai-native tools as Assistant Core contributions | 🟡 Registered; behavior/parity tests incomplete |
 | 5 | Tender-specific tools as tender_automation contributions | 🟡 Direct migration complete on tact.local; workflow verification pending |
 | 6 | `run_action` and full parity audit | 🔴 Not completed |
-| 7 | Retire legacy runtime authority | 🟡 Runtime use is being reduced; DocTypes are retained |
+| 7 | Retire legacy tool DocTypes | 🟡 Deletion code complete (uncommitted until the cleanup commit); per-site archive and migration pending |
+
+### Stage 2 — remove the retirement machinery (not started)
+
+The deletion release keeps only what existing sites need to migrate safely. Remove it once
+every installed site has migrated and the rollback window has ended, leaving ADR 0020 as the
+historical record.
+
+- [ ] Every installed site archived, migrated and verified (`tact.local` first).
+- [ ] Rollback window ended with no restore request.
+- [ ] Delete `api/retirement.py`, `api/migration.py` (and `run_ai_tool_migration`), the two patches and their
+  `patches.txt` entries, and the `drop_retired_tables` entry in `hooks.py` `after_migrate`.
+- [ ] Delete the controller shims under `doctype/ai_tool/`, `doctype/ai_agent_tool/`,
+  `doctype/ai_agent_tool_config/`.
+- [ ] Delete `tests/test_retirement.py`, `tests/test_migration.py`, `docs/ai-tool-retirement.md`.
+- [ ] Reduce docs to the ADR 0020 note; archive this progress file.
 
 ## Focused migration plan: `AI Tool` → Assistant Core/FAC
 
@@ -248,14 +272,14 @@ depends on the legacy dispatch path for normal operation.
 
 #### Phase 5 — Runtime cutover and compatibility quarantine
 
-- [ ] Make `AI Agent Plugin Tool` / FAC the only path used for newly configured agents.
-- [ ] Keep legacy rows readable and recoverable, but stop using them to build new runtime
-  configuration.
-- [ ] Update frontend tool metadata APIs to read FAC registry metadata instead of loading
+- [x] Make `AI Agent Plugin Tool` / FAC the only path used for newly configured agents.
+- [x] Stop using legacy rows to build runtime configuration. (Rows stay recoverable only
+  through the per-site archive; the DocTypes are deleted by the migration.)
+- [x] Update frontend tool metadata APIs to read FAC registry metadata instead of loading
   `AI Tool` rows.
-- [ ] Update migration/setup code so future installs do not seed new `AI Tool` rows for
-  migrated capabilities.
-- [ ] Remove normal runtime dependencies on `dispatch_tool()` and legacy resolver calls.
+- [x] Update migration/setup code so future installs do not seed new `AI Tool` rows for
+  migrated capabilities. (`sync_builtin_tools` and its `after_migrate` hook were removed.)
+- [x] Remove normal runtime dependencies on `dispatch_tool()` and legacy resolver calls.
 - [ ] Keep the migration command/report available until the quarantine period ends.
 - [ ] Run the full app and focused integration suites after the cutover.
 
@@ -273,16 +297,16 @@ Deletion is a separate change and must not be bundled with the first migration a
   FAC configurations have valid module paths.
 - [ ] Confirm no production workflow depends on the Tender MCP fallback.
 - [ ] Archive the final mapping and verification report outside the database.
-- [ ] Remove the deprecated `AI Agent.tools` field and its compatibility child table only
-  after the previous gates pass.
-- [ ] Remove `AI Tool` and its controller/resolver code only after the previous gates pass.
-- [ ] Remove `AI Agent Tool Config` if no compatibility reader remains.
-- [ ] Audit `AI FAC Tool` separately. It is a local mirror, not the Assistant Core source
-  of truth; remove it if no code or UI requires it after FAC metadata is consumed directly.
+- [x] Remove the deprecated `AI Agent.tools` field and its compatibility child table
+  (code; the per-site archive gate enforces the previous gates at migrate time).
+- [x] Remove `AI Tool` and its resolver code (a minimal controller shim remains until Stage 2 so Frappe can delete the DocType).
+- [x] Remove `AI Agent Tool Config` (shim retained until Stage 2).
+- [ ] Audit `AI FAC Tool` separately. It is retained and unchanged by this release (a local
+  mirror, not the Assistant Core source of truth); remove it only if no code or UI requires it.
 - [ ] Remove obsolete migration branches only after one release/deployment cycle with no
   rollback request.
-- [ ] Update specifications, README, setup guides, and migration docs to describe FAC as
-  canonical and mark the legacy system removed.
+- [x] Update specifications, README, setup guides, and migration docs to describe FAC as
+  canonical and mark the legacy system removed (2026-10-06 reconciliation; ADR 0020).
 
 **Exit criteria:** the old DocTypes and dispatch path can be removed without losing an
 implementation, agent binding, permission rule, audit record, or rollback artifact.
@@ -338,7 +362,7 @@ and rollback rehearsal are complete.
 - [ ] One canonical `BaseTool` implementation exists for every migrated capability.
 - [ ] One FAC configuration exists for every canonical tool and its module path resolves.
 - [ ] Every production agent uses `AI Agent Plugin Tool` for migrated tools.
-- [ ] No new agent setup creates legacy `AI Tool` bindings.
+- [x] No new agent setup creates legacy `AI Tool` bindings.
 - [ ] Permissions, confirmation, budgets, schemas, outputs, and audits are verified.
 - [ ] Active tender workflows pass through direct FAC without MCP fallback; SAP Match
   remains disabled as a retired workflow.
@@ -346,7 +370,7 @@ and rollback rehearsal are complete.
 - [ ] `run_action` has an explicit replacement and parity evidence.
 - [ ] Every unmatched or retained legacy row has a documented owner and reason.
 - [ ] The final report and rollback artifact are archived.
-- [ ] Legacy DocTypes, fields, and runtime code are removed only after all gates pass.
+- [ ] Legacy DocTypes, fields, and runtime code are removed on every site only after all gates pass (code removal done; per-site migration pending).
 
 ### Review log
 
@@ -492,8 +516,9 @@ See [spec 007](../specifications/007-mcp-integration-and-cleanup.md) Parts 4-5
   bindings; compare results with known-good baselines.
 - Resolve `run_action`, migrate/audit every production `AI Tool` row, and record
   unmatched or ambiguous rows.
-- Remove legacy DocTypes from the active runtime authority while retaining
-  `AI Tool` and `AI Agent Tool` as compatibility/migration records.
+- Roll out the deletion release per site with the runbook
+  ([../ai-tool-retirement.md](../ai-tool-retirement.md)): classify every slug, archive,
+  `assert_ready`, migrate, and verify. `tact.local` is the first site.
 
 ## Verification performed
 
@@ -538,6 +563,7 @@ the current site configuration or the October workflow gates.
 
 | Date | Change |
 |---|---|
+| 2026-10-06 | Cleanup pass: removed the stale `dispatch_tool` mock from `test_chat_route.py`, labelled the retirement machinery for Stage 2, reconciled specs 001/002/003/007, the Assistant Core guide, README and ADRs 0003/0005/0006/0019, added ADR 0020, dropped the moot `medium-tool-migration-telemetry` to-do. Historical progress logs keep their original wording. |
 | 2026-10-03 | SAP Match retired by user decision. Disabled its agent, manual trigger, and four plugin-tool bindings on `tact.local`, preserving records. Current verification gate covers Spec Review, Historical Match, and CAD. |
 | 2026-08-19 | Progress file created. Audit + verification + spec 010 written, then merged into spec 007. Dead orphaned doctype dirs removed. |
 | 2026-08-19 | Designed direct Assistant Core plugin linkage (`AI Agent Plugin Tool`) as a preferred alternative to MCP for local tools; folded into spec 007 Phase 4/5 and DocTypes Summary. Design only — no schema/code implemented yet. |

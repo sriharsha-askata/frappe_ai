@@ -107,7 +107,7 @@ Before `bench uninstall-app flow`, confirm with the site owner:
 - [ ] No production agents are in active use in `flow`
 - [ ] `Flow Run` history is not needed for audit/compliance (export if it is)
 - [ ] All knowledge sources are recorded so they can be recreated in `frappe_ai`
-- [ ] Custom `Flow Tool` scripts have been copied into `AI Tool` rows
+- [ ] Custom `Flow Tool` scripts have been rewritten as FAC `BaseTool` implementations (`AI Tool` rows no longer exist; see [ADR 0020](0020-retire-ai-tool-for-fac.md))
 - [ ] Any `Flow Trigger` automations have `AI Trigger` equivalents and have been observed firing
 - [ ] Provider API keys are available for re-entry (Password fields cannot be read back)
 - [ ] A database backup exists

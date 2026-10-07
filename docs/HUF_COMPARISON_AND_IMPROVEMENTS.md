@@ -121,7 +121,7 @@ identity is set at every dispatch boundary, not assumed from ambient context) an
 more auditable. **No change.**
 
 **One thing to adopt from huf:** huf's `Agent Tool Function` DocType has a
-`requires_confirmation` field. frappe_ai's `AI Tool` has the same. But huf also
+`requires_confirmation` field. frappe_ai's `AI Agent Plugin Tool` has the same. But huf also
 surfaces which tool call is pending directly in the `Agent Run` payload, with the
 arguments as structured JSON. frappe_ai's `AI Run.questions` (JSON array) already
 does this. The gap is in the **resume path**: huf's `resume_run` is not yet

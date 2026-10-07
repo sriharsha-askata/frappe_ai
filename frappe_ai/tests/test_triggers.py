@@ -9,7 +9,6 @@ from unittest.mock import patch
 import frappe
 from frappe.tests import IntegrationTestCase
 
-from frappe_ai.tools.builtins import sync_builtin_tools
 from frappe_ai.triggers import dispatch, dispatch_scheduled, fire, fire_manual_trigger
 from frappe_ai.triggers.service_runner import _run_via_service
 from frappe_ai.triggers.triggers import (
@@ -26,7 +25,6 @@ def _trigger_agent(title: str = "Trigger Test Agent") -> str:
 		frappe.get_doc(
 			{"doctype": "AI Model", "title": "Trigger Test Model", "provider": "openai", "model_id": "gpt-4o-mini"}
 		).insert(ignore_permissions=True)
-	sync_builtin_tools()
 	if not frappe.db.exists("AI Agent", title):
 		frappe.get_doc(
 			{
@@ -34,7 +32,6 @@ def _trigger_agent(title: str = "Trigger Test Agent") -> str:
 				"title": title,
 				"model": "Trigger Test Model",
 				"instructions": "Be terse.",
-				"tools": [{"tool_name": "read"}],
 			}
 		).insert(ignore_permissions=True)
 	return title

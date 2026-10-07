@@ -1,5 +1,4 @@
-# Copyright (c) 2026, Harsha and contributors
-# For license information, please see license.txt
+"""Upgrade-only controller for sites that have not migrated old metadata."""
 
 from frappe.model.document import Document
 

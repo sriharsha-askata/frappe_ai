@@ -60,7 +60,7 @@ marked done in the [progress tracker](../progress/flow-to-frappe-ai-migration.md
 | 2.6 | `_resolve_tools()` — missing tool logged + skipped, disabled skipped | same | **Port** | |
 | 2.7 | Bound tools: `search_knowledge`→KB list, `update_memory`→agent name | same | **Port** | Binding config-side, never model-side. |
 | 2.8 | `max_iterations` enforcement | same | **Port** | Enforced in the Agno loop, as Agno's `tool_call_limit` (set in `AgentBuilder`). This row claimed enforcement before it existed — the value was fetched into the run config but never passed to Agno, leaving the loop unbounded until 2026-09-10. |
-| 2.9 | `Flow Agent Tool` child table | `AI Agent Tool` | **Port** | |
+| 2.9 | `Flow Agent Tool` child table | `AI Agent Plugin Tool` | **Redesign** | Ported as `AI Agent Tool`, later replaced by direct FAC bindings; see [ADR 0020](../decisions/0020-retire-ai-tool-for-fac.md). |
 | 2.10 | `Flow Agent Knowledge Base` child table | `AI Agent Knowledge Base` | **Port** | |
 | 2.11 | `is_system_generated` immutability guards | same | **Port** | Via `utils/system_generated.py`. |
 | 2.12 | — | `temperature`, `top_p`, `reasoning`, `markdown`, `agent_type` | **New** | Agno capabilities `flow` had no field for. |
@@ -72,7 +72,7 @@ marked done in the [progress tracker](../progress/flow-to-frappe-ai-migration.md
 
 | # | `flow` feature | `frappe_ai` | Kind | Notes |
 |---|---|---|---|---|
-| 3.1 | `Flow Tool` — Imported / Script types | `AI Tool` | **Port** | Both types retained. |
+| 3.1 | `Flow Tool` — Imported / Script types | FAC `BaseTool` + `FAC Tool Configuration` | **Redesign** | Ported as `AI Tool`, then retired. Rows 3.2–3.13 describe the original port; the `AI Tool`-specific mechanics (slug rules, Script `main`, `sync_builtin_tools`) no longer exist. See [ADR 0020](../decisions/0020-retire-ai-tool-for-fac.md). |
 | 3.2 | Slug regex `^[a-z][a-z0-9_]*$`, unique | same | **Port** | The name the LLM sees. |
 | 3.3 | Script validation: AST parse, top-level `main`, no `*args`/`**kwargs`, no self-call | same | **Port** | |
 | 3.4 | `schema_from_code()` — JSON Schema from AST **without evaluating** | same | **Port** | Untrusted code never executes during schema derivation. |
@@ -104,7 +104,7 @@ dispatch endpoint.
 
 | # | Feature | Kind | Notes |
 |---|---|---|---|
-| 3.13 | `sync_builtin_tools()` upserting all ten as system-generated rows | **Port** | Uses `db.set_value` on update to bypass the immutability guard. |
+| 3.13 | `sync_builtin_tools()` upserting all ten as system-generated rows | **Drop** | Removed with `AI Tool`; builtins are FAC tools synced by `assistant_tools.sync.sync_decorated_tools` and `api.fac_tools.sync_fac_tools`. |
 
 ---
 
@@ -266,7 +266,7 @@ dispatch endpoint.
 | 11.5 | `ignore_links_on_delete` for chunk/run/session | same | **Port** | |
 | 11.6 | Undeclared runtime deps (pydantic, croniter, jinja2, bs4, lxml, openpyxl, chardet, requests, RestrictedPython) | **declared explicitly** | **Redesign** | `flow` relied on transitive availability. |
 | 11.7 | `patches/rename_ai_to_flow.py` incl. `__Auth` repointing | — | **Drop** | Greenfield; no rename history. See [ADR 0005](../decisions/0005-greenfield-no-migration.md). |
-| 11.8 | 12 test modules | mirrored | **Port** | agent, api, assistant, builtins, model, resolver, tool, triggers, conditions, knowledge, safe_exec, session. |
+| 11.8 | 12 test modules | mirrored | **Port** | agent, api, assistant, builtins, model, tool, triggers, conditions, knowledge, safe_exec, session (the `resolver` module was retired with `AI Tool`). |
 
 ---
 

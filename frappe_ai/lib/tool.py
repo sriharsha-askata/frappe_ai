@@ -3,8 +3,8 @@
 
 """Runtime tool representation and JSON-Schema derivation.
 
-This pure-Python module is used by both `AI Tool.to_tool()`
-(via `frappe_ai.lib.resolver`) and the builtin tools in `frappe_ai.tools.builtins`.
+This pure-Python module defines tool metadata for builtin functions and decorated
+Assistant Core plugin tools.
 """
 
 from __future__ import annotations
