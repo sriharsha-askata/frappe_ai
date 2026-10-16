@@ -19,4 +19,4 @@ Agno behaviour is from the Agno docs (not verified against installed source;
 | 8 | [Knowledge and RAG](08-knowledge-rag.md) | done |
 | 9 | [Agent memory](09-memory.md) | done |
 | 10 | [Triggers](10-triggers.md) | done |
-| 11 | Frontend contract | next |
+| 11 | [Frontend contract](11-frontend-contract.md) | done |
