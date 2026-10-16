@@ -16,7 +16,7 @@ Agno behaviour is from the Agno docs (not verified against installed source;
 | 5 | [Tools and dispatch](05-tool-dispatch.md) | done |
 | 6 | [Pause and approve](06-pause-and-approve.md) | done |
 | 7 | [Sessions, context window and limits](07-session-context-and-budgets.md) | done |
-| 8 | Knowledge / RAG (`knowledge/`) | next |
-| 9 | Memory | |
+| 8 | [Knowledge and RAG](08-knowledge-rag.md) | done |
+| 9 | Memory | next |
 | 10 | Triggers | |
 | 11 | Frontend contract | |
