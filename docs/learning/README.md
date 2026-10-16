@@ -12,8 +12,8 @@ Agno behaviour is from the Agno docs (not verified against installed source;
 | 1 | [Entry, config, run token](01-entry-config-token.md) | done |
 | 2 | [How the service talks back to Frappe](02-frappe-client.md) | done |
 | 3 | [Building an agent](03-builder.md) | done |
-| 4 | Agent loop and streaming (`routes/chat.py`, `agno_events.py`, `transcript.py`) | next |
-| 5 | Tools and dispatch (`api/dispatch.py`) | |
+| 4 | [Agent loop and streaming](04-agent-loop-and-streaming.md) | done |
+| 5 | Tools and dispatch (`api/dispatch.py`) | next |
 | 6 | Pause and approve (`routes/confirmation.py`, `AI Run.approvals`) | |
 | 7 | Budgets and run state | |
 | 8 | Knowledge / RAG (`knowledge/`) | |
