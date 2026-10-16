@@ -14,8 +14,8 @@ Agno behaviour is from the Agno docs (not verified against installed source;
 | 3 | [Building an agent](03-builder.md) | done |
 | 4 | [Agent loop and streaming](04-agent-loop-and-streaming.md) | done |
 | 5 | [Tools and dispatch](05-tool-dispatch.md) | done |
-| 6 | Pause and approve (`routes/confirmation.py`, `AI Run.approvals`) | next |
-| 7 | Budgets and run state | |
+| 6 | [Pause and approve](06-pause-and-approve.md) | done |
+| 7 | Budgets and run state | next |
 | 8 | Knowledge / RAG (`knowledge/`) | |
 | 9 | Memory | |
 | 10 | Triggers | |
