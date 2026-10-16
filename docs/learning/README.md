@@ -18,5 +18,5 @@ Agno behaviour is from the Agno docs (not verified against installed source;
 | 7 | [Sessions, context window and limits](07-session-context-and-budgets.md) | done |
 | 8 | [Knowledge and RAG](08-knowledge-rag.md) | done |
 | 9 | [Agent memory](09-memory.md) | done |
-| 10 | Triggers | next |
-| 11 | Frontend contract | |
+| 10 | [Triggers](10-triggers.md) | done |
+| 11 | Frontend contract | next |
