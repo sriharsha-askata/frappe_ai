@@ -23,6 +23,7 @@ from frappe_ai.frappe_ai.doctype.ai_run.ai_run import (
 from frappe_ai.frappe_ai.doctype.ai_session.ai_session import assert_session_owner, derive_title
 from frappe_ai.frappe_ai.doctype.ai_session_attachment.ai_session_attachment import resolve_attachment
 from frappe_ai.service.auth import DEFAULT_TTL_SECONDS, mint_run_token
+from frappe_ai.utils.db_retry import retry_on_conflict
 
 FEEDBACK_COMMENT_LIMIT = 500
 
@@ -89,6 +90,7 @@ def resume_run(run_name: str, answers: dict[str, Any] | str) -> dict[str, Any]:
 
 
 @frappe.whitelist()
+@retry_on_conflict
 def stop_run(run_name: str) -> dict[str, str]:
 	"""Stop a Paused or Running run and return its final status."""
 	if not isinstance(run_name, str) or not run_name.strip():
@@ -184,6 +186,7 @@ def attach_file(file: str) -> dict[str, Any]:
 
 
 @frappe.whitelist(allow_guest=True)
+@retry_on_conflict
 def persist_run_result(run: str, result: dict | str) -> dict[str, str]:
 	"""Apply a completed or paused service segment to its run and session.
 
@@ -205,6 +208,7 @@ def persist_run_result(run: str, result: dict | str) -> dict[str, str]:
 
 
 @frappe.whitelist(allow_guest=True)
+@retry_on_conflict
 def fail_run(run: str, error: str) -> dict[str, str]:
 	"""Mark a run Failed after a service error or stream disconnect."""
 	_verify_service_secret()

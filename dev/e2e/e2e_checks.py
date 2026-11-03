@@ -246,3 +246,146 @@ def run_state(run: str):
 
 def memories(agent: str):
 	return frappe.get_all("AI Agent Memory", filters={"agent": agent}, fields=["name", "scope", "content", "status"])
+
+
+# --- more helpers: backends, memory, triggers, attachments -------------------------------
+
+
+def set_backend(name: str):
+	"""Select a vector backend the way an admin would (validated on save), and drop cached backends."""
+	from frappe_ai.vector import registry
+
+	doc = frappe.get_doc("AI Settings")
+	doc.vector_backend = name
+	doc.save(ignore_permissions=True)
+	registry.reset_cache()
+	return {"configured": registry.configured_name()}
+
+
+def rebuild_index():
+	from frappe_ai.knowledge.reindex import rebuild_knowledge_index
+
+	return rebuild_knowledge_index()
+
+
+def retrieve(query: str, kb: str, limit: int = 5):
+	from frappe_ai.knowledge.retriever import retrieve as run
+
+	try:
+		hits = run(query, kbs=[kb], limit=limit)
+		return {"ok": True, "contents": [h["content"][:60] for h in hits], "count": len(hits)}
+	except frappe.ValidationError as error:
+		return {"ok": False, "error": str(error)[:160]}
+
+
+def reset_knowledge(kb: str):
+	"""Remove a knowledge base's sources/chunks so a scenario starts clean (index included)."""
+	from frappe_ai.knowledge import index
+	from frappe_ai.knowledge.ingest import purge_source
+
+	for source in frappe.get_all("AI Knowledge Source", filters={"knowledge_base": kb}, pluck="name"):
+		purge_source(source)
+		frappe.db.delete("AI Knowledge Source", {"name": source})
+	index.chunks.drop()
+	return True
+
+
+def add_memories(agent: str, count: int, special_word: str):
+	"""`count` filler memories plus one containing `special_word`; returns the special memory's text."""
+	for i in range(count):
+		frappe.get_doc(
+			{"doctype": "AI Agent Memory", "agent": agent, "scope": "Agent", "content": f"filler fact number {i} about warehouse logistics", "status": "Active"}
+		).insert(ignore_permissions=True)
+	text = f"the {special_word} account is managed by Priya"
+	frappe.get_doc(
+		{"doctype": "AI Agent Memory", "agent": agent, "scope": "Agent", "content": text, "status": "Active"}
+	).insert(ignore_permissions=True)
+	return {"special": text}
+
+
+def clear_memories(agent: str):
+	frappe.db.delete("AI Agent Memory", {"agent": agent})
+	return True
+
+
+def make_trigger(agent: str, kind: str):
+	"""A DocType-event trigger on ToDo, or a scheduled trigger that is already due."""
+	title = f"E2E {kind}"
+	frappe.db.delete("AI Trigger", {"title": title})
+	values = {
+		"doctype": "AI Trigger",
+		"title": title,
+		"enabled": 1,
+		"agent": agent,
+		"run_as": "Administrator",
+		"prompt_template": "Check {{ doc.name if doc else 'scheduled' }} [[search: refund window]]",
+	}
+	if kind == "event":
+		values.update(event="DocType Event", target_doctype="ToDo", doc_event="after_insert")
+	else:
+		values.update(event="Scheduled", cron_expression="* * * * *", last_fired_at="2020-01-01 00:00:00")
+	doc = frappe.get_doc(values).insert(ignore_permissions=True)
+	return {"name": doc.name}
+
+
+def fire_due_scheduled():
+	from frappe_ai.triggers import triggers
+
+	triggers.dispatch_scheduled()
+	return True
+
+
+def insert_todo(description: str):
+	todo = frappe.get_doc({"doctype": "ToDo", "description": description}).insert(ignore_permissions=True)
+	return {"name": todo.name}
+
+
+def trigger_runs(trigger: str):
+	return frappe.get_all("AI Run", filters={"trigger": trigger}, fields=["name", "status", "error"], order_by="creation asc")
+
+
+def claim_window(trigger: str, start_at: float):
+	"""Try to claim the trigger's due window; used by two processes at once."""
+	import time
+
+	from frappe_ai.triggers.triggers import _claim_scheduled_window
+
+	last = frappe.db.get_value("AI Trigger", trigger, "last_fired_at")
+	time.sleep(max(0.0, start_at - time.time()))
+	won = _claim_scheduled_window(trigger, last, frappe.utils.now_datetime())
+	frappe.db.commit()
+	return {"won": bool(won), "last": str(last)}
+
+
+def error_log_tail(since_minutes: int = 30):
+	rows = frappe.get_all(
+		"Error Log",
+		filters={"creation": [">", frappe.utils.add_to_date(frappe.utils.now_datetime(), minutes=-since_minutes)]},
+		fields=["method"],
+		limit=50,
+	)
+	return [r["method"] for r in rows if r.get("method")]
+
+
+def attachment_index_count():
+	from frappe_ai.knowledge import index
+
+	return {"exists": index.attachments.exists(), "count": index.attachments.count()}
+
+
+def delete_session(session: str):
+	frappe.delete_doc("AI Session", session, ignore_permissions=True, force=True)
+	return True
+
+
+def session_titles(prefix: str):
+	for title in (prefix + " 100%_match", prefix + " plain other"):
+		if not frappe.db.exists("AI Session", {"title": title}):
+			frappe.get_doc({"doctype": "AI Session", "agent": frappe.db.get_value("AI Agent", {"title": "E2E Agent"}, "name"), "title": title}).insert(ignore_permissions=True)
+	return True
+
+
+def trigger_run_details(title: str = "E2E scheduled"):
+	trigger = frappe.db.get_value("AI Trigger", {"title": title}, ["name", "last_fired_at", "creation"], as_dict=True)
+	runs = frappe.get_all("AI Run", filters={"trigger": trigger.name}, fields=["name", "status", "creation", "source"], order_by="creation asc")
+	return {"trigger": trigger, "runs": runs}

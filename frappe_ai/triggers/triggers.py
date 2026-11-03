@@ -15,6 +15,7 @@ from frappe_ai.api.api import _check_agent_usable
 from frappe_ai.frappe_ai.doctype.ai_run.ai_run import create_run
 from frappe_ai.triggers import service_runner
 from frappe_ai.utils.conditions import evaluate_condition
+from frappe_ai.utils.db_retry import is_conflict
 
 if TYPE_CHECKING:
 	from frappe.model.document import Document
@@ -90,7 +91,15 @@ def _claim_scheduled_window(trigger: str, last_fired_at: Any, now: Any) -> bool:
 	table = frappe.qb.DocType("AI Trigger")
 	claim = frappe.qb.update(table).set(table.last_fired_at, now).where(table.name == trigger)
 	claim = claim.where(table.last_fired_at.isnull() if last_fired_at is None else table.last_fired_at == last_fired_at)
-	claim.run()
+	try:
+		claim.run()
+	except Exception as error:
+		if not is_conflict(error):
+			raise
+		# Postgres (REPEATABLE READ) fails the second of two concurrent claims instead of
+		# re-checking the row; either way another scheduler already holds this window.
+		frappe.db.rollback()
+		return False
 	# `_cursor.rowcount` is how Frappe's own test harness counts affected rows
 	# (frappe/tests/classes/integration_test_case.py), per DB-API 2.0 on every driver.
 	return bool(cint(frappe.db._cursor.rowcount))

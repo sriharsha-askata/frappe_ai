@@ -12,10 +12,13 @@ from typing import Any
 import frappe
 from frappe import _
 
+from frappe_ai.utils.db_retry import retry_on_conflict
+
 _ERROR_LIMIT = 500
 
 
 @frappe.whitelist(allow_guest=True)
+@retry_on_conflict
 def dispatch_plugin_tool(
 	tool: str, user: str, arguments: dict | None = None, run: str | None = None, call_id: str | None = None
 ) -> dict:
