@@ -14,6 +14,7 @@ It replaces the two external services the app calls so that tests are determinis
   ``[[search: <query>]]``      call the ``search_knowledge`` tool with that query
   ``[[tool: <name> <json>]]``  call any tool with the given JSON arguments
   ``[[fail]]``                 answer with HTTP 500 (provider error)
+  ``[[slow: <seconds>]]``      (anywhere in the message) wait that long after each streamed word
   anything else                plain text answer
 
 * ``POST /v1/audio/transcriptions`` - a "transcriber" for audio built by the tests. The audio bytes carry
@@ -44,6 +45,7 @@ DIMENSION = 768
 _WORD = re.compile(r"\w+", re.UNICODE)
 _SPOKEN = re.compile(rb"SPOKEN:(.*?)\x00", re.S)
 SEGMENT_SECONDS = 5.0
+_SLOW = re.compile(r"\[\[slow(?::\s*([0-9.]+))?\]\]")
 _DIRECTIVE = re.compile(r"\[\[(search|tool|fail)(?::\s*|\s+)?(.*?)\]\]", re.S)
 
 LOG_PATH: str | None = None
@@ -65,6 +67,13 @@ def _text_of(content) -> str:
 	if isinstance(content, list):
 		return " ".join(part.get("text", "") for part in content if isinstance(part, dict))
 	return content or ""
+
+
+def chunk_delay(messages: list[dict]) -> float:
+	"""Seconds to wait after each streamed word: `--delay`, or the latest user message's `[[slow: n]]`."""
+	user = next((m for m in reversed(messages) if m.get("role") == "user"), {})
+	match = _SLOW.search(_text_of(user.get("content")))
+	return float(match.group(1) or 0.25) if match else CHUNK_DELAY
 
 
 def decide(messages: list[dict]) -> dict:
@@ -212,6 +221,7 @@ class Handler(BaseHTTPRequestHandler):
 	def _chat(self, body: dict) -> None:
 		model = body.get("model", "stub-model")
 		decision = decide(body.get("messages", []))
+		delay = chunk_delay(body.get("messages", []))
 		if decision.get("fail"):
 			return self._send_json(
 				500, {"error": {"message": "stub provider failure", "type": "server_error"}}
@@ -274,8 +284,8 @@ class Handler(BaseHTTPRequestHandler):
 			words = decision["text"].split(" ")
 			for position, word in enumerate(words):
 				emit(_chunk(model, {"content": word + (" " if position < len(words) - 1 else "")}))
-				if CHUNK_DELAY:
-					time.sleep(CHUNK_DELAY)
+				if delay:
+					time.sleep(delay)
 			emit(_chunk(model, {}, finish="stop"))
 		emit(_chunk(model, {}, usage=usage))
 		emit("[DONE]")

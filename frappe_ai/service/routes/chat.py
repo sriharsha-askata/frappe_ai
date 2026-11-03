@@ -7,6 +7,7 @@ from __future__ import annotations
 
 import logging
 from collections.abc import AsyncIterator
+from contextlib import aclosing
 from typing import Any
 
 from agno.agent import Agent
@@ -15,7 +16,13 @@ from agno.run.agent import RunStatus
 from frappe_ai.lib.model import normalize_provider_error
 from frappe_ai.service.builder import AgentBuilder, AgentBuildError
 from frappe_ai.service.frappe_client import FrappeClient, FrappeClientError
-from frappe_ai.service.routes.agno_events import _done_payload, _error_payload, _frame, _run_agent_turn
+from frappe_ai.service.routes.agno_events import (
+	_done_payload,
+	_error_payload,
+	_frame,
+	_TurnAttempt,
+	stream_agent_turn,
+)
 from frappe_ai.service.routes.confirmation import (
 	_build_result,
 	_denied_result,
@@ -90,28 +97,18 @@ async def stream_chat(
 			redirect_answers=_redirects(answers),
 			approved_results=approved_results,
 		)
-		attempt = await _run_agent_turn(agent, messages, run, frappe_client)
+		attempt = _TurnAttempt()
+		async with aclosing(stream_agent_turn(agent, messages, run, frappe_client, attempt)) as frames:
+			async for frame in frames:
+				yield frame
 
-		# Retry once against the system default model if the *originally
-		# configured* model failed before any tool call completed — i.e. no
-		# side-effecting tool has run yet this turn, so a clean retry from
-		# scratch on a different model can't double-run anything or emit
-		# duplicate frames (the failed attempt's frames are discarded, not
-		# yielded). If a tool already completed, retrying would risk re-running
-		# side effects (e.g. persist_spec_review_result) — fail as before instead.
-		#
-		# In practice this guard rarely allows a retry: the observed failure
-		# pattern is call #1 (context load) -> a tool call succeeds -> call #2
-		# succeeds -> call #3 fails with an empty-message model_provider_error.
-		# By the time the model fails, a tool has almost always already run, so
-		# most model_provider_error failures are NOT eligible for fallback and
-		# fail outright instead — confirmed via a temporary diagnostic during
-		# testing (2026-08-29): tool_completed=True on every observed failure.
-		if attempt.run_error is not None and not attempt.pending and not attempt.tool_completed:
-			try:
-				fallback_model_cfg = await frappe_client.get_fallback_model_config(user)
-			except FrappeClientError:
-				fallback_model_cfg = None
+		# Retry once on the system default model only if the configured model failed before the
+		# client received anything. Once a frame has gone out (text, or a tool starting or
+		# finishing) a retry would repeat it and could re-run a tool's side effects, so the run
+		# fails instead. Nothing is sent before the first model output, so a model that fails on
+		# its first call (bad credentials, an outage) can still be retried.
+		if attempt.run_error is not None and not attempt.pending and not attempt.output_sent:
+			fallback_model_cfg = await _fallback_model_config(frappe_client, user)
 			if fallback_model_cfg and fallback_model_cfg.get("model_id") != config["model"].get("model_id"):
 				await frappe_client.log_diagnostic(
 					f"frappe_ai Run {run}: retrying with fallback model",
@@ -119,22 +116,14 @@ async def stream_chat(
 					f"{type(attempt.run_error).__name__}: {attempt.run_error!r}. "
 					f"Retrying with fallback model {fallback_model_cfg.get('model_id')}.",
 				)
-				fallback_agent = Agent(
-					model=builder._build_model(fallback_model_cfg),
-					name=agent.name,
-					instructions=None,
-					system_message_role="system",
-					tools=agent.tools,
-					markdown=agent.markdown,
-					reasoning=agent.reasoning,
-					db=None,
-					add_history_to_context=False,
-					telemetry=False,
-				)
-				attempt = await _run_agent_turn(fallback_agent, messages, run, frappe_client)
+				fallback_agent = _fallback_agent(agent, builder._build_model(fallback_model_cfg))
+				attempt = _TurnAttempt()
+				async with aclosing(
+					stream_agent_turn(fallback_agent, messages, run, frappe_client, attempt)
+				) as frames:
+					async for frame in frames:
+						yield frame
 
-		for frame in attempt.frames:
-			yield frame
 		pending = attempt.pending
 		final_output = attempt.final_output
 		run_error = attempt.run_error
@@ -236,3 +225,27 @@ async def stream_chat(
 			model_id=(model_config or {}).get("model_id"),
 		)
 		yield _frame("error", _error_payload(normalized))
+
+
+async def _fallback_model_config(frappe_client: FrappeClient, user: str) -> dict[str, Any] | None:
+	"""The system default model to retry with, or None when it cannot be fetched."""
+	try:
+		return await frappe_client.get_fallback_model_config(user)
+	except FrappeClientError:
+		return None
+
+
+def _fallback_agent(agent: Agent, model: Any) -> Agent:
+	"""A copy of `agent` that runs on `model`, keeping its tools and presentation settings."""
+	return Agent(
+		model=model,
+		name=agent.name,
+		instructions=None,
+		system_message_role="system",
+		tools=agent.tools,
+		markdown=agent.markdown,
+		reasoning=agent.reasoning,
+		db=None,
+		add_history_to_context=False,
+		telemetry=False,
+	)

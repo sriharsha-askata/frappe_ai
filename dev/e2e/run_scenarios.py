@@ -10,7 +10,7 @@ It talks to the real HTTP API (token auth), opens the real SSE stream, and reads
 running `e2e_checks` functions inside the site. Exit status is non-zero if any scenario fails.
 
 Scenarios (`--only` takes these names): knowledge, approval, deny-stop, provider-error, backends,
-memory, triggers, attachment, parallel-budget, sessions-search, audio.
+memory, triggers, attachment, parallel-budget, sessions-search, audio, live-streaming.
 """
 
 from __future__ import annotations
@@ -572,6 +572,39 @@ def scenario_audio(ctx):
 	in_site(site, "set_transcription", enabled=False)
 
 
+def scenario_live_streaming(ctx):
+	"""Text reaches the client while the model is still generating, not in one burst at the end."""
+	client = ctx["client"]
+	init = client.call("start_run", input="tell me about refunds [[slow: 0.3]]", agent=ctx["agent"])
+	arrivals = []
+	started = time.monotonic()
+	with requests.post(
+		init["stream_url"],
+		json={},
+		headers={"Authorization": f"Bearer {init['token']}"},
+		stream=True,
+		timeout=120,
+	) as reply:
+		for raw in reply.iter_lines(decode_unicode=True):
+			if raw and raw.startswith("data: "):
+				arrivals.append((time.monotonic() - started, json.loads(raw[6:])["type"]))
+	text_times = [at for at, kind in arrivals if kind == "text"]
+	done_at = arrivals[-1][0]
+	check("the answer arrived as many text frames", len(text_times) >= 4, f"{len(text_times)} text frames")
+	spread = text_times[-1] - text_times[0] if text_times else 0
+	check(
+		"text frames were spread over the generation, not sent in one burst",
+		spread >= 1.0,
+		f"spread={spread:.2f}s",
+	)
+	check(
+		"the first text arrived well before the end",
+		text_times and done_at - text_times[0] >= 1.0,
+		f"first={text_times[0]:.2f}s done={done_at:.2f}s",
+	)
+	check("the run completed", arrivals[-1][1] == "done")
+
+
 SCENARIOS = {
 	"knowledge": scenario_knowledge_and_search,
 	"approval": scenario_approval_flow,
@@ -584,6 +617,7 @@ SCENARIOS = {
 	"parallel-budget": scenario_parallel_budget,
 	"sessions-search": scenario_sessions_search,
 	"audio": scenario_audio,
+	"live-streaming": scenario_live_streaming,
 }
 
 

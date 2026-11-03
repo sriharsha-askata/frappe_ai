@@ -51,7 +51,14 @@ async def _dispatch_approved(
 			question["name"], user, question.get("arguments") or {}, run, call_id
 		)
 		result = response.get("result") if "error" not in response else {"error": response["error"]}
-		results.append({"id": call_id, "name": question["name"], "arguments": question.get("arguments") or {}, "result": result})
+		results.append(
+			{
+				"id": call_id,
+				"name": question["name"],
+				"arguments": question.get("arguments") or {},
+				"result": result,
+			}
+		)
 	return results
 
 
@@ -100,7 +107,12 @@ def _build_result(
 			"output": None,
 			"tool_calls": _tool_calls(final_output),
 			"questions": [
-				{"key": p.tool_call_id, "name": p.name, "arguments": p.arguments, "prompt": _confirm_prompt(p)}
+				{
+					"key": p.tool_call_id,
+					"name": p.name,
+					"arguments": p.arguments,
+					"prompt": _confirm_prompt(p),
+				}
 				for p in pending
 			],
 			"usage": _usage(final_output),

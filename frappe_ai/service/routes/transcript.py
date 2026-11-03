@@ -30,15 +30,19 @@ def _repair_orphaned_tool_results(messages: list[dict[str, Any]]) -> list[dict[s
 		if m.get("role") == "tool":
 			cid = m.get("tool_call_id")
 			if cid and cid not in known_ids:
-				out.append({
-					"role": "assistant",
-					"content": None,
-					"tool_calls": [{
-						"id": cid,
-						"type": "function",
-						"function": {"name": "tool", "arguments": "{}"},
-					}],
-				})
+				out.append(
+					{
+						"role": "assistant",
+						"content": None,
+						"tool_calls": [
+							{
+								"id": cid,
+								"type": "function",
+								"function": {"name": "tool", "arguments": "{}"},
+							}
+						],
+					}
+				)
 				known_ids.add(cid)
 		out.append(m)
 	return out
@@ -59,12 +63,14 @@ def _to_agno_messages(
 	messages = _repair_orphaned_tool_results(messages)
 	out: list[Message] = []
 	for m in messages:
-		out.append(Message(
-			role=m["role"],
-			content=m.get("content"),
-			tool_call_id=m.get("tool_call_id"),
-			tool_calls=m.get("tool_calls"),
-		))
+		out.append(
+			Message(
+				role=m["role"],
+				content=m.get("content"),
+				tool_call_id=m.get("tool_call_id"),
+				tool_calls=m.get("tool_calls"),
+			)
+		)
 	for r in approved_results or []:
 		out.append(_reconstructed_tool_call_message(r["id"], r["name"], r["arguments"]))
 		out.append(Message(role="tool", tool_call_id=r["id"], content=json.dumps(r["result"], default=str)))
@@ -72,7 +78,9 @@ def _to_agno_messages(
 		question = questions_by_id.get(call_id)
 		if question is None:
 			continue
-		out.append(_reconstructed_tool_call_message(call_id, question["name"], question.get("arguments") or {}))
+		out.append(
+			_reconstructed_tool_call_message(call_id, question["name"], question.get("arguments") or {})
+		)
 		out.append(
 			Message(
 				role="tool",
