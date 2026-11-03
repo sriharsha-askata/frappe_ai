@@ -5,13 +5,14 @@ from __future__ import annotations
 import tempfile
 import unittest
 from pathlib import Path
+from typing import ClassVar
 from unittest.mock import Mock, patch
 
 from frappe_ai.api import retirement
 
 
 class TestRetirementGate(unittest.TestCase):
-	evidence = {"read": {"owner": "Test Owner", "reference": "test report"}}
+	evidence: ClassVar[dict[str, dict[str, str]]] = {"read": {"owner": "Test Owner", "reference": "test report"}}
 
 	def setUp(self):
 		self.directory = tempfile.TemporaryDirectory()

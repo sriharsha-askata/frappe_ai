@@ -160,7 +160,7 @@ class AIKnowledgeSource(Document):
 		)
 
 	@classmethod
-	def on_index_failed(cls, doc: "AIKnowledgeSource", exc: Exception) -> None:
+	def on_index_failed(cls, doc: AIKnowledgeSource, exc: Exception) -> None:
 		"""Notify consumers of an indexing failure. A raising hook is logged, never
 		propagated: it must not mask the ingestion error that is about to be re-raised."""
 		try:

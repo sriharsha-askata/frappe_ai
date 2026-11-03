@@ -15,9 +15,9 @@ from frappe_ai.knowledge import Knowledge, index
 from frappe_ai.knowledge.chunker import chunk_text
 from frappe_ai.knowledge.embedder import embed_texts, probe_dimension
 from frappe_ai.knowledge.extract import (
+	_export_docling_markdown_with_pages,
 	_extract_by_extension,
 	_extract_docx,
-	_export_docling_markdown_with_pages,
 	_extract_html,
 	_extract_pdf,
 	_extract_xlsx,
@@ -266,7 +266,7 @@ class TestEmbedder(IntegrationTestCase):
 		) as mocked:
 			vectors = embed_texts(["a", "b"])
 		self.assertEqual(vectors, [[1.0, 2.0], [3.0, 4.0]])
-		args, kwargs = mocked.call_args
+		args, _kwargs = mocked.call_args
 		self.assertEqual(args[0], ["a", "b"])
 		self.assertEqual(args[1]["provider"], "ollama")
 		self.assertEqual(args[1]["model"], "nomic-embed-text")

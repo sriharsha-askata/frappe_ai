@@ -3,9 +3,11 @@
 
 from __future__ import annotations
 
+from typing import ClassVar
+from unittest.mock import patch
+
 import frappe
 from frappe.tests import IntegrationTestCase
-from unittest.mock import patch
 
 from frappe_ai.api import mcp
 
@@ -104,7 +106,7 @@ class TestMCP(IntegrationTestCase):
 
 		class InitializedToolkit:
 			initialized = False
-			functions = {
+			functions: ClassVar[dict] = {
 				"remote_search": Function(
 					"remote_search",
 					"Search the remote system.",
@@ -184,7 +186,7 @@ class TestMCP(IntegrationTestCase):
 		).insert(ignore_permissions=True)
 
 		class UninitializedToolkit:
-			functions = {}
+			functions: ClassVar[dict] = {}
 			initialized = False
 
 			async def __aenter__(self):

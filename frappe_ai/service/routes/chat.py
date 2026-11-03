@@ -16,7 +16,13 @@ from frappe_ai.lib.model import normalize_provider_error
 from frappe_ai.service.builder import AgentBuilder, AgentBuildError
 from frappe_ai.service.frappe_client import FrappeClient, FrappeClientError
 from frappe_ai.service.routes.agno_events import _done_payload, _error_payload, _frame, _run_agent_turn
-from frappe_ai.service.routes.confirmation import _build_result, _denied_result, _dispatch_approved, _redirects, _split_answers
+from frappe_ai.service.routes.confirmation import (
+	_build_result,
+	_denied_result,
+	_dispatch_approved,
+	_redirects,
+	_split_answers,
+)
 from frappe_ai.service.routes.transcript import _to_agno_messages
 
 logger = logging.getLogger("frappe_ai.service.chat")

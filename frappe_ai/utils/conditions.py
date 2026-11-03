@@ -16,6 +16,7 @@ from typing import Any
 
 import frappe
 from frappe import _
+
 from frappe_ai.utils.safe_exec import safe_exec
 
 RESULT_VAR = "result"

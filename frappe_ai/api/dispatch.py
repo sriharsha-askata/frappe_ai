@@ -37,6 +37,7 @@ def dispatch_plugin_tool(
 
 	with _acting_user_context(user):
 		from frappe_assistant_core.core.tool_registry import get_tool_registry
+
 		from frappe_ai.api.budgets import consume
 
 		registry = get_tool_registry()

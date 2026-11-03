@@ -60,8 +60,8 @@ def sync_decorated_tools() -> dict:
 	frappe.cache.delete_value("fac_tool_registry_configs")
 
 	try:
-		from frappe_assistant_core.utils import plugin_manager as manager_module
 		from frappe_assistant_core.core import tool_registry as registry_module
+		from frappe_assistant_core.utils import plugin_manager as manager_module
 
 		manager_module._plugin_manager = None
 		registry_module._tool_registry = None

@@ -26,11 +26,15 @@ os.environ["FRAPPE_AI_SITES_PATH"] = _tmp_sites_dir
 os.environ["FRAPPE_AI_SITE"] = _test_site
 os.environ.setdefault("FRAPPE_AI_FRAPPE_URL", "http://127.0.0.1:8000")
 
-from fastapi.testclient import TestClient  # noqa: E402
+from fastapi.testclient import TestClient
 
-from frappe_ai.service.auth import mint_run_token  # noqa: E402
-from frappe_ai.service.main import app, settings  # noqa: E402
-from frappe_ai.service.routes.transcript import MAX_STORED_TOOL_CONTENT_CHARS, _trim_stored_tool_content, _to_agno_messages  # noqa: E402
+from frappe_ai.service.auth import mint_run_token
+from frappe_ai.service.main import app, settings
+from frappe_ai.service.routes.transcript import (
+	MAX_STORED_TOOL_CONTENT_CHARS,
+	_to_agno_messages,
+	_trim_stored_tool_content,
+)
 
 
 class TestHealthEndpoint(unittest.TestCase):

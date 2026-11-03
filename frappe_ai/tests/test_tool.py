@@ -132,7 +132,7 @@ class TestBuildSchemaContainers(unittest.TestCase):
 
 class TestBuildSchemaOptionalAndUnion(unittest.TestCase):
 	def test_optional_not_required(self):
-		def fn(a: Optional[str]):
+		def fn(a: str | None):
 			pass
 
 		schema = build_schema(fn)

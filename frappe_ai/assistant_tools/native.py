@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Any
+from typing import Any, ClassVar
 
 import frappe
 from frappe import _
@@ -13,7 +13,7 @@ class _NativeTool(BaseTool):
 	function = None
 	name = ""
 	description = ""
-	inputSchema: dict[str, Any] = {"type": "object", "properties": {}}
+	inputSchema: ClassVar[dict[str, Any]] = {"type": "object", "properties": {}}
 	source_app = "frappe_ai"
 	category = "read_write"
 
@@ -33,7 +33,7 @@ class ExecuteTool(_NativeTool):
 	description = "Run permission-scoped Python in the hardened frappe_ai sandbox."
 	function = staticmethod(builtins.execute)
 	category = "privileged"
-	inputSchema = {"type": "object", "required": ["code", "description"], "properties": {"code": {"type": "string"}, "description": {"type": "string"}}}
+	inputSchema: ClassVar[dict[str, Any]] = {"type": "object", "required": ["code", "description"], "properties": {"code": {"type": "string"}, "description": {"type": "string"}}}
 
 
 class RunActionTool(_NativeTool):
@@ -41,14 +41,14 @@ class RunActionTool(_NativeTool):
 	description = "Run a permitted document lifecycle action."
 	function = staticmethod(builtins.run_action)
 	category = "write"
-	inputSchema = {"type": "object", "required": ["doctype", "names", "action"], "properties": {"doctype": {"type": "string"}, "names": {"type": "array", "items": {"type": "string"}}, "action": {"type": "string"}, "args": {"type": "object"}}}
+	inputSchema: ClassVar[dict[str, Any]] = {"type": "object", "required": ["doctype", "names", "action"], "properties": {"doctype": {"type": "string"}, "names": {"type": "array", "items": {"type": "string"}}, "action": {"type": "string"}, "args": {"type": "object"}}}
 
 
 class SearchKnowledgeTool(_NativeTool):
 	name = "search_knowledge"
 	description = "Search the configured knowledge bases for relevant passages."
 	category = "read_only"
-	inputSchema = {"type": "object", "required": ["query"], "properties": {"query": {"type": "string"}}}
+	inputSchema: ClassVar[dict[str, Any]] = {"type": "object", "required": ["query"], "properties": {"query": {"type": "string"}}}
 
 	def execute(self, arguments):
 		from frappe_ai.knowledge.retriever import retrieve
@@ -60,7 +60,7 @@ class UpdateMemoryTool(_NativeTool):
 	name = "update_memory"
 	description = "Save a durable fact to agent memory."
 	category = "write"
-	inputSchema = {"type": "object", "required": ["content", "scope"], "properties": {"content": {"type": "string"}, "scope": {"type": "string"}, "memory_id": {"type": "string"}, "keywords": {"type": "string"}}}
+	inputSchema: ClassVar[dict[str, Any]] = {"type": "object", "required": ["content", "scope"], "properties": {"content": {"type": "string"}, "scope": {"type": "string"}, "memory_id": {"type": "string"}, "keywords": {"type": "string"}}}
 
 	def execute(self, arguments):
 		from frappe_ai.memory.memory import save_memory

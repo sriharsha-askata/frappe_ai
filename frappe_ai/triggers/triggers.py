@@ -7,9 +7,9 @@ from datetime import datetime
 from typing import TYPE_CHECKING, Any
 
 import frappe
+from croniter import CroniterBadCronError, croniter
 from frappe import _
 from frappe.utils import cint
-from croniter import CroniterBadCronError, croniter
 
 from frappe_ai.api.api import _check_agent_usable
 from frappe_ai.frappe_ai.doctype.ai_run.ai_run import create_run
@@ -43,7 +43,7 @@ AI_INTERNAL_DOCTYPES = frozenset(
 )
 
 
-def dispatch(doc: "Document", method: str | None = None) -> None:
+def dispatch(doc: Document, method: str | None = None) -> None:
 	"""doc_events hook: enqueue matching DocType-event triggers."""
 	if method not in DOC_EVENTS:
 		return
@@ -209,7 +209,7 @@ def _doctype_triggers(target_doctype: str, doc_event: str) -> list[Any]:
 	)
 
 
-def _passes_condition(trigger, doc: "Document") -> bool:
+def _passes_condition(trigger, doc: Document) -> bool:
 	original_user = frappe.session.user
 	frappe.set_user(trigger.run_as or trigger.owner)
 	try:
@@ -218,7 +218,7 @@ def _passes_condition(trigger, doc: "Document") -> bool:
 		frappe.set_user(original_user)
 
 
-def _eval_condition(condition: str, doc: "Document") -> bool:
+def _eval_condition(condition: str, doc: Document) -> bool:
 	context = {"doc": doc, "utils": frappe.utils}
 	try:
 		return evaluate_condition(condition, context)

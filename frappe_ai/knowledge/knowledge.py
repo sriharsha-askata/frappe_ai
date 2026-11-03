@@ -42,7 +42,7 @@ class Knowledge:
 		*,
 		kb_title: str,
 		description: str | None = None,
-	) -> "Knowledge":
+	) -> Knowledge:
 		"""Get or create a knowledge base and load the supplied files into it."""
 		instance = cls(title=kb_title, description=description)
 		instance.add_files(file_urls)
@@ -81,8 +81,8 @@ class Knowledge:
 
 	def _ingest(self, **fields: object) -> str:
 		from frappe_ai.frappe_ai.doctype.ai_knowledge_source.ai_knowledge_source import (
-			AIKnowledgeSource,
 			EVENT_AFTER_SOURCE_CREATE,
+			AIKnowledgeSource,
 		)
 		from frappe_ai.knowledge.ingest import ingest_source
 

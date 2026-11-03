@@ -17,7 +17,11 @@ from typing import Any
 from agno.agent import Agent
 from agno.tools.function import Function
 
-from frappe_ai.lib.model import ModelConfigurationError, create_openai_compatible_model, normalize_provider_error
+from frappe_ai.lib.model import (
+	ModelConfigurationError,
+	create_openai_compatible_model,
+	normalize_provider_error,
+)
 from frappe_ai.service.frappe_client import FrappeClient, FrappeClientError
 
 logger = logging.getLogger("frappe_ai.service.builder")

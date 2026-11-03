@@ -94,6 +94,3 @@ def _reset_persisted_dimension() -> None:
 	"""Forget the recorded vector width so a different embedding model can be adopted."""
 	frappe.db.set_single_value("AI Settings", "embedding_dimension", 0, update_modified=False)
 	frappe.clear_document_cache("AI Settings", "AI Settings")
-
-
-rebuild_index = rebuild_knowledge_index

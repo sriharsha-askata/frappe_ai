@@ -3,7 +3,6 @@
 
 from __future__ import annotations
 
-
 import frappe
 from frappe.tests import IntegrationTestCase
 from frappe.utils import add_to_date, now_datetime

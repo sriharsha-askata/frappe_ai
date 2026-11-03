@@ -128,7 +128,7 @@ def approval_hash(arguments: dict[str, Any] | None) -> str:
 	return hashlib.sha256(canonical.encode("utf-8")).hexdigest()
 
 
-def record_approvals(run: "AIRun", answers: dict[str, Any]) -> list[str]:
+def record_approvals(run: AIRun, answers: dict[str, Any]) -> list[str]:
 	"""Record user-approved call IDs against the pending tool and argument digest.
 
 	Only the user-authenticated resume path may grant these approvals."""
@@ -181,7 +181,7 @@ def create_run(
 	reference_name: str | None = None,
 	trigger: str | None = None,
 	config_snapshot: dict[str, Any] | None = None,
-) -> "AIRun":
+) -> AIRun:
 	"""Insert a Running run linked to its session and config snapshot."""
 	doc = frappe.get_doc(
 		{

@@ -8,7 +8,7 @@ from unittest.mock import AsyncMock, patch
 
 from agno.models.message import Message
 
-from frappe_ai.service.builder import AgentBuildError, AgentBuilder
+from frappe_ai.service.builder import AgentBuilder, AgentBuildError
 
 
 class TestAgentBudgets(unittest.IsolatedAsyncioTestCase):

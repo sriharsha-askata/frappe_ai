@@ -7,6 +7,7 @@ import json
 import unittest
 
 import httpx
+
 from frappe_ai.frappe_ai.doctype.ai_model.connection_test import SYNTHETIC_TOOL_NAME, run_capability_suite
 from frappe_ai.lib.model import PROVIDER_ENDPOINT_DEFAULTS
 

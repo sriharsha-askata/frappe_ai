@@ -5,9 +5,10 @@
 
 from __future__ import annotations
 
+from unittest.mock import patch
+
 import frappe
 from frappe.tests import IntegrationTestCase
-from unittest.mock import patch
 
 from frappe_ai.assistant_tools.native import ExecuteTool, RunActionTool
 from frappe_ai.tools.builtins import (

@@ -12,9 +12,8 @@ from __future__ import annotations
 import hmac
 import shlex
 
-import requests
-
 import frappe
+import requests
 from frappe import _
 from frappe.utils import cint
 

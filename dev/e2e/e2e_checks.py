@@ -55,8 +55,9 @@ def install_state():
 
 def fac_diagnostics():
 	"""Why are (or aren't) the native tools in Assistant Core's registry?"""
-	from frappe_ai.assistant_tools.fac_compat import install_fac_compatibility
 	from frappe_assistant_core.core.tool_registry import get_tool_registry
+
+	from frappe_ai.assistant_tools.fac_compat import install_fac_compatibility
 
 	registry = get_tool_registry()
 	info = {

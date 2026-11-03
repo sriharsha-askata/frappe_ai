@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import asyncio
+import builtins
 import json
 import shlex
 import traceback
@@ -11,6 +12,9 @@ from typing import Any
 
 import frappe
 from frappe import _
+
+# `BaseExceptionGroup` exists on Python 3.11 and later; the app also supports 3.10.
+_EXCEPTION_GROUP = getattr(builtins, "BaseExceptionGroup", None)
 
 CHECK_TIMEOUT_SECONDS = 5
 
@@ -119,7 +123,7 @@ def _flatten_exception_group(exc: BaseException) -> list[BaseException]:
 	stack: list[BaseException] = [exc]
 	while stack:
 		current = stack.pop()
-		if isinstance(current, BaseExceptionGroup):
+		if _EXCEPTION_GROUP is not None and isinstance(current, _EXCEPTION_GROUP):
 			stack.extend(current.exceptions)
 			continue
 		leaves.append(current)

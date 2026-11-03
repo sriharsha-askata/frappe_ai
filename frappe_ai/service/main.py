@@ -11,8 +11,9 @@ the run. The service communicates with Frappe through its HTTP client.
 from __future__ import annotations
 
 import logging
+from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
-from typing import Any, AsyncIterator
+from typing import Any
 
 from fastapi import FastAPI, Header, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
@@ -69,7 +70,7 @@ class StreamRunBody(BaseModel):
 
 @app.post("/stream/{run}")
 async def stream_run(
-	run: str, body: StreamRunBody = StreamRunBody(), authorization: str | None = Header(default=None)
+	run: str, body: StreamRunBody | None = None, authorization: str | None = Header(default=None)
 ) -> StreamingResponse:
 	"""Authenticate the bearer run token and stream the turn as SSE.
 
@@ -88,7 +89,9 @@ async def stream_run(
 		raise HTTPException(status_code=401, detail="Token is not bound to this run")
 
 	return StreamingResponse(
-		stream_chat(run, payload.user, payload.session, frappe_client, answers=body.answers),
+		stream_chat(
+			run, payload.user, payload.session, frappe_client, answers=body.answers if body else None
+		),
 		media_type="text/event-stream",
 		headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"},
 	)
