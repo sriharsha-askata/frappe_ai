@@ -99,19 +99,39 @@ def scenario_knowledge_and_search(ctx):
 	"""Ingest a text source through the worker, then a chat run that searches it."""
 	site = ctx["site"]
 	source = in_site(site, "add_text_source", kb=ctx["kb"])
-	state = wait_for(lambda: (s := in_site(site, "source_state", name=source))["status"] in ("Completed", "Failed") and s)
+	state = wait_for(
+		lambda: (s := in_site(site, "source_state", name=source))["status"] in ("Completed", "Failed") and s
+	)
 	check("ingest completes via worker", state and state["status"] == "Completed", json.dumps(state))
 	check("chunks created", state and state["chunk_count"] > 0, f"chunks={state and state['chunk_count']}")
-	check("index matches database", in_site(site, "index_consistency")["equal"], json.dumps(in_site(site, "index_consistency")))
+	check(
+		"index matches database",
+		in_site(site, "index_consistency")["equal"],
+		json.dumps(in_site(site, "index_consistency")),
+	)
 
 	client = ctx["client"]
-	init = client.call("start_run", input="What is the refund window? [[search: refund window days]]", agent=ctx["agent"])
+	init = client.call(
+		"start_run", input="What is the refund window? [[search: refund window days]]", agent=ctx["agent"]
+	)
 	events = client.stream(init)
 	kinds = types(events)
-	check("stream has the expected event order", kinds[0] == "run_started" and kinds[-1] == "done", " ".join(kinds))
+	check(
+		"stream has the expected event order",
+		kinds[0] == "run_started" and kinds[-1] == "done",
+		" ".join(kinds),
+	)
 	done = events[-1]
-	check("search tool returned the policy passage", "30 days" in str(done.get("output", "")), str(done.get("output"))[:120])
-	check("run completed with usage", done.get("status") == "Completed" and done.get("usage"), json.dumps(done)[:160])
+	check(
+		"search tool returned the policy passage",
+		"30 days" in str(done.get("output", "")),
+		str(done.get("output"))[:120],
+	)
+	check(
+		"run completed with usage",
+		done.get("status") == "Completed" and done.get("usage"),
+		json.dumps(done)[:160],
+	)
 	state = in_site(site, "run_state", run=init["run"])
 	check("run persisted as Completed", state["status"] == "Completed", json.dumps(state)[:200])
 	detail = client.get("session_detail", session=init["session"])
@@ -124,26 +144,49 @@ def scenario_approval_flow(ctx):
 	site, client = ctx["site"], ctx["client"]
 	in_site(site, "clear_memories", agent=ctx["agent"])
 	args = {"content": "prefers email replies", "scope": "agent"}
-	init = client.call("start_run", input=f"remember this [[tool: update_memory {json.dumps(args)}]]", agent=ctx["agent"])
+	init = client.call(
+		"start_run", input=f"remember this [[tool: update_memory {json.dumps(args)}]]", agent=ctx["agent"]
+	)
 	events = client.stream(init)
 	done = events[-1]
-	check("run pauses for approval", done.get("status") == "Paused" and done.get("questions"), json.dumps(done)[:200])
-	check("memory not written before approval", not [m for m in in_site(site, "memories", agent=ctx["agent"]) if "email" in (m["content"] or "")])
+	check(
+		"run pauses for approval",
+		done.get("status") == "Paused" and done.get("questions"),
+		json.dumps(done)[:200],
+	)
+	check(
+		"memory not written before approval",
+		not [m for m in in_site(site, "memories", agent=ctx["agent"]) if "email" in (m["content"] or "")],
+	)
 	question = (done.get("questions") or [{}])[0]
 	resumed = client.call("resume_run", run=init["run"], answers={question.get("key"): "Approve"})
 	events = client.stream(resumed, answers={question.get("key"): "Approve"})
-	check("approved run completes", events and events[-1].get("status") == "Completed", " ".join(types(events)))
+	check(
+		"approved run completes", events and events[-1].get("status") == "Completed", " ".join(types(events))
+	)
 	mem = [m for m in in_site(site, "memories", agent=ctx["agent"]) if "email" in (m["content"] or "")]
 	check("memory written exactly once", len(mem) == 1, json.dumps(mem))
 	state = in_site(site, "run_state", run=init["run"])
 	check("approval consumed (single use)", state["approvals"] == {}, json.dumps(state["approvals"]))
 	reply = requests.post(
 		f"{WEB}/api/method/frappe_ai.api.dispatch.dispatch_plugin_tool",
-		json={"tool": "update_memory", "user": "Administrator", "arguments": args, "run": init["run"], "call_id": question.get("key")},
+		json={
+			"tool": "update_memory",
+			"user": "Administrator",
+			"arguments": args,
+			"run": init["run"],
+			"call_id": question.get("key"),
+		},
 		headers={"X-Frappe-AI-Service-Secret": ctx["secret"], "X-Frappe-Site-Name": site},
 		timeout=30,
 	)
-	check("replayed approval is refused", reply.status_code in (401, 403, 417) or "approval" in reply.text.lower() or "not active" in reply.text.lower(), f"{reply.status_code} {reply.text[:120]}")
+	check(
+		"replayed approval is refused",
+		reply.status_code in (401, 403, 417)
+		or "approval" in reply.text.lower()
+		or "not active" in reply.text.lower(),
+		f"{reply.status_code} {reply.text[:120]}",
+	)
 
 
 def scenario_deny_and_stop(ctx):
@@ -155,11 +198,22 @@ def scenario_deny_and_stop(ctx):
 	resumed = client.call("resume_run", run=init["run"], answers={question.get("key"): "Deny"})
 	events = client.stream(resumed, answers={question.get("key"): "Deny"})
 	check("denied run ends", events and events[-1]["type"] == "done", " ".join(types(events)))
-	check("denied memory not written", not [m for m in in_site(site, "memories", agent=ctx["agent"]) if "never be saved" in (m["content"] or "")])
+	check(
+		"denied memory not written",
+		not [
+			m
+			for m in in_site(site, "memories", agent=ctx["agent"])
+			if "never be saved" in (m["content"] or "")
+		],
+	)
 
 	init = client.call("start_run", input="plain question about nothing", agent=ctx["agent"])
 	stopped = client.call("stop_run", run=init["run"])
-	check("stop_run on a running run returns a status", stopped.get("status") in ("Failed", "Completed"), json.dumps(stopped))
+	check(
+		"stop_run on a running run returns a status",
+		stopped.get("status") in ("Failed", "Completed"),
+		json.dumps(stopped),
+	)
 	events = client.stream(init)
 	state = in_site(site, "run_state", run=init["run"])
 	check("a stopped run stays stopped", state["status"] in ("Failed", "Completed"), state["status"])
@@ -173,7 +227,11 @@ def scenario_provider_error(ctx):
 	events = client.stream(init)
 	check("provider failure surfaces as an error event", "error" in types(events), " ".join(types(events)))
 	state = in_site(site, "run_state", run=init["run"])
-	check("run marked Failed with a message", state["status"] == "Failed" and state["error"], json.dumps(state)[:160])
+	check(
+		"run marked Failed with a message",
+		state["status"] == "Failed" and state["error"],
+		json.dumps(state)[:160],
+	)
 
 
 def scenario_backend_matrix(ctx):
@@ -188,16 +246,32 @@ def scenario_backend_matrix(ctx):
 		in_site(site, "set_backend", name=name)
 		before = in_site(site, "retrieve", query="refund window", kb=ctx["kb"])
 		if name != wanted[0]:
-			check(f"{name}: unbuilt index fails clearly (not a crash)", (not before["ok"]) or before["count"] == 0, json.dumps(before)[:140])
+			check(
+				f"{name}: unbuilt index fails clearly (not a crash)",
+				(not before["ok"]) or before["count"] == 0,
+				json.dumps(before)[:140],
+			)
 		report = in_site(site, "rebuild_index")
-		check(f"{name}: rebuild completes", report["status"] == "completed" and report["backend"] == name, json.dumps(report))
+		check(
+			f"{name}: rebuild completes",
+			report["status"] == "completed" and report["backend"] == name,
+			json.dumps(report),
+		)
 		consistent = in_site(site, "index_consistency")
 		check(f"{name}: index matches database after rebuild", consistent["equal"], json.dumps(consistent))
 		found = in_site(site, "retrieve", query="refund window days", kb=ctx["kb"])
-		check(f"{name}: retrieval finds the policy", found["ok"] and any("Refund" in c for c in found["contents"]), json.dumps(found)[:160])
+		check(
+			f"{name}: retrieval finds the policy",
+			found["ok"] and any("Refund" in c for c in found["contents"]),
+			json.dumps(found)[:160],
+		)
 		init = client.call("start_run", input="refunds? [[search: refund window days]]", agent=ctx["agent"])
 		events = client.stream(init)
-		check(f"{name}: chat search works through the service", events[-1].get("status") == "Completed" and "30 days" in str(events[-1].get("output")), str(events[-1])[:120])
+		check(
+			f"{name}: chat search works through the service",
+			events[-1].get("status") == "Completed" and "30 days" in str(events[-1].get("output")),
+			str(events[-1])[:120],
+		)
 	try:
 		in_site(site, "set_backend", name="nonsense")
 		check("unknown backend is rejected on save", False, "accepted")
@@ -215,8 +289,16 @@ def scenario_memory_prompt(ctx):
 	requests.delete(f"{STUB}/_requests", timeout=5)
 	init = client.call("start_run", input="who manages the zanzibar account?", agent=ctx["agent"])
 	client.stream(init)
-	chats = [r for r in requests.get(f"{STUB}/_requests", timeout=5).json()["requests"] if r["path"].endswith("/chat/completions")]
-	system = next((m["content"] for m in chats[0]["body"]["messages"] if m["role"] == "system"), "") if chats else ""
+	chats = [
+		r
+		for r in requests.get(f"{STUB}/_requests", timeout=5).json()["requests"]
+		if r["path"].endswith("/chat/completions")
+	]
+	system = (
+		next((m["content"] for m in chats[0]["body"]["messages"] if m["role"] == "system"), "")
+		if chats
+		else ""
+	)
 	check("memory block is in the system prompt", "<agent_memory>" in system)
 	check("the relevant memory was selected", special in system)
 	listed = system.count("filler fact number")
@@ -228,23 +310,63 @@ def scenario_triggers(ctx):
 	site = ctx["site"]
 	event = in_site(site, "make_trigger", agent=ctx["agent"], kind="event")["name"]
 	in_site(site, "insert_todo", description="trigger me")
-	runs = wait_for(lambda: [r for r in in_site(site, "trigger_runs", trigger=event) if r["status"] in ("Completed", "Failed", "Paused")])
-	check("doctype-event trigger starts a run through the worker", runs and runs[0]["status"] == "Completed", json.dumps(runs)[:200])
+	runs = wait_for(
+		lambda: [
+			r
+			for r in in_site(site, "trigger_runs", trigger=event)
+			if r["status"] in ("Completed", "Failed", "Paused")
+		]
+	)
+	check(
+		"doctype-event trigger starts a run through the worker",
+		runs and runs[0]["status"] == "Completed",
+		json.dumps(runs)[:200],
+	)
 	scheduled = in_site(site, "make_trigger", agent=ctx["agent"], kind="scheduled")["name"]
 	start = time.time() + 4
-	procs = [subprocess.Popen([RUN_IN_SITE, site, "e2e_checks.claim_window", json.dumps({"trigger": scheduled, "start_at": start})], stdout=subprocess.PIPE, text=True) for _ in range(2)]
+	procs = [
+		subprocess.Popen(
+			[
+				RUN_IN_SITE,
+				site,
+				"e2e_checks.claim_window",
+				json.dumps({"trigger": scheduled, "start_at": start}),
+			],
+			stdout=subprocess.PIPE,
+			text=True,
+		)
+		for _ in range(2)
+	]
 	outcomes = []
 	for proc in procs:
 		out = proc.communicate(timeout=120)[0]
-		outcomes.append(next((json.loads(line[7:]) for line in out.splitlines() if line.startswith("RESULT ")), None))
+		outcomes.append(
+			next((json.loads(line[7:]) for line in out.splitlines() if line.startswith("RESULT ")), None)
+		)
 	won = [o["won"] for o in outcomes if o]
-	check("two processes race for one scheduled window: exactly one wins", sorted(won) == [False, True], json.dumps(outcomes))
+	check(
+		"two processes race for one scheduled window: exactly one wins",
+		sorted(won) == [False, True],
+		json.dumps(outcomes),
+	)
 	scheduled2 = in_site(site, "make_trigger", agent=ctx["agent"], kind="scheduled")["name"]
-	known = {r["name"] for r in in_site(site, "trigger_runs", trigger=scheduled2)}  # runs left by earlier executions
+	known = {
+		r["name"] for r in in_site(site, "trigger_runs", trigger=scheduled2)
+	}  # runs left by earlier executions
 	in_site(site, "fire_due_scheduled")
-	wait_for(lambda: [r for r in in_site(site, "trigger_runs", trigger=scheduled2) if r["name"] not in known and r["status"] in ("Completed", "Failed", "Paused")])
+	wait_for(
+		lambda: [
+			r
+			for r in in_site(site, "trigger_runs", trigger=scheduled2)
+			if r["name"] not in known and r["status"] in ("Completed", "Failed", "Paused")
+		]
+	)
 	new = [r for r in in_site(site, "trigger_runs", trigger=scheduled2) if r["name"] not in known]
-	check("scheduled trigger fires once when due", len(new) == 1 and new[0]["status"] == "Completed", json.dumps(new)[:200])
+	check(
+		"scheduled trigger fires once when due",
+		len(new) == 1 and new[0]["status"] == "Completed",
+		json.dumps(new)[:200],
+	)
 	in_site(site, "fire_due_scheduled")
 	time.sleep(3)
 	again = [r for r in in_site(site, "trigger_runs", trigger=scheduled2) if r["name"] not in known]
@@ -257,21 +379,43 @@ def scenario_attachment_retrieval(ctx):
 	filler = " ".join(f"paragraph {i} discusses unrelated warehouse scheduling topics." for i in range(2600))
 	body = filler + " The secret launch codename is Bluebird-77. " + filler
 	files = {"file": ("big-notes.txt", body.encode(), "text/plain")}
-	reply = client.http.post(f"{WEB}/api/method/frappe_ai.api.frontend.upload_attachment", files=files, timeout=60)
+	reply = client.http.post(
+		f"{WEB}/api/method/frappe_ai.api.frontend.upload_attachment", files=files, timeout=60
+	)
 	check("upload returns a staged attachment", reply.status_code == 200, reply.text[:120])
 	staged = reply.json()["message"]["attachment"]
 	requests.delete(f"{STUB}/_requests", timeout=5)
-	init = client.call("start_run", input="what is the launch codename?", agent=ctx["agent"], attachments=[staged["file"]])
+	init = client.call(
+		"start_run", input="what is the launch codename?", agent=ctx["agent"], attachments=[staged["file"]]
+	)
 	events = client.stream(init)
-	check("run with a large attachment completes", events[-1].get("status") == "Completed", str(events[-1])[:120])
-	chats = [r for r in requests.get(f"{STUB}/_requests", timeout=5).json()["requests"] if r["path"].endswith("/chat/completions")]
-	user_text = " ".join(m["content"] for m in chats[0]["body"]["messages"] if m["role"] == "user") if chats else ""
-	check("the relevant chunk was injected (retrieval, not the whole file)", "Bluebird-77" in user_text and len(user_text) < len(body) / 2, f"user chars={len(user_text)} file chars={len(body)}")
+	check(
+		"run with a large attachment completes",
+		events[-1].get("status") == "Completed",
+		str(events[-1])[:120],
+	)
+	chats = [
+		r
+		for r in requests.get(f"{STUB}/_requests", timeout=5).json()["requests"]
+		if r["path"].endswith("/chat/completions")
+	]
+	user_text = (
+		" ".join(m["content"] for m in chats[0]["body"]["messages"] if m["role"] == "user") if chats else ""
+	)
+	check(
+		"the relevant chunk was injected (retrieval, not the whole file)",
+		"Bluebird-77" in user_text and len(user_text) < len(body) / 2,
+		f"user chars={len(user_text)} file chars={len(body)}",
+	)
 	state = in_site(site, "attachment_index_count")
 	check("attachment chunks are indexed", state["exists"] and state["count"] > 0, json.dumps(state))
 	in_site(site, "delete_session", session=init["session"])
 	state = in_site(site, "attachment_index_count")
-	check("deleting the session removes its chunks", (not state["exists"]) or state["count"] == 0, json.dumps(state))
+	check(
+		"deleting the session removes its chunks",
+		(not state["exists"]) or state["count"] == 0,
+		json.dumps(state),
+	)
 	noisy = [m for m in in_site(site, "error_log_tail") if m and "cleanup" in m.lower()]
 	check("no swallowed cleanup errors", not noisy, json.dumps(noisy))
 
@@ -286,11 +430,18 @@ def scenario_parallel_budget(ctx):
 	def call(i):
 		reply = requests.post(
 			f"{WEB}/api/method/frappe_ai.api.dispatch.dispatch_plugin_tool",
-			json={"tool": "search_knowledge", "user": "Administrator", "arguments": {"query": "refund"}, "run": init["run"], "call_id": f"c{i}"},
+			json={
+				"tool": "search_knowledge",
+				"user": "Administrator",
+				"arguments": {"query": "refund"},
+				"run": init["run"],
+				"call_id": f"c{i}",
+			},
 			headers={"X-Frappe-AI-Service-Secret": ctx["secret"], "X-Frappe-Site-Name": site},
 			timeout=120,
 		)
 		return reply.status_code
+
 	with concurrent.futures.ThreadPoolExecutor(max_workers=8) as pool:
 		codes = list(pool.map(call, range(8)))
 	state = in_site(site, "run_state", run=init["run"])
@@ -304,7 +455,11 @@ def scenario_sessions_search(ctx):
 	in_site(ctx["site"], "session_titles", prefix="E2E")
 	rows = client.get("sessions", query="100%_")["session"]["history"]
 	titles = [r["title"] for r in rows]
-	check("% and _ are matched literally in session search", any("100%_match" in t for t in titles) and not any("plain other" in t for t in titles), json.dumps(titles)[:200])
+	check(
+		"% and _ are matched literally in session search",
+		any("100%_match" in t for t in titles) and not any("plain other" in t for t in titles),
+		json.dumps(titles)[:200],
+	)
 
 
 SCENARIOS = {
@@ -325,7 +480,9 @@ def main() -> int:
 	site, port = sys.argv[1], sys.argv[2]
 	only = sys.argv[sys.argv.index("--only") + 1 :] if "--only" in sys.argv else list(SCENARIOS)
 	seeded = in_site(site, "seed")
-	secret = json.load(open(f"/var/tmp/e2e/work/frappe-bench/sites/{site}/site_config.json"))["frappe_ai_service_secret"]
+	secret = json.load(open(f"/var/tmp/e2e/work/frappe-bench/sites/{site}/site_config.json"))[
+		"frappe_ai_service_secret"
+	]
 	ctx = {"site": site, "port": port, "secret": secret, **seeded, "client": Client(site, seeded["token"])}
 	requests.delete(f"{STUB}/_requests", timeout=5)
 	for name in only:

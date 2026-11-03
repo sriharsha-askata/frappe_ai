@@ -167,7 +167,9 @@ def _upsert(doctype: str, name: str, values: dict) -> None:
 
 def seed():
 	"""Create the provider, model, agent, knowledge base and API keys the scenarios use."""
-	_upsert("AI Provider", "openai", {"provider": "openai", "enabled": 1, "base_url": STUB_URL, "api_key": "stub"})
+	_upsert(
+		"AI Provider", "openai", {"provider": "openai", "enabled": 1, "base_url": STUB_URL, "api_key": "stub"}
+	)
 	if not frappe.db.exists("AI Model", {"title": "E2E Model"}):
 		frappe.get_doc(
 			{
@@ -181,7 +183,9 @@ def seed():
 		).insert(ignore_permissions=True)
 	model = frappe.db.get_value("AI Model", {"title": "E2E Model"}, "name")
 	if not frappe.db.exists("AI Knowledge Base", "E2E KB"):
-		frappe.get_doc({"doctype": "AI Knowledge Base", "title": "E2E KB", "enabled": 1}).insert(ignore_permissions=True)
+		frappe.get_doc({"doctype": "AI Knowledge Base", "title": "E2E KB", "enabled": 1}).insert(
+			ignore_permissions=True
+		)
 	kb = frappe.db.get_value("AI Knowledge Base", {"title": "E2E KB"}, "name")
 	if not frappe.db.exists("AI Agent", {"title": "E2E Agent"}):
 		frappe.get_doc(
@@ -212,7 +216,13 @@ def seed():
 def add_text_source(kb: str, title: str = "Policies", content: str = KB_TEXT):
 	"""Create a text source (ingestion is queued after commit) and return its name."""
 	doc = frappe.get_doc(
-		{"doctype": "AI Knowledge Source", "title": title, "knowledge_base": kb, "source_type": "Text", "content": content}
+		{
+			"doctype": "AI Knowledge Source",
+			"title": title,
+			"knowledge_base": kb,
+			"source_type": "Text",
+			"content": content,
+		}
 	).insert(ignore_permissions=True)
 	return doc.name
 
@@ -245,7 +255,9 @@ def run_state(run: str):
 
 
 def memories(agent: str):
-	return frappe.get_all("AI Agent Memory", filters={"agent": agent}, fields=["name", "scope", "content", "status"])
+	return frappe.get_all(
+		"AI Agent Memory", filters={"agent": agent}, fields=["name", "scope", "content", "status"]
+	)
 
 
 # --- more helpers: backends, memory, triggers, attachments -------------------------------
@@ -294,7 +306,13 @@ def add_memories(agent: str, count: int, special_word: str):
 	"""`count` filler memories plus one containing `special_word`; returns the special memory's text."""
 	for i in range(count):
 		frappe.get_doc(
-			{"doctype": "AI Agent Memory", "agent": agent, "scope": "Agent", "content": f"filler fact number {i} about warehouse logistics", "status": "Active"}
+			{
+				"doctype": "AI Agent Memory",
+				"agent": agent,
+				"scope": "Agent",
+				"content": f"filler fact number {i} about warehouse logistics",
+				"status": "Active",
+			}
 		).insert(ignore_permissions=True)
 	text = f"the {special_word} account is managed by Priya"
 	frappe.get_doc(
@@ -341,7 +359,9 @@ def insert_todo(description: str):
 
 
 def trigger_runs(trigger: str):
-	return frappe.get_all("AI Run", filters={"trigger": trigger}, fields=["name", "status", "error"], order_by="creation asc")
+	return frappe.get_all(
+		"AI Run", filters={"trigger": trigger}, fields=["name", "status", "error"], order_by="creation asc"
+	)
 
 
 def claim_window(trigger: str, start_at: float):
@@ -360,7 +380,9 @@ def claim_window(trigger: str, start_at: float):
 def error_log_tail(since_minutes: int = 30):
 	rows = frappe.get_all(
 		"Error Log",
-		filters={"creation": [">", frappe.utils.add_to_date(frappe.utils.now_datetime(), minutes=-since_minutes)]},
+		filters={
+			"creation": [">", frappe.utils.add_to_date(frappe.utils.now_datetime(), minutes=-since_minutes)]
+		},
 		fields=["method"],
 		limit=50,
 	)
@@ -381,11 +403,77 @@ def delete_session(session: str):
 def session_titles(prefix: str):
 	for title in (prefix + " 100%_match", prefix + " plain other"):
 		if not frappe.db.exists("AI Session", {"title": title}):
-			frappe.get_doc({"doctype": "AI Session", "agent": frappe.db.get_value("AI Agent", {"title": "E2E Agent"}, "name"), "title": title}).insert(ignore_permissions=True)
+			frappe.get_doc(
+				{
+					"doctype": "AI Session",
+					"agent": frappe.db.get_value("AI Agent", {"title": "E2E Agent"}, "name"),
+					"title": title,
+				}
+			).insert(ignore_permissions=True)
 	return True
 
 
 def trigger_run_details(title: str = "E2E scheduled"):
-	trigger = frappe.db.get_value("AI Trigger", {"title": title}, ["name", "last_fired_at", "creation"], as_dict=True)
-	runs = frappe.get_all("AI Run", filters={"trigger": trigger.name}, fields=["name", "status", "creation", "source"], order_by="creation asc")
+	trigger = frappe.db.get_value(
+		"AI Trigger", {"title": title}, ["name", "last_fired_at", "creation"], as_dict=True
+	)
+	runs = frappe.get_all(
+		"AI Run",
+		filters={"trigger": trigger.name},
+		fields=["name", "status", "creation", "source"],
+		order_by="creation asc",
+	)
 	return {"trigger": trigger, "runs": runs}
+
+
+def ingest_failure_after_index_write(kb: str):
+	"""Fail an ingestion after the index write: does the index keep ids the database rolled back?"""
+	from unittest.mock import patch
+
+	from frappe_ai.knowledge import index
+	from frappe_ai.knowledge.ingest import ingest_source
+
+	frappe.flags.skip_auto_ingest = True
+	source = frappe.get_doc(
+		{
+			"doctype": "AI Knowledge Source",
+			"title": "Fail after index",
+			"knowledge_base": kb,
+			"source_type": "Text",
+			"content": "alpha beta gamma delta " * 10,
+		}
+	).insert(ignore_permissions=True)
+	frappe.flags.skip_auto_ingest = False
+	frappe.db.commit()
+	real_add = index.chunks.add
+
+	def add_then_fail(rows):
+		real_add(rows)
+		raise RuntimeError("injected failure right after the index write")
+
+	with patch.object(index.chunks, "add", side_effect=add_then_fail):
+		try:
+			ingest_source(source.name)
+		except RuntimeError:
+			pass
+	db_ids = {int(n) for n in frappe.get_all("AI Knowledge Chunk", pluck="name")}
+	idx_ids = index.chunks.ids() if index.chunks.exists() else set()
+	orphans = sorted(idx_ids - db_ids)
+	status = frappe.db.get_value("AI Knowledge Source", source.name, "status")
+	return {
+		"backend": index.chunks.backend().name,
+		"status": status,
+		"orphan_index_ids": len(orphans),
+		"missing_from_index": len(db_ids - idx_ids),
+	}
+
+
+def pgvector_extension_missing_message():
+	"""With the extension absent, creating an index must fail with a clear, actionable message."""
+	from frappe_ai.knowledge import index
+
+	try:
+		index.chunks.ensure(4)
+		return {"raised": False}
+	except frappe.ValidationError as error:
+		return {"raised": True, "message": str(error)[:200]}
