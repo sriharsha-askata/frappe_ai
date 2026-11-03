@@ -1,0 +1,187 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Frappe AI chat page - design mockup</title>
+<style>
+:root{
+  --bg:#f7f8f7; --surface:#fff; --sunken:#f0f2f1; --line:#e4e8e6; --line-strong:#cfd6d3;
+  --text:#18211e; --muted:#5f6d68; --faint:#8a9692;
+  --brand:#0f766e; --brand-ink:#fff; --brand-soft:#e3f2ef;
+  --warn:#b45309; --warn-soft:#fdf3e3; --ok:#15803d; --danger:#b42318;
+  --radius:14px; --shadow:0 1px 2px rgba(16,24,20,.06),0 8px 24px rgba(16,24,20,.06);
+  --font:Inter,system-ui,-apple-system,"Segoe UI",sans-serif; --mono:ui-monospace,SFMono-Regular,Menlo,monospace;
+}
+:root[data-theme=dark]{
+  --bg:#0f1514; --surface:#161d1b; --sunken:#1b2422; --line:#26302d; --line-strong:#34413d;
+  --text:#e8eeec; --muted:#9aa9a4; --faint:#6f7e79; --brand:#2dd4bf; --brand-ink:#04211d; --brand-soft:#12332f;
+  --warn:#f5b04a; --warn-soft:#2b2214; --ok:#4ade80; --danger:#f97066; --shadow:0 8px 24px rgba(0,0,0,.4);
+}
+*{box-sizing:border-box} body{margin:0;background:var(--bg);color:var(--text);font:14px/1.55 var(--font);height:100vh;overflow:hidden}
+button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
+.app{display:grid;grid-template-columns:272px minmax(0,1fr) 320px;height:100vh}
+/* rail */
+.rail{background:var(--sunken);border-right:1px solid var(--line);display:flex;flex-direction:column;padding:12px;gap:10px;min-height:0}
+.brand{display:flex;align-items:center;gap:10px;padding:4px 6px;font-weight:600}
+.logo{width:28px;height:28px;border-radius:8px;background:var(--brand);color:var(--brand-ink);display:grid;place-items:center;font-size:14px}
+.btn-new{display:flex;align-items:center;gap:8px;background:var(--brand);color:var(--brand-ink);padding:9px 12px;border-radius:10px;font-weight:600}
+.btn-new kbd{margin-left:auto;font:11px var(--mono);opacity:.75}
+.search{display:flex;gap:8px;align-items:center;border:1px solid var(--line);background:var(--surface);border-radius:10px;padding:8px 10px;color:var(--faint)}
+.agent-switch{display:flex;align-items:center;gap:10px;border:1px solid var(--line);background:var(--surface);border-radius:10px;padding:8px 10px}
+.agent-switch small{display:block;color:var(--muted);font-size:12px}
+.sessions{overflow:auto;flex:1;margin:0 -6px;padding:0 6px}
+.group{font-size:11px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--faint);padding:14px 8px 6px}
+.item{display:flex;align-items:center;gap:8px;padding:7px 8px;border-radius:8px;color:var(--muted);white-space:nowrap}
+.item span{overflow:hidden;text-overflow:ellipsis;flex:1}
+.item:hover{background:var(--surface)} .item.active{background:var(--surface);color:var(--text);box-shadow:inset 2px 0 0 var(--brand)}
+.dot{width:6px;height:6px;border-radius:50%;background:var(--warn)}
+.rail-foot{border-top:1px solid var(--line);padding-top:10px;display:flex;justify-content:space-between;color:var(--muted);font-size:12px}
+/* main */
+.main{display:flex;flex-direction:column;min-width:0;min-height:0}
+.top{height:52px;display:flex;align-items:center;gap:10px;padding:0 16px;border-bottom:1px solid var(--line);background:var(--bg)}
+.title{font-weight:600;max-width:340px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.pill{display:inline-flex;gap:6px;align-items:center;border:1px solid var(--line);background:var(--surface);border-radius:999px;padding:3px 10px;font-size:12px;color:var(--muted)}
+.pill i{width:7px;height:7px;border-radius:50%;background:var(--ok);display:inline-block}
+.spacer{flex:1}
+.icon{width:32px;height:32px;border-radius:8px;display:grid;place-items:center;color:var(--muted)} .icon:hover{background:var(--sunken)}
+.icon.on{background:var(--brand-soft);color:var(--brand)}
+.scroll{flex:1;overflow:auto;padding:28px 0 40px}
+.col{max-width:760px;margin:0 auto;padding:0 24px;display:flex;flex-direction:column;gap:22px}
+.user{align-self:flex-end;max-width:78%;background:var(--brand-soft);border:1px solid color-mix(in srgb,var(--brand) 22%,var(--line));padding:9px 14px;border-radius:16px 16px 4px 16px}
+.asst{display:grid;grid-template-columns:28px 1fr;gap:12px}
+.av{width:28px;height:28px;border-radius:8px;background:var(--brand);color:var(--brand-ink);display:grid;place-items:center;font-size:13px}
+.prose p{margin:0 0 10px} .prose ul{margin:0 0 10px;padding-left:20px} .prose code{font:12.5px var(--mono);background:var(--sunken);padding:1px 5px;border-radius:5px}
+.prose h4{margin:14px 0 6px;font-size:14px}
+.cite{display:inline-flex;gap:4px;align-items:center;font-size:12px;color:var(--brand);background:var(--brand-soft);padding:0 7px;border-radius:999px;vertical-align:1px}
+.steps{border:1px solid var(--line);border-radius:10px;background:var(--surface);margin:2px 0 12px;overflow:hidden}
+.steps summary{list-style:none;display:flex;gap:8px;align-items:center;padding:8px 12px;cursor:pointer;color:var(--muted);font-size:13px}
+.steps summary b{color:var(--text);font-weight:600}
+.step{display:flex;gap:10px;align-items:center;padding:7px 12px;border-top:1px solid var(--line);font-size:13px;color:var(--muted)}
+.step code{font:12px var(--mono);color:var(--text)} .step .t{margin-left:auto;font-size:12px;color:var(--faint)}
+.tick{color:var(--ok)}
+.actions{display:flex;gap:2px;color:var(--faint);margin-top:2px}
+.actions button{padding:4px 8px;border-radius:7px;font-size:12px;display:flex;gap:5px;align-items:center} .actions button:hover{background:var(--sunken);color:var(--text)}
+.confirm{border:1px solid color-mix(in srgb,var(--warn) 45%,var(--line));background:var(--warn-soft);border-radius:var(--radius);padding:14px 16px}
+.confirm h5{margin:0 0 4px;font-size:14px;display:flex;gap:8px;align-items:center;color:var(--warn)}
+.kv{background:var(--surface);border:1px solid var(--line);border-radius:10px;margin:10px 0;font:12.5px var(--mono);padding:8px 12px;color:var(--muted)}
+.row{display:flex;gap:8px;flex-wrap:wrap}
+.b{padding:7px 14px;border-radius:9px;border:1px solid var(--line-strong);background:var(--surface);font-weight:500}
+.b.primary{background:var(--brand);border-color:var(--brand);color:var(--brand-ink)} .b.danger{color:var(--danger)}
+.b.link{border:0;background:none;color:var(--muted)}
+/* composer */
+.dock{padding:0 24px 14px;background:linear-gradient(transparent,var(--bg) 24%)}
+.composer{max-width:760px;margin:0 auto;border:1px solid var(--line-strong);background:var(--surface);border-radius:18px;box-shadow:var(--shadow);padding:12px 12px 8px}
+.composer:focus-within{border-color:var(--brand);box-shadow:0 0 0 3px color-mix(in srgb,var(--brand) 18%,transparent),var(--shadow)}
+.input{min-height:44px;padding:2px 6px;color:var(--faint)}
+.tools{display:flex;align-items:center;gap:4px}
+.chip{display:inline-flex;gap:6px;align-items:center;font-size:12px;color:var(--muted);padding:5px 10px;border-radius:999px;border:1px solid var(--line)}
+.send{width:34px;height:34px;border-radius:10px;background:var(--brand);color:var(--brand-ink);display:grid;place-items:center;font-weight:700}
+.hint{max-width:760px;margin:6px auto 0;text-align:center;font-size:12px;color:var(--faint)}
+.listen{display:none}
+.wave{display:inline-flex;gap:2px;align-items:center;height:16px} .wave i{width:3px;background:var(--brand);border-radius:2px;animation:w 1s infinite ease-in-out} .wave i:nth-child(2){animation-delay:.15s}.wave i:nth-child(3){animation-delay:.3s}.wave i:nth-child(4){animation-delay:.45s}
+@keyframes w{0%,100%{height:4px}50%{height:16px}}
+.speaking{display:flex;gap:10px;align-items:center;max-width:760px;margin:0 auto 8px;padding:6px 12px;border-radius:999px;background:var(--brand-soft);color:var(--brand);width:max-content;font-size:12px}
+/* inspector */
+.insp{border-left:1px solid var(--line);background:var(--surface);overflow:auto;padding:14px 16px;min-height:0}
+.insp h3{margin:0 0 12px;font-size:13px;display:flex;justify-content:space-between}
+.tabs{display:flex;gap:4px;background:var(--sunken);padding:3px;border-radius:9px;margin-bottom:14px}
+.tabs button{flex:1;padding:5px;border-radius:7px;font-size:12px;color:var(--muted)} .tabs .on{background:var(--surface);color:var(--text);box-shadow:0 1px 2px rgba(0,0,0,.08)}
+.stat{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:14px}
+.stat div{border:1px solid var(--line);border-radius:10px;padding:8px 10px} .stat small{color:var(--faint);display:block;font-size:11px}.stat b{font-size:16px}
+.tl{position:relative;padding-left:16px;border-left:2px solid var(--line);display:flex;flex-direction:column;gap:12px}
+.tl div{position:relative;font-size:13px;color:var(--muted)} .tl div:before{content:"";position:absolute;left:-22px;top:6px;width:8px;height:8px;border-radius:50%;background:var(--brand)}
+.tl b{color:var(--text);display:block;font-weight:600}
+@media(max-width:1180px){.app{grid-template-columns:272px 1fr}.insp{display:none}}
+@media(max-width:760px){.app{grid-template-columns:1fr}.rail{display:none}.col,.dock{padding-left:14px;padding-right:14px}}
+</style></head>
+<body>
+<div class="app">
+<aside class="rail">
+  <div class="brand"><div class="logo">✦</div>Frappe AI</div>
+  <button class="btn-new">＋ New chat <kbd>Ctrl K</kbd></button>
+  <div class="agent-switch"><div class="logo" style="width:24px;height:24px;font-size:12px">S</div><div><b>Sales Assistant</b><small>GPT-4.1 · Ready</small></div><span style="margin-left:auto;color:var(--faint)">⌄</span></div>
+  <div class="search">🔍 Search chats</div>
+  <div class="sessions">
+    <div class="group">Today</div>
+    <div class="item active"><span>Refund policy for annual plans</span></div>
+    <div class="item"><span>Overdue invoices for ACME</span><i class="dot" title="Waiting for approval"></i></div>
+    <div class="item"><span>Draft reply to Zanzibar Ltd</span></div>
+    <div class="group">Yesterday</div>
+    <div class="item"><span>Who manages the Zanzibar account?</span></div>
+    <div class="item"><span>Parallel run check</span></div>
+    <div class="group">Previous 7 days</div>
+    <div class="item"><span>What was decided in the Q3 review?</span></div>
+    <div class="item"><span>Monthly revenue by territory</span></div>
+  </div>
+  <div class="rail-foot"><span>Administrator</span><span>Settings · Help</span></div>
+</aside>
+
+<main class="main">
+  <header class="top">
+    <div class="title">Refund policy for annual plans</div>
+    <span class="pill"><i></i>Completed</span>
+    <div class="spacer"></div>
+    <span class="chip">Sales Assistant · GPT-4.1 ⌄</span>
+    <button class="icon on" title="Activity">▤</button>
+    <button class="icon" title="Full screen">⤢</button>
+    <button class="icon" id="theme" title="Theme" onclick="document.documentElement.dataset.theme=document.documentElement.dataset.theme==='dark'?'light':'dark'">◐</button>
+  </header>
+
+  <div class="scroll"><div class="col">
+    <div class="user">What is our refund window for annual plans, and does it differ for enterprise?</div>
+
+    <div class="asst"><div class="av">✦</div><div>
+      <details class="steps" open>
+        <summary><span class="tick">✓</span><b>Searched knowledge</b> · 2 sources · 1.4 s <span style="margin-left:auto">⌄</span></summary>
+        <div class="step"><span class="tick">✓</span><code>search_knowledge</code> “refund window annual” <span class="t">0.8 s</span></div>
+        <div class="step"><span class="tick">✓</span><code>search_knowledge</code> “enterprise refund terms” <span class="t">0.6 s</span></div>
+      </details>
+      <div class="prose">
+        <p>Annual plans can be refunded in full within <b>30 days</b> of purchase<span class="cite">1</span>. After that, refunds are prorated for unused months.</p>
+        <h4>Enterprise</h4>
+        <ul><li>Window is negotiated per contract; the default is <b>60 days</b><span class="cite">2</span>.</li><li>Refunds above <code>$10,000</code> need finance approval.</li></ul>
+        <p>Want me to draft a reply to the customer using these terms?</p>
+      </div>
+      <div class="actions"><button>⧉ Copy</button><button>👍</button><button>👎</button><button>↻ Retry</button><button>🔊 Read aloud</button></div>
+    </div></div>
+
+    <div class="user">Yes, and issue the refund for invoice SINV-0042.</div>
+
+    <div class="asst"><div class="av">✦</div><div>
+      <div class="confirm">
+        <h5>⚠ Approval needed</h5>
+        <div>I want to <b>cancel invoice SINV-0042</b> and create a credit note for ₹48,000. This changes records.</div>
+        <div class="kv">cancel_document · Sales Invoice · SINV-0042<br>create_document · Credit Note · amount 48000</div>
+        <div class="row"><button class="b primary">Approve</button><button class="b danger">Deny</button><button class="b link">Suggest a change…</button></div>
+      </div>
+    </div></div>
+  </div></div>
+
+  <div class="dock">
+    <div class="speaking"><span class="wave"><i></i><i></i><i></i><i></i></span>Speaking · <button class="b link" style="padding:0">Stop</button></div>
+    <div class="composer">
+      <div class="input">Reply to Sales Assistant…</div>
+      <div class="tools">
+        <button class="icon" title="Attach">📎</button>
+        <button class="icon" title="Talk">🎙</button>
+        <span class="chip">Knowledge: Policies ⌄</span>
+        <div class="spacer"></div>
+        <button class="send" title="Send">↑</button>
+      </div>
+    </div>
+    <div class="hint">Enter to send · Shift+Enter for a new line · AI can make mistakes — check important details.</div>
+  </div>
+</main>
+
+<aside class="insp">
+  <h3><b>Activity</b><span style="color:var(--faint)">✕</span></h3>
+  <div class="tabs"><button class="on">Run</button><button>Tools</button><button>Memory</button></div>
+  <div class="stat"><div><small>Tokens</small><b>3,420</b></div><div><small>Cost</small><b>$0.012</b></div><div><small>Duration</small><b>4.2 s</b></div><div><small>Model calls</small><b>3</b></div></div>
+  <div class="tl">
+    <div><b>Run started</b>Sales Assistant · GPT-4.1</div>
+    <div><b>search_knowledge</b>2 results · 0.8 s</div>
+    <div><b>search_knowledge</b>3 results · 0.6 s</div>
+    <div><b>Answer streamed</b>312 tokens</div>
+    <div><b>Paused</b>Waiting for your approval</div>
+  </div>
+</aside>
+</div>
+</body></html>
