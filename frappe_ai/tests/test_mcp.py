@@ -67,7 +67,7 @@ class TestMCP(IntegrationTestCase):
 		doc = frappe.get_doc("AI MCP Connection", result["name"])
 		self.assertEqual(doc.connection_type, "stdio")
 		self.assertIn("TOKEN", doc.environment_variables or "")
-		self.assertEqual(doc.command_args, "[\"-m\", \"example_mcp\"]")
+		self.assertEqual(frappe.parse_json(doc.command_args), ["-m", "example_mcp"])
 		self.assertTrue(doc.mcp_config)
 
 	def test_create_connection_from_standard_mcp_config(self):
@@ -84,7 +84,7 @@ class TestMCP(IntegrationTestCase):
 		)
 		doc = frappe.get_doc("AI MCP Connection", result["name"])
 		self.assertEqual(doc.name, "standard-mcp")
-		self.assertEqual(doc.command_args, "[\"-m\", \"example_mcp\"]")
+		self.assertEqual(frappe.parse_json(doc.command_args), ["-m", "example_mcp"])
 
 	def test_check_connection_discovers_and_syncs_tools(self):
 		doc = frappe.get_doc(

@@ -126,3 +126,20 @@ def pgvector_through_frappe():
 		ok,
 		f"vec={[h.id for h in vec]} hybrid={[h.id for h in hybrid]} filtered={[h.id for h in filtered]} left={sorted(left)}",
 	)
+
+
+def count_syntax():
+	"""Which aggregate syntax does this Frappe accept in `fields`, on this database?"""
+	out = {}
+	for label, kwargs in {
+		"dict-as": {"fields": [{"COUNT": "*", "as": "total"}]},
+		"dict-as order_by ''": {"fields": [{"COUNT": "*", "as": "total"}], "order_by": ""},
+		"dict-as order_by None": {"fields": [{"COUNT": "*", "as": "total"}], "order_by": None},
+	}.items():
+		try:
+			out[label] = frappe.get_list("ToDo", **kwargs)[:1]
+		except Exception as error:
+			out[label] = "ERR " + str(error)[:70]
+		frappe.db.rollback()
+	print("DIAG " + json.dumps(out, default=str))
+	return out

@@ -1408,7 +1408,7 @@ class TestKnowledgeBuilder(IntegrationTestCase):
 		self.assertEqual(source.source_type, "DocType")
 		self.assertEqual(source.reference_doctype, "ToDo")
 		self.assertEqual(source.content_fields, "description, status")
-		self.assertEqual(json.loads(source.filters), {"status": "Open"})
+		self.assertEqual(frappe.parse_json(source.filters), {"status": "Open"})
 		ingest.assert_called_once_with(source_name)
 
 

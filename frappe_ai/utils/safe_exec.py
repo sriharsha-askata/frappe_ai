@@ -141,7 +141,11 @@ def _permissioned_exists(doctype, filters=None) -> bool:
 
 
 def _permissioned_count(doctype, filters=None) -> int:
-	rows = _permissioned_get_list(doctype, filters=filters, fields=["count(*) as total"])
+	# Dict syntax is required for aggregates; an empty order_by keeps Postgres from asking for
+	# the default ordering column in GROUP BY.
+	rows = _permissioned_get_list(
+		doctype, filters=filters, fields=[{"COUNT": "*", "as": "total"}], order_by=""
+	)
 	return rows[0].get("total") if rows else 0
 
 

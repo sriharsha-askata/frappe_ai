@@ -386,7 +386,7 @@ class TestStartRunValidation(IntegrationTestCase):
 
 		self.assertEqual(frappe.get_value("AI Session", first["session"], "model"), other_model)
 		config_snapshot = frappe.get_value("AI Run", second["run"], "config_snapshot")
-		self.assertIn(other_model, config_snapshot)
+		self.assertIn(other_model, str(config_snapshot))
 
 	def test_start_run_model_switch_rejects_disabled_model(self):
 		agent = _model_and_agent("Model Switch Disabled Agent")

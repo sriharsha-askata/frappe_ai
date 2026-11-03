@@ -72,7 +72,8 @@ class TestFrappeAISafeExec(IntegrationTestCase):
 		frappe.get_doc({"doctype": "ToDo", "description": "agg a", "status": "Open"}).insert()
 		frappe.get_doc({"doctype": "ToDo", "description": "agg b", "status": "Open"}).insert()
 		rows = self._run(
-			'result = frappe.get_list("ToDo", filters={"status": "Open"}, fields=["count(*) as total"])'
+			'result = frappe.get_list("ToDo", filters={"status": "Open"}, '
+			'fields=[{"COUNT": "*", "as": "total"}], order_by="")'
 		)
 		self.assertGreaterEqual(rows[0]["total"], 2)
 
