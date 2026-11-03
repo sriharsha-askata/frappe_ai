@@ -328,7 +328,7 @@ def clear_memories(agent: str):
 
 
 def make_trigger(agent: str, kind: str):
-	"""A DocType-event trigger on ToDo, or a scheduled trigger that is already due."""
+	"""A DocType-event trigger on ToDo, or a daily scheduled trigger that is overdue once (its next slot is a day away)."""
 	title = f"E2E {kind}"
 	frappe.db.delete("AI Trigger", {"title": title})
 	values = {
@@ -342,7 +342,7 @@ def make_trigger(agent: str, kind: str):
 	if kind == "event":
 		values.update(event="DocType Event", target_doctype="ToDo", doc_event="after_insert")
 	else:
-		values.update(event="Scheduled", cron_expression="* * * * *", last_fired_at="2020-01-01 00:00:00")
+		values.update(event="Scheduled", cron_expression="0 3 * * *", last_fired_at="2020-01-01 00:00:00")
 	doc = frappe.get_doc(values).insert(ignore_permissions=True)
 	return {"name": doc.name}
 
@@ -478,3 +478,50 @@ def pgvector_extension_missing_message():
 		return {"raised": False}
 	except frappe.ValidationError as error:
 		return {"raised": True, "message": str(error)[:200]}
+
+
+# --- audio ---------------------------------------------------------------------------------
+
+
+def set_transcription(enabled: bool, max_audio_mb: int = 25):
+	"""Point AI Settings at the stub's speech model, or switch audio off."""
+	from frappe_ai.knowledge.transcribe import DEFAULT_MAX_AUDIO_MB
+
+	model = None
+	if enabled:
+		if not frappe.db.exists("AI Model", {"title": "E2E Whisper"}):
+			frappe.get_doc(
+				{
+					"doctype": "AI Model",
+					"title": "E2E Whisper",
+					"enabled": 1,
+					"provider": "openai",
+					"model_id": "whisper-stub",
+				}
+			).insert(ignore_permissions=True)
+		model = frappe.db.get_value("AI Model", {"title": "E2E Whisper"}, "name")
+	settings = frappe.get_doc("AI Settings")
+	settings.transcription_model = model
+	settings.max_audio_mb = max_audio_mb or DEFAULT_MAX_AUDIO_MB
+	settings.save(ignore_permissions=True)
+	frappe.clear_document_cache("AI Settings", "AI Settings")
+	return {"model": model}
+
+
+def add_audio_source(kb: str, spoken: str, title: str = "Call recording"):
+	"""A knowledge File source holding an audio file; ingestion (and transcription) runs in the worker."""
+	from audio import make_wav
+
+	file_doc = frappe.get_doc(
+		{"doctype": "File", "file_name": "recording.wav", "content": make_wav(spoken), "is_private": 1}
+	).insert(ignore_permissions=True)
+	source = frappe.get_doc(
+		{
+			"doctype": "AI Knowledge Source",
+			"title": title,
+			"knowledge_base": kb,
+			"source_type": "File",
+			"file": file_doc.file_url,
+		}
+	).insert(ignore_permissions=True)
+	return source.name

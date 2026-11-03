@@ -31,13 +31,13 @@ from __future__ import annotations
 
 import argparse
 import hashlib
-from email.parser import BytesParser
-from email.policy import default as email_policy
 import json
 import math
 import re
 import threading
 import time
+from email.parser import BytesParser
+from email.policy import default as email_policy
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
 DIMENSION = 768

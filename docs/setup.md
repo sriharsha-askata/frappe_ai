@@ -75,6 +75,20 @@ Where search vectors are stored is chosen in **AI Settings → Vector Backend** 
 
 After changing the backend, rebuild the index (see below). Install the Chroma client only if you use it: `pip install "frappe_ai[chroma]"` (or `bench pip install chromadb`). The vector contract tests need `frappe_ai[dev]` (the `psycopg` driver).
 
+## Audio uploads
+
+Audio files (mp3, wav, m4a, ogg, flac, webm, mp4, mpeg, mpga) are turned into text and then used like any
+other attachment or knowledge source (ADR 0024). The feature is **off** until you choose a model:
+
+1. Create an `AI Provider` and an `AI Model` for a speech-to-text model served by an OpenAI-compatible
+   `/audio/transcriptions` endpoint (OpenAI `whisper-1`, Groq `whisper-large-v3`, a local faster-whisper
+   server, LocalAI). Ollama does not serve this endpoint.
+2. Open **AI Settings → Audio** and select it as **Transcription Model**. Audio is sent to that provider.
+3. Optionally adjust **Max Audio Size** (default 25 MB, the OpenAI limit) and **Transcription Timeout**
+   (default 110 s; keep it under your web server's request timeout, 120 s by default).
+
+Files over the limit are refused before anything is sent. Transcription happens while the file uploads.
+
 ## Storage and backups
 
 The site database is authoritative for knowledge text and metadata. The search index is a

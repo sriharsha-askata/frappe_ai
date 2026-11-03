@@ -43,6 +43,7 @@ native tools reach Assistant Core's registry, and the Error Log stays clean.
 | Large attachment: retrieved instead of inlined; chunks removed with the session | pass | pass |
 | 8 parallel tool calls on one run, each counted | pass | pass |
 | `%` and `_` in session search matched literally | pass | pass |
+| Audio: refused until a model is set; transcript reaches the model with timestamps; oversized file never sent; provider failure reported; audio knowledge source ingested and searchable | pass | pass |
 
 ## Defects found by running it, and fixed
 

@@ -8,6 +8,9 @@
 
 It talks to the real HTTP API (token auth), opens the real SSE stream, and reads back state by
 running `e2e_checks` functions inside the site. Exit status is non-zero if any scenario fails.
+
+Scenarios (`--only` takes these names): knowledge, approval, deny-stop, provider-error, backends,
+memory, triggers, attachment, parallel-budget, sessions-search, audio.
 """
 
 from __future__ import annotations
@@ -19,6 +22,7 @@ import sys
 import time
 
 import requests
+from audio import make_wav
 
 WEB = os.environ.get("E2E_WEB", "http://127.0.0.1:8000")
 RUN_IN_SITE = os.environ.get("E2E_RUN_IN_SITE", "/var/tmp/e2e/r.sh")
@@ -92,6 +96,31 @@ def wait_for(fn, timeout=90, interval=1.0):
 	return value
 
 
+def clear_stub_log() -> None:
+	requests.delete(f"{STUB}/_requests", timeout=5)
+
+
+def first_chat_messages() -> list[dict]:
+	"""The messages of the first chat request the stub received since the log was cleared."""
+	seen = requests.get(f"{STUB}/_requests", timeout=5).json()["requests"]
+	chats = [entry for entry in seen if entry["path"].endswith("/chat/completions")]
+	return chats[0]["body"]["messages"] if chats else []
+
+
+def text_of_role(messages: list[dict], role: str) -> str:
+	return " ".join(message["content"] for message in messages if message["role"] == role)
+
+
+def wait_for_ingestion(site: str, source: str) -> dict | None:
+	"""Wait until the worker has finished (or failed) a knowledge source; returns its state."""
+
+	def finished():
+		state = in_site(site, "source_state", name=source)
+		return state if state["status"] in ("Completed", "Failed") else None
+
+	return wait_for(finished)
+
+
 # --- scenarios ---------------------------------------------------------------------------
 
 
@@ -99,9 +128,7 @@ def scenario_knowledge_and_search(ctx):
 	"""Ingest a text source through the worker, then a chat run that searches it."""
 	site = ctx["site"]
 	source = in_site(site, "add_text_source", kb=ctx["kb"])
-	state = wait_for(
-		lambda: (s := in_site(site, "source_state", name=source))["status"] in ("Completed", "Failed") and s
-	)
+	state = wait_for_ingestion(site, source)
 	check("ingest completes via worker", state and state["status"] == "Completed", json.dumps(state))
 	check("chunks created", state and state["chunk_count"] > 0, f"chunks={state and state['chunk_count']}")
 	check(
@@ -241,7 +268,7 @@ def scenario_backend_matrix(ctx):
 	wanted = ["pgvector", "lancedb", "chroma"] if db == "postgres" else ["lancedb", "chroma"]
 	in_site(site, "reset_knowledge", kb=ctx["kb"])
 	source = in_site(site, "add_text_source", kb=ctx["kb"], title="Matrix")
-	wait_for(lambda: in_site(site, "source_state", name=source)["status"] in ("Completed", "Failed"))
+	wait_for_ingestion(site, source)
 	for name in wanted:
 		in_site(site, "set_backend", name=name)
 		before = in_site(site, "retrieve", query="refund window", kb=ctx["kb"])
@@ -286,19 +313,11 @@ def scenario_memory_prompt(ctx):
 	site, client = ctx["site"], ctx["client"]
 	in_site(site, "clear_memories", agent=ctx["agent"])
 	special = in_site(site, "add_memories", agent=ctx["agent"], count=30, special_word="zanzibar")["special"]
-	requests.delete(f"{STUB}/_requests", timeout=5)
+	clear_stub_log()
 	init = client.call("start_run", input="who manages the zanzibar account?", agent=ctx["agent"])
 	client.stream(init)
-	chats = [
-		r
-		for r in requests.get(f"{STUB}/_requests", timeout=5).json()["requests"]
-		if r["path"].endswith("/chat/completions")
-	]
-	system = (
-		next((m["content"] for m in chats[0]["body"]["messages"] if m["role"] == "system"), "")
-		if chats
-		else ""
-	)
+	messages = first_chat_messages()
+	system = text_of_role(messages, "system")
 	check("memory block is in the system prompt", "<agent_memory>" in system)
 	check("the relevant memory was selected", special in system)
 	listed = system.count("filler fact number")
@@ -384,7 +403,7 @@ def scenario_attachment_retrieval(ctx):
 	)
 	check("upload returns a staged attachment", reply.status_code == 200, reply.text[:120])
 	staged = reply.json()["message"]["attachment"]
-	requests.delete(f"{STUB}/_requests", timeout=5)
+	clear_stub_log()
 	init = client.call(
 		"start_run", input="what is the launch codename?", agent=ctx["agent"], attachments=[staged["file"]]
 	)
@@ -394,14 +413,8 @@ def scenario_attachment_retrieval(ctx):
 		events[-1].get("status") == "Completed",
 		str(events[-1])[:120],
 	)
-	chats = [
-		r
-		for r in requests.get(f"{STUB}/_requests", timeout=5).json()["requests"]
-		if r["path"].endswith("/chat/completions")
-	]
-	user_text = (
-		" ".join(m["content"] for m in chats[0]["body"]["messages"] if m["role"] == "user") if chats else ""
-	)
+	messages = first_chat_messages()
+	user_text = text_of_role(messages, "user")
 	check(
 		"the relevant chunk was injected (retrieval, not the whole file)",
 		"Bluebird-77" in user_text and len(user_text) < len(body) / 2,
@@ -462,6 +475,103 @@ def scenario_sessions_search(ctx):
 	)
 
 
+def stub_transcription_requests() -> int:
+	"""How many speech-to-text requests the stub has received."""
+	requests_seen = requests.get(f"{STUB}/_requests", timeout=5).json()["requests"]
+	return sum(1 for entry in requests_seen if entry["path"].endswith("/audio/transcriptions"))
+
+
+def upload_audio(client: Client, wav: bytes):
+	return client.http.post(
+		f"{WEB}/api/method/frappe_ai.api.frontend.upload_attachment",
+		files={"file": ("voice-note.wav", wav, "audio/wav")},
+		timeout=120,
+	)
+
+
+def scenario_audio(ctx):
+	"""Audio is refused until a transcription model is set, then transcribed into the chat and the knowledge base."""
+	site, client = ctx["site"], ctx["client"]
+	spoken = "The quarterly review moved to Thursday. Bring the vendor contracts."
+	wav = make_wav(spoken)
+
+	in_site(site, "set_transcription", enabled=False)
+	reply = upload_audio(client, wav)
+	check(
+		"audio is refused while no model is configured",
+		reply.status_code != 200 and "transcription model" in reply.text,
+		reply.text[:140],
+	)
+	check("nothing was sent to the provider", stub_transcription_requests() == 0)
+
+	in_site(site, "set_transcription", enabled=True)
+	reply = upload_audio(client, wav)
+	check("audio is accepted once a model is configured", reply.status_code == 200, reply.text[:140])
+	staged = reply.json()["message"]["attachment"]
+	check(
+		"the composer is told audio is supported",
+		"wav" in client.get("bootstrap")["composer"]["supported_file_types"],
+	)
+
+	clear_stub_log()
+	init = client.call(
+		"start_run", input="what was decided?", agent=ctx["agent"], attachments=[staged["file"]]
+	)
+	events = client.stream(init)
+	check(
+		"a chat run with the audio attachment completes",
+		events[-1].get("status") == "Completed",
+		str(events[-1])[:120],
+	)
+	messages = first_chat_messages()
+	user_text = text_of_role(messages, "user")
+	check(
+		"the transcript reached the model",
+		"Thursday" in user_text and "[00:00:00]" in user_text,
+		user_text[:160],
+	)
+	check(
+		"the second sentence is timestamped five seconds later",
+		"[00:00:05] Bring the vendor contracts." in user_text,
+	)
+
+	in_site(site, "set_transcription", enabled=True, max_audio_mb=1)
+	before = stub_transcription_requests()
+	reply = upload_audio(client, make_wav(spoken, padding_bytes=2 * 1024 * 1024))
+	check(
+		"an oversized file is refused with the limit",
+		reply.status_code != 200 and "limit is 1 MB" in reply.text,
+		reply.text[:140],
+	)
+	check("an oversized file is never sent to the provider", stub_transcription_requests() == before)
+
+	in_site(site, "set_transcription", enabled=True)
+	reply = upload_audio(client, make_wav("FAIL"))
+	check(
+		"a provider failure is reported to the user",
+		reply.status_code != 200 and "Provider" in reply.text,
+		reply.text[:160],
+	)
+
+	source = in_site(
+		site, "add_audio_source", kb=ctx["kb"], spoken="The hardware warranty lasts exactly seven years."
+	)
+	state = wait_for_ingestion(site, source)
+	check(
+		"an audio knowledge source is ingested through the worker",
+		state and state["status"] == "Completed",
+		json.dumps(state),
+	)
+	found = in_site(site, "retrieve", query="warranty seven years", kb=ctx["kb"])
+	check(
+		"search finds a sentence from the recording",
+		found["ok"] and any("seven years" in c for c in found["contents"]),
+		json.dumps(found)[:160],
+	)
+	check("index matches database", in_site(site, "index_consistency")["equal"])
+	in_site(site, "set_transcription", enabled=False)
+
+
 SCENARIOS = {
 	"knowledge": scenario_knowledge_and_search,
 	"approval": scenario_approval_flow,
@@ -473,6 +583,7 @@ SCENARIOS = {
 	"attachment": scenario_attachment_retrieval,
 	"parallel-budget": scenario_parallel_budget,
 	"sessions-search": scenario_sessions_search,
+	"audio": scenario_audio,
 }
 
 
@@ -484,7 +595,7 @@ def main() -> int:
 		"frappe_ai_service_secret"
 	]
 	ctx = {"site": site, "port": port, "secret": secret, **seeded, "client": Client(site, seeded["token"])}
-	requests.delete(f"{STUB}/_requests", timeout=5)
+	clear_stub_log()
 	for name in only:
 		print(f"\n== {site}: {name}", flush=True)
 		try:

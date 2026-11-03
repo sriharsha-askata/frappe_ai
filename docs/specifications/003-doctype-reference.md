@@ -121,6 +121,9 @@ architecture requires.
 | `chunk_overlap` | Int | default 200 | ported |
 | `request_timeout` | Int | default 120 (seconds) | **new** |
 | `stream_timeout` | Int | default 600 (seconds) | **new** |
+| `transcription_model` | Link → `AI Model` | empty = audio uploads off; audio is sent to this model's provider (ADR 0024) | **new** |
+| `max_audio_mb` | Int | default 25; 0 means the default | **new** |
+| `transcription_timeout` | Int | default 110 (seconds); 0 means the default | **new** |
 | `vector_backend` | Data | default `Auto`; `Auto`, `lancedb`, `pgvector`, `chroma`, or an app-registered name | **new** |
 | `service_status` | Data | read-only, health indicator | **new** |
 
