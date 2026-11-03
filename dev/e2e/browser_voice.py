@@ -81,19 +81,22 @@ def run(site: str, screenshot: str | None) -> None:
 			],
 		)
 		context = browser.new_context(
+			viewport={"width": 1440, "height": 1000},
 			extra_http_headers={"X-Frappe-Site-Name": site}, permissions=["microphone"]
 		)
 		page = context.new_page()
 		errors: list[str] = []
 		page.on("pageerror", lambda error: errors.append(str(error)))
 		log_in(context)
-		page.goto(f"{WEB}/app/frappe-ai", wait_until="domcontentloaded")
-		mic = page.locator("button.faip-voice-button")
-		mic.wait_for(timeout=30000)
+		page.goto(f"{WEB}/desk/frappe-ai", wait_until="domcontentloaded")
+		mic = page.locator(".faip-shell button.faip-voice-button")
+		mic.wait_for(state="attached", timeout=30000)
+		page.keyboard.press("Control+i")  # open the slide-in panel
+		page.wait_for_timeout(600)
 		check("the microphone button is shown when voice is available", mic.count() == 1)
 
 		mic.click()
-		page.wait_for_selector("button.faip-voice-button.is-recording", timeout=10000)
+		page.wait_for_selector(".faip-shell button.faip-voice-button.is-recording", timeout=10000)
 		check("clicking it starts listening", True)
 		time.sleep(2.5)  # let the fake microphone play a couple of seconds
 		mic.click()
