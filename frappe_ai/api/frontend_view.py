@@ -130,6 +130,7 @@ def _session_row(row: Any) -> dict[str, Any]:
 		"agent": getattr(row, "agent", None),
 		"model": getattr(row, "model", None),
 		"source": getattr(row, "source", None),
+		"pinned": bool(getattr(row, "pinned", 0)),
 	}
 
 

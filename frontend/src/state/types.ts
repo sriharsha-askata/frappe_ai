@@ -44,6 +44,7 @@ export type SessionRecord = {
 	agent?: string | null;
 	model?: string | null;
 	source?: string | null;
+	pinned?: boolean;
 };
 export type AttachmentItem = {
 	uid: string;
@@ -157,6 +158,7 @@ export type StoreContextValue = StoreState & {
 	attachFiles: (files: FileList | null) => void;
 	removeAttachment: (uid: string) => void;
 	searchSessions: (query: string) => Promise<SessionRecord[]>;
+	togglePinned: (name: string) => Promise<void>;
 	clearForceScroll: () => void;
 	openAgentInspector: () => void;
 	openModelInspector: () => void;

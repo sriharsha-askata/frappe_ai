@@ -1,14 +1,5 @@
-import React, { useEffect, useMemo, useRef, useState } from "react";
-import {
-	Ellipsis,
-	Maximize2,
-	Menu,
-	Minimize2,
-	PanelRightClose,
-	PanelsTopLeft,
-	Server,
-	Wrench,
-} from "lucide-react";
+import React, { useEffect, useRef, useState } from "react";
+import { Activity, Ellipsis, Maximize2, Menu, Minimize2, PanelRightClose, Server, Wrench } from "lucide-react";
 import { Composer } from "./Composer";
 import { InspectorDrawer } from "./InspectorDrawer";
 import { MessageList } from "./MessageList";
@@ -20,6 +11,15 @@ function runStatusLabel(run: any, sending: boolean) {
 	if (sending) return __("Running");
 	if (!run) return __("Ready");
 	return run.status;
+}
+
+/** Colour family for the status pill: running, waiting (needs the user), failed, or neutral. */
+function statusTone(run: any, sending: boolean): "running" | "waiting" | "failed" | "idle" {
+	if (sending) return "running";
+	const status = String(run?.status || "").toLowerCase();
+	if (status === "paused") return "waiting";
+	if (status === "failed" || status === "error") return "failed";
+	return "idle";
 }
 
 export function WorkspaceShell({
@@ -39,7 +39,6 @@ export function WorkspaceShell({
 		currentRun,
 		inspector,
 		sending,
-		transcript,
 		openAgentInspector,
 		openMcpInspector,
 		openToolInspector,
@@ -49,13 +48,6 @@ export function WorkspaceShell({
 	const [sidebarOpen, setSidebarOpen] = useState(variant === "standalone");
 	const [actionsOpen, setActionsOpen] = useState(false);
 	const actionsRef = useRef<HTMLDivElement | null>(null);
-
-	const latestExecution = useMemo(() => {
-		const message = [...transcript]
-			.reverse()
-			.find((item) => item.role === "assistant" && item.executions.length);
-		return message?.role === "assistant" ? message.executions[0] || null : null;
-	}, [transcript]);
 
 	useEffect(() => {
 		function onPointerDown(event: MouseEvent) {
@@ -75,9 +67,12 @@ export function WorkspaceShell({
 		if (agentRecord?.mcp_connections.length) openMcpInspector(agentRecord.mcp_connections[0]);
 	}
 
-	function handleOpenActivity() {
-		setActionsOpen(false);
-		openActivityInspector();
+	const activityOpen = inspector.open && inspector.mode === "activity";
+	const title = currentSession?.title || __("New chat");
+
+	function handleToggleActivity() {
+		if (activityOpen) closeInspector();
+		else openActivityInspector();
 	}
 
 	function dismissSidebarIfMobile() {
@@ -102,63 +97,50 @@ export function WorkspaceShell({
 					<div className="faip-workspace-header-left">
 						<button
 							type="button"
-							className="faip-icon-button faip-workspace-menu-button"
+							className="faip-icon-button"
 							onClick={() => setSidebarOpen((value) => !value)}
+							aria-label={__("Toggle sidebar")}
+							aria-pressed={sidebarOpen}
 						>
 							<Menu size={16} />
 						</button>
-						<button type="button" className="faip-workspace-agent" onClick={openAgentInspector}>
-							<div className="faip-workspace-agent-title" title={agentRecord?.title || __("Agent")}>
-								{agentRecord?.title || __("Agent")}
-							</div>
-							<div
-								className="faip-workspace-agent-meta"
-								title={agentRecord?.model?.title || __("Agent default")}
-							>
-								{agentRecord?.readiness.label || __("Unavailable")} ·{" "}
-								{agentRecord?.model?.title || __("Agent default")}
-							</div>
-						</button>
-					</div>
-					<div className="faip-workspace-header-right" ref={actionsRef}>
-						<span className="faip-status-pill faip-workspace-status">
+						<h1 className="faip-topbar-title" title={title}>
+							{title}
+						</h1>
+						<span className={`faip-status-pill is-${statusTone(currentRun, sending)}`}>
 							{runStatusLabel(currentRun, sending)}
 						</span>
+					</div>
+					<div className="faip-workspace-header-right" ref={actionsRef}>
 						<button
 							type="button"
-							className="faip-secondary-button faip-header-action is-tools"
-							onClick={handleOpenTools}
-							disabled={!agentRecord?.tools.summaries.length}
+							className="faip-agent-chip"
+							onClick={openAgentInspector}
+							title={__("Agent and model settings")}
 						>
-							<Wrench size={14} />
-							{__("Tools")}
+							<span className="faip-agent-chip-name">{agentRecord?.title || __("Agent")}</span>
+							<span className="faip-agent-chip-model">{agentRecord?.model?.title || __("Agent default")}</span>
 						</button>
 						<button
 							type="button"
-							className="faip-secondary-button faip-header-action is-mcp"
-							onClick={handleOpenMcps}
-							disabled={!agentRecord?.mcp_connections.length}
+							className={`faip-icon-button ${activityOpen ? "is-on" : ""}`}
+							onClick={handleToggleActivity}
+							aria-label={__("Activity")}
+							aria-pressed={activityOpen}
+							title={__("Activity")}
 						>
-							<Server size={14} />
-							{__("MCPs")}
+							<Activity size={16} />
 						</button>
-						<button
-							type="button"
-							className="faip-secondary-button faip-header-action is-activity"
-							onClick={handleOpenActivity}
-						>
-							<PanelsTopLeft size={14} />
-							{__("Activity")}
-						</button>
-						<div className={`faip-overflow ${actionsOpen ? "is-open" : ""}`}>
+						<div className="faip-overflow">
 							<button
 								type="button"
-								className="faip-secondary-button faip-header-action faip-header-overflow-button"
+								className="faip-icon-button"
 								onClick={() => setActionsOpen((value) => !value)}
 								aria-expanded={actionsOpen}
 								aria-label={__("More actions")}
+								title={__("More actions")}
 							>
-								<Ellipsis size={14} />
+								<Ellipsis size={16} />
 							</button>
 							{actionsOpen ? (
 								<div className="faip-overflow-menu">
@@ -180,41 +162,31 @@ export function WorkspaceShell({
 										<Server size={14} />
 										{__("MCPs")}
 									</button>
-									<button type="button" className="faip-menu-item" onClick={handleOpenActivity}>
-										<PanelsTopLeft size={14} />
-										{__("Activity")}
-									</button>
 								</div>
 							) : null}
 						</div>
 						{variant === "panel" && panelControls ? (
 							<div className="faip-panel-controls">
-								<button type="button" className="faip-icon-button" onClick={panelControls.onToggleFullscreen}>
+								<button
+									type="button"
+									className="faip-icon-button"
+									onClick={panelControls.onToggleFullscreen}
+									aria-label={panelControls.fullscreen ? __("Exit full screen") : __("Full screen")}
+								>
 									{panelControls.fullscreen ? <Minimize2 size={16} /> : <Maximize2 size={16} />}
 								</button>
-								<button type="button" className="faip-icon-button" onClick={panelControls.onClose}>
+								<button
+									type="button"
+									className="faip-icon-button"
+									onClick={panelControls.onClose}
+									aria-label={__("Close panel")}
+								>
 									<PanelRightClose size={16} />
 								</button>
 							</div>
 						) : null}
 					</div>
 				</header>
-
-				<div className="faip-workspace-context">
-					<div>
-						<div className="faip-workspace-context-title">{currentSession?.title || __("New chat")}</div>
-						<div className="faip-workspace-context-meta">
-							{latestExecution
-								? latestExecution.kind === "mcp_tool"
-									? __("Latest activity: {0} via {1}", [
-											latestExecution.display_title,
-											latestExecution.connection_name || __("MCP"),
-									  ])
-									: __("Latest activity: {0}", [latestExecution.display_title])
-								: __("Workspace transcript and execution details stay in sync here.")}
-						</div>
-					</div>
-				</div>
 
 				<div className="faip-workspace-content">
 					<MessageList />

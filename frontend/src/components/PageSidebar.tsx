@@ -1,31 +1,109 @@
-import React, { useEffect, useMemo, useState } from "react";
-import { Bot, ChevronRight, MessageSquarePlus, Search, X } from "lucide-react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
+import { Bot, Check, ChevronDown, MessageSquarePlus, Pin, PinOff, Search, X } from "lucide-react";
 import { useStore } from "../state/store";
+import type { SessionRecord } from "../state/types";
+import { groupSessions } from "../lib/sessionGroups";
 import { __ } from "../lib/translate";
 
-function bucketLabel(value?: string) {
-	if (!value) return __("Earlier");
-	const date = new Date(value);
-	if (Number.isNaN(date.getTime())) return __("Earlier");
-	const today = new Date();
-	const current = new Date(today.getFullYear(), today.getMonth(), today.getDate());
-	const target = new Date(date.getFullYear(), date.getMonth(), date.getDate());
-	const diff = Math.round((current.getTime() - target.getTime()) / 86400000);
-	if (diff === 0) return __("Today");
-	if (diff === 1) return __("Yesterday");
-	return date.toLocaleDateString([], { month: "short", day: "numeric" });
+function AgentSwitcher({ onNavigate }: { onNavigate: () => void }) {
+	const { agents, selectedAgent, setAgent } = useStore();
+	const [open, setOpen] = useState(false);
+	const ref = useRef<HTMLDivElement | null>(null);
+	const current = agents.find((agent) => agent.name === selectedAgent);
+
+	useEffect(() => {
+		if (!open) return;
+		const onPointerDown = (event: MouseEvent) => {
+			if (!ref.current?.contains(event.target as Node)) setOpen(false);
+		};
+		const onKeyDown = (event: KeyboardEvent) => {
+			if (event.key === "Escape") setOpen(false);
+		};
+		document.addEventListener("mousedown", onPointerDown);
+		document.addEventListener("keydown", onKeyDown);
+		return () => {
+			document.removeEventListener("mousedown", onPointerDown);
+			document.removeEventListener("keydown", onKeyDown);
+		};
+	}, [open]);
+
+	return (
+		<div className="faip-rail-agent" ref={ref}>
+			<button
+				type="button"
+				className="faip-rail-agent-button"
+				aria-haspopup="listbox"
+				aria-expanded={open}
+				onClick={() => setOpen((value) => !value)}
+			>
+				<span className="faip-rail-agent-mark">
+					<Bot size={14} />
+				</span>
+				<span className="faip-rail-agent-copy">
+					<span className="faip-rail-agent-name">{current?.title || __("Choose an agent")}</span>
+					<span className="faip-rail-agent-meta">{current?.readiness.label || __("Unavailable")}</span>
+				</span>
+				<ChevronDown size={14} />
+			</button>
+			{open ? (
+				<div className="faip-rail-menu" role="listbox">
+					{agents.map((agent) => (
+						<button
+							key={agent.name}
+							type="button"
+							role="option"
+							aria-selected={agent.name === selectedAgent}
+							className="faip-rail-menu-item"
+							onClick={() => {
+								setAgent(agent.name);
+								setOpen(false);
+								onNavigate();
+							}}
+						>
+							<span className="faip-rail-agent-copy">
+								<span className="faip-rail-agent-name">{agent.title}</span>
+								<span className="faip-rail-agent-meta">{agent.readiness.label}</span>
+							</span>
+							{agent.name === selectedAgent ? <Check size={14} /> : null}
+						</button>
+					))}
+				</div>
+			) : null}
+		</div>
+	);
 }
 
-function timeLabel(value?: string) {
-	if (!value) return "";
-	const date = new Date(value);
-	if (Number.isNaN(date.getTime())) return "";
-	return date.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
+function SessionRow({
+	item,
+	active,
+	onOpen,
+}: {
+	item: SessionRecord;
+	active: boolean;
+	onOpen: () => void;
+}) {
+	const { togglePinned } = useStore();
+	const label = item.pinned ? __("Unpin chat") : __("Pin chat");
+	return (
+		<div className={`faip-rail-row ${active ? "is-active" : ""} ${item.pinned ? "is-pinned" : ""}`}>
+			<button type="button" className="faip-rail-row-title" onClick={onOpen} title={item.title}>
+				{item.title}
+			</button>
+			<button
+				type="button"
+				className="faip-rail-row-pin"
+				onClick={() => void togglePinned(item.name)}
+				aria-label={label}
+				title={label}
+			>
+				{item.pinned ? <PinOff size={13} /> : <Pin size={13} />}
+			</button>
+		</div>
+	);
 }
 
 export function PageSidebar({ onClose, onNavigate }: { onClose: () => void; onNavigate: () => void }) {
-	const { agents, selectedAgent, setAgent, history, currentSession, switchSession, newChat, searchSessions } =
-		useStore();
+	const { history, currentSession, switchSession, newChat, searchSessions } = useStore();
 	const [query, setQuery] = useState("");
 	const [items, setItems] = useState(history);
 
@@ -41,32 +119,20 @@ export function PageSidebar({ onClose, onNavigate }: { onClose: () => void; onNa
 		};
 	}, [query, searchSessions]);
 
-	const groups = useMemo(() => {
-		const output = new Map<string, any[]>();
-		for (const item of items) {
-			const label = bucketLabel(item.modified);
-			const list = output.get(label) || [];
-			list.push(item);
-			output.set(label, list);
-		}
-		return Array.from(output.entries());
-	}, [items]);
+	const groups = useMemo(() => groupSessions(items), [items]);
 
 	return (
 		<aside className="faip-nav">
-			<div className="faip-nav-header">
+			<div className="faip-rail-header">
 				<div className="faip-header-mark">
-					<Bot size={18} />
+					<Bot size={16} />
 				</div>
-				<div className="faip-nav-brand">
-					<div className="faip-nav-title">Frappe AI</div>
-					<div className="faip-nav-subtitle">{__("Navigation")}</div>
-				</div>
+				<div className="faip-rail-brand">Frappe AI</div>
 				<button
 					type="button"
 					className="faip-icon-button faip-nav-close"
 					onClick={onClose}
-					aria-label="Close sidebar"
+					aria-label={__("Close sidebar")}
 				>
 					<X size={16} />
 				</button>
@@ -74,7 +140,7 @@ export function PageSidebar({ onClose, onNavigate }: { onClose: () => void; onNa
 
 			<button
 				type="button"
-				className="faip-page-new-chat"
+				className="faip-rail-new"
 				onClick={() => {
 					newChat();
 					onNavigate();
@@ -84,69 +150,37 @@ export function PageSidebar({ onClose, onNavigate }: { onClose: () => void; onNa
 				{__("New chat")}
 			</button>
 
-			<div className="faip-page-search">
+			<AgentSwitcher onNavigate={onNavigate} />
+
+			<label className="faip-page-search">
 				<Search size={14} />
 				<input
 					value={query}
 					onChange={(event) => setQuery(event.target.value)}
-					placeholder={__("Search sessions")}
+					placeholder={__("Search chats")}
+					aria-label={__("Search chats")}
 				/>
-			</div>
+			</label>
 
-			<div className="faip-nav-section">
-				<div className="faip-nav-section-title">{__("Agents")}</div>
-				<div className="faip-nav-list">
-					{agents.map((agent) => (
-						<button
-							key={agent.name}
-							type="button"
-							className={`faip-nav-item ${selectedAgent === agent.name ? "is-active" : ""}`}
-							onClick={() => {
-								setAgent(agent.name);
-								onNavigate();
-							}}
-						>
-							<div className="faip-nav-item-copy">
-								<div className="faip-nav-item-title">{agent.title}</div>
-								<div className="faip-nav-item-meta">{agent.readiness.label}</div>
-							</div>
-							<ChevronRight size={14} />
-						</button>
-					))}
-				</div>
-			</div>
-
-			<div className="faip-nav-section faip-nav-section-sessions">
-				<div className="faip-nav-section-title">{__("Sessions")}</div>
-				<div className="faip-nav-session-scroll">
-					{groups.map(([label, sessions]) => (
-						<div key={label} className="faip-nav-group">
-							<div className="faip-nav-group-label">{label}</div>
-							<div className="faip-nav-list">
-								{sessions.map((item: any) => (
-									<button
-										type="button"
-										key={item.name}
-										className={`faip-nav-item is-session ${
-											item.name === currentSession?.name ? "is-active" : ""
-										}`}
-										onClick={() => {
-											void switchSession(item.name);
-											onNavigate();
-										}}
-									>
-										<div className="faip-nav-item-copy">
-											<div className="faip-nav-item-title">{item.title}</div>
-											<div className="faip-nav-item-meta">{timeLabel(item.modified)}</div>
-										</div>
-										<ChevronRight size={14} />
-									</button>
-								))}
-							</div>
-						</div>
-					))}
-				</div>
-			</div>
+			<nav className="faip-rail-sessions" aria-label={__("Chats")}>
+				{groups.length === 0 ? <div className="faip-rail-empty">{__("No chats yet")}</div> : null}
+				{groups.map(([label, sessions]) => (
+					<section key={label} className="faip-rail-group">
+						<div className="faip-rail-group-label">{label}</div>
+						{sessions.map((item) => (
+							<SessionRow
+								key={item.name}
+								item={item}
+								active={item.name === currentSession?.name}
+								onOpen={() => {
+									void switchSession(item.name);
+									onNavigate();
+								}}
+							/>
+						))}
+					</section>
+				))}
+			</nav>
 		</aside>
 	);
 }

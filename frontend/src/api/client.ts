@@ -76,6 +76,12 @@ export const submitFeedback = (args: Record<string, any>) =>
 export const recoverSession = (session: string) =>
 	request("frappe_ai.api.frontend.recover_session", { method: "POST", body: { session } });
 
+export const setSessionPinned = (session: string, pinned: boolean) =>
+	request("frappe_ai.api.frontend.set_session_pinned", {
+		method: "POST",
+		body: { session, pinned: pinned ? 1 : 0 },
+	});
+
 export const stopRun = (runName: string) =>
 	request("frappe_ai.api.frontend.stop_run", { method: "POST", body: { run: runName } });
 

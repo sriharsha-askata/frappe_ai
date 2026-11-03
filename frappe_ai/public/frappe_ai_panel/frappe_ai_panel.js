@@ -14668,15 +14668,27 @@ var FrappeAIPanel = (() => {
     return Component;
   };
 
-  // node_modules/lucide-react/dist/esm/icons/arrow-up.js
+  // node_modules/lucide-react/dist/esm/icons/activity.js
   var __iconNode = [
+    [
+      "path",
+      {
+        d: "M22 12h-2.48a2 2 0 0 0-1.93 1.46l-2.35 8.36a.25.25 0 0 1-.48 0L9.24 2.18a.25.25 0 0 0-.48 0l-2.35 8.36A2 2 0 0 1 4.49 12H2",
+        key: "169zse"
+      }
+    ]
+  ];
+  var Activity = createLucideIcon("activity", __iconNode);
+
+  // node_modules/lucide-react/dist/esm/icons/arrow-up.js
+  var __iconNode2 = [
     ["path", { d: "m5 12 7-7 7 7", key: "hav0vg" }],
     ["path", { d: "M12 19V5", key: "x0mq9r" }]
   ];
-  var ArrowUp = createLucideIcon("arrow-up", __iconNode);
+  var ArrowUp = createLucideIcon("arrow-up", __iconNode2);
 
   // node_modules/lucide-react/dist/esm/icons/bot.js
-  var __iconNode2 = [
+  var __iconNode3 = [
     ["path", { d: "M12 8V4H8", key: "hb8ula" }],
     ["rect", { width: "16", height: "12", x: "4", y: "8", rx: "2", key: "enze0r" }],
     ["path", { d: "M2 14h2", key: "vft8re" }],
@@ -14684,29 +14696,33 @@ var FrappeAIPanel = (() => {
     ["path", { d: "M15 13v2", key: "1xurst" }],
     ["path", { d: "M9 13v2", key: "rq6x2g" }]
   ];
-  var Bot = createLucideIcon("bot", __iconNode2);
+  var Bot = createLucideIcon("bot", __iconNode3);
 
-  // node_modules/lucide-react/dist/esm/icons/chevron-right.js
-  var __iconNode3 = [["path", { d: "m9 18 6-6-6-6", key: "mthhwq" }]];
-  var ChevronRight = createLucideIcon("chevron-right", __iconNode3);
+  // node_modules/lucide-react/dist/esm/icons/check.js
+  var __iconNode4 = [["path", { d: "M20 6 9 17l-5-5", key: "1gmf2c" }]];
+  var Check = createLucideIcon("check", __iconNode4);
+
+  // node_modules/lucide-react/dist/esm/icons/chevron-down.js
+  var __iconNode5 = [["path", { d: "m6 9 6 6 6-6", key: "qrunsl" }]];
+  var ChevronDown = createLucideIcon("chevron-down", __iconNode5);
 
   // node_modules/lucide-react/dist/esm/icons/circle-alert.js
-  var __iconNode4 = [
+  var __iconNode6 = [
     ["circle", { cx: "12", cy: "12", r: "10", key: "1mglay" }],
     ["line", { x1: "12", x2: "12", y1: "8", y2: "12", key: "1pkeuh" }],
     ["line", { x1: "12", x2: "12.01", y1: "16", y2: "16", key: "4dfq90" }]
   ];
-  var CircleAlert = createLucideIcon("circle-alert", __iconNode4);
+  var CircleAlert = createLucideIcon("circle-alert", __iconNode6);
 
   // node_modules/lucide-react/dist/esm/icons/circle-check.js
-  var __iconNode5 = [
+  var __iconNode7 = [
     ["circle", { cx: "12", cy: "12", r: "10", key: "1mglay" }],
     ["path", { d: "m9 12 2 2 4-4", key: "dzmm74" }]
   ];
-  var CircleCheck = createLucideIcon("circle-check", __iconNode5);
+  var CircleCheck = createLucideIcon("circle-check", __iconNode7);
 
   // node_modules/lucide-react/dist/esm/icons/circle-dashed.js
-  var __iconNode6 = [
+  var __iconNode8 = [
     ["path", { d: "M10.1 2.182a10 10 0 0 1 3.8 0", key: "5ilxe3" }],
     ["path", { d: "M13.9 21.818a10 10 0 0 1-3.8 0", key: "11zvb9" }],
     ["path", { d: "M17.609 3.721a10 10 0 0 1 2.69 2.7", key: "1iw5b2" }],
@@ -14716,10 +14732,10 @@ var FrappeAIPanel = (() => {
     ["path", { d: "M3.721 6.391a10 10 0 0 1 2.7-2.69", key: "1mcia2" }],
     ["path", { d: "M6.391 20.279a10 10 0 0 1-2.69-2.7", key: "1fvljs" }]
   ];
-  var CircleDashed = createLucideIcon("circle-dashed", __iconNode6);
+  var CircleDashed = createLucideIcon("circle-dashed", __iconNode8);
 
   // node_modules/lucide-react/dist/esm/icons/circle-play.js
-  var __iconNode7 = [
+  var __iconNode9 = [
     [
       "path",
       {
@@ -14729,18 +14745,18 @@ var FrappeAIPanel = (() => {
     ],
     ["circle", { cx: "12", cy: "12", r: "10", key: "1mglay" }]
   ];
-  var CirclePlay = createLucideIcon("circle-play", __iconNode7);
+  var CirclePlay = createLucideIcon("circle-play", __iconNode9);
 
   // node_modules/lucide-react/dist/esm/icons/circle-x.js
-  var __iconNode8 = [
+  var __iconNode10 = [
     ["circle", { cx: "12", cy: "12", r: "10", key: "1mglay" }],
     ["path", { d: "m15 9-6 6", key: "1uzhvr" }],
     ["path", { d: "m9 9 6 6", key: "z0biqf" }]
   ];
-  var CircleX = createLucideIcon("circle-x", __iconNode8);
+  var CircleX = createLucideIcon("circle-x", __iconNode10);
 
   // node_modules/lucide-react/dist/esm/icons/compass.js
-  var __iconNode9 = [
+  var __iconNode11 = [
     [
       "path",
       {
@@ -14750,34 +14766,34 @@ var FrappeAIPanel = (() => {
     ],
     ["circle", { cx: "12", cy: "12", r: "10", key: "1mglay" }]
   ];
-  var Compass = createLucideIcon("compass", __iconNode9);
+  var Compass = createLucideIcon("compass", __iconNode11);
 
   // node_modules/lucide-react/dist/esm/icons/database.js
-  var __iconNode10 = [
+  var __iconNode12 = [
     ["ellipse", { cx: "12", cy: "5", rx: "9", ry: "3", key: "msslwz" }],
     ["path", { d: "M3 5V19A9 3 0 0 0 21 19V5", key: "1wlel7" }],
     ["path", { d: "M3 12A9 3 0 0 0 21 12", key: "mv7ke4" }]
   ];
-  var Database = createLucideIcon("database", __iconNode10);
+  var Database = createLucideIcon("database", __iconNode12);
 
   // node_modules/lucide-react/dist/esm/icons/ellipsis.js
-  var __iconNode11 = [
+  var __iconNode13 = [
     ["circle", { cx: "12", cy: "12", r: "1", key: "41hilf" }],
     ["circle", { cx: "19", cy: "12", r: "1", key: "1wjl8i" }],
     ["circle", { cx: "5", cy: "12", r: "1", key: "1pcz8c" }]
   ];
-  var Ellipsis = createLucideIcon("ellipsis", __iconNode11);
+  var Ellipsis = createLucideIcon("ellipsis", __iconNode13);
 
   // node_modules/lucide-react/dist/esm/icons/external-link.js
-  var __iconNode12 = [
+  var __iconNode14 = [
     ["path", { d: "M15 3h6v6", key: "1q9fwt" }],
     ["path", { d: "M10 14 21 3", key: "gplh6r" }],
     ["path", { d: "M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6", key: "a6xqqp" }]
   ];
-  var ExternalLink = createLucideIcon("external-link", __iconNode12);
+  var ExternalLink = createLucideIcon("external-link", __iconNode14);
 
   // node_modules/lucide-react/dist/esm/icons/hammer.js
-  var __iconNode13 = [
+  var __iconNode15 = [
     ["path", { d: "m15 12-9.373 9.373a1 1 0 0 1-3.001-3L12 9", key: "1hayfq" }],
     ["path", { d: "m18 15 4-4", key: "16gjal" }],
     [
@@ -14788,31 +14804,31 @@ var FrappeAIPanel = (() => {
       }
     ]
   ];
-  var Hammer = createLucideIcon("hammer", __iconNode13);
+  var Hammer = createLucideIcon("hammer", __iconNode15);
 
   // node_modules/lucide-react/dist/esm/icons/loader-circle.js
-  var __iconNode14 = [["path", { d: "M21 12a9 9 0 1 1-6.219-8.56", key: "13zald" }]];
-  var LoaderCircle = createLucideIcon("loader-circle", __iconNode14);
+  var __iconNode16 = [["path", { d: "M21 12a9 9 0 1 1-6.219-8.56", key: "13zald" }]];
+  var LoaderCircle = createLucideIcon("loader-circle", __iconNode16);
 
   // node_modules/lucide-react/dist/esm/icons/maximize-2.js
-  var __iconNode15 = [
+  var __iconNode17 = [
     ["path", { d: "M15 3h6v6", key: "1q9fwt" }],
     ["path", { d: "m21 3-7 7", key: "1l2asr" }],
     ["path", { d: "m3 21 7-7", key: "tjx5ai" }],
     ["path", { d: "M9 21H3v-6", key: "wtvkvv" }]
   ];
-  var Maximize2 = createLucideIcon("maximize-2", __iconNode15);
+  var Maximize2 = createLucideIcon("maximize-2", __iconNode17);
 
   // node_modules/lucide-react/dist/esm/icons/menu.js
-  var __iconNode16 = [
+  var __iconNode18 = [
     ["path", { d: "M4 12h16", key: "1lakjw" }],
     ["path", { d: "M4 18h16", key: "19g7jn" }],
     ["path", { d: "M4 6h16", key: "1o0s65" }]
   ];
-  var Menu = createLucideIcon("menu", __iconNode16);
+  var Menu = createLucideIcon("menu", __iconNode18);
 
   // node_modules/lucide-react/dist/esm/icons/message-square-plus.js
-  var __iconNode17 = [
+  var __iconNode19 = [
     [
       "path",
       {
@@ -14823,43 +14839,35 @@ var FrappeAIPanel = (() => {
     ["path", { d: "M12 8v6", key: "1ib9pf" }],
     ["path", { d: "M9 11h6", key: "1fldmi" }]
   ];
-  var MessageSquarePlus = createLucideIcon("message-square-plus", __iconNode17);
+  var MessageSquarePlus = createLucideIcon("message-square-plus", __iconNode19);
 
   // node_modules/lucide-react/dist/esm/icons/mic.js
-  var __iconNode18 = [
+  var __iconNode20 = [
     ["path", { d: "M12 19v3", key: "npa21l" }],
     ["path", { d: "M19 10v2a7 7 0 0 1-14 0v-2", key: "1vc78b" }],
     ["rect", { x: "9", y: "2", width: "6", height: "13", rx: "3", key: "s6n7sd" }]
   ];
-  var Mic = createLucideIcon("mic", __iconNode18);
+  var Mic = createLucideIcon("mic", __iconNode20);
 
   // node_modules/lucide-react/dist/esm/icons/minimize-2.js
-  var __iconNode19 = [
+  var __iconNode21 = [
     ["path", { d: "m14 10 7-7", key: "oa77jy" }],
     ["path", { d: "M20 10h-6V4", key: "mjg0md" }],
     ["path", { d: "m3 21 7-7", key: "tjx5ai" }],
     ["path", { d: "M4 14h6v6", key: "rmj7iw" }]
   ];
-  var Minimize2 = createLucideIcon("minimize-2", __iconNode19);
+  var Minimize2 = createLucideIcon("minimize-2", __iconNode21);
 
   // node_modules/lucide-react/dist/esm/icons/panel-right-close.js
-  var __iconNode20 = [
+  var __iconNode22 = [
     ["rect", { width: "18", height: "18", x: "3", y: "3", rx: "2", key: "afitv7" }],
     ["path", { d: "M15 3v18", key: "14nvp0" }],
     ["path", { d: "m8 9 3 3-3 3", key: "12hl5m" }]
   ];
-  var PanelRightClose = createLucideIcon("panel-right-close", __iconNode20);
-
-  // node_modules/lucide-react/dist/esm/icons/panels-top-left.js
-  var __iconNode21 = [
-    ["rect", { width: "18", height: "18", x: "3", y: "3", rx: "2", key: "afitv7" }],
-    ["path", { d: "M3 9h18", key: "1pudct" }],
-    ["path", { d: "M9 21V9", key: "1oto5p" }]
-  ];
-  var PanelsTopLeft = createLucideIcon("panels-top-left", __iconNode21);
+  var PanelRightClose = createLucideIcon("panel-right-close", __iconNode22);
 
   // node_modules/lucide-react/dist/esm/icons/paperclip.js
-  var __iconNode22 = [
+  var __iconNode23 = [
     [
       "path",
       {
@@ -14868,26 +14876,54 @@ var FrappeAIPanel = (() => {
       }
     ]
   ];
-  var Paperclip = createLucideIcon("paperclip", __iconNode22);
+  var Paperclip = createLucideIcon("paperclip", __iconNode23);
+
+  // node_modules/lucide-react/dist/esm/icons/pin-off.js
+  var __iconNode24 = [
+    ["path", { d: "M12 17v5", key: "bb1du9" }],
+    ["path", { d: "M15 9.34V7a1 1 0 0 1 1-1 2 2 0 0 0 0-4H7.89", key: "znwnzq" }],
+    ["path", { d: "m2 2 20 20", key: "1ooewy" }],
+    [
+      "path",
+      {
+        d: "M9 9v1.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24V16a1 1 0 0 0 1 1h11",
+        key: "c9qhm2"
+      }
+    ]
+  ];
+  var PinOff = createLucideIcon("pin-off", __iconNode24);
+
+  // node_modules/lucide-react/dist/esm/icons/pin.js
+  var __iconNode25 = [
+    ["path", { d: "M12 17v5", key: "bb1du9" }],
+    [
+      "path",
+      {
+        d: "M9 10.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24V16a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-.76a2 2 0 0 0-1.11-1.79l-1.78-.9A2 2 0 0 1 15 10.76V7a1 1 0 0 1 1-1 2 2 0 0 0 0-4H8a2 2 0 0 0 0 4 1 1 0 0 1 1 1z",
+        key: "1nkz8b"
+      }
+    ]
+  ];
+  var Pin = createLucideIcon("pin", __iconNode25);
 
   // node_modules/lucide-react/dist/esm/icons/search.js
-  var __iconNode23 = [
+  var __iconNode26 = [
     ["path", { d: "m21 21-4.34-4.34", key: "14j7rj" }],
     ["circle", { cx: "11", cy: "11", r: "8", key: "4ej97u" }]
   ];
-  var Search = createLucideIcon("search", __iconNode23);
+  var Search = createLucideIcon("search", __iconNode26);
 
   // node_modules/lucide-react/dist/esm/icons/server.js
-  var __iconNode24 = [
+  var __iconNode27 = [
     ["rect", { width: "20", height: "8", x: "2", y: "2", rx: "2", ry: "2", key: "ngkwjq" }],
     ["rect", { width: "20", height: "8", x: "2", y: "14", rx: "2", ry: "2", key: "iecqi9" }],
     ["line", { x1: "6", x2: "6.01", y1: "6", y2: "6", key: "16zg32" }],
     ["line", { x1: "6", x2: "6.01", y1: "18", y2: "18", key: "nzw8ys" }]
   ];
-  var Server = createLucideIcon("server", __iconNode24);
+  var Server = createLucideIcon("server", __iconNode27);
 
   // node_modules/lucide-react/dist/esm/icons/shield-alert.js
-  var __iconNode25 = [
+  var __iconNode28 = [
     [
       "path",
       {
@@ -14898,10 +14934,10 @@ var FrappeAIPanel = (() => {
     ["path", { d: "M12 8v4", key: "1got3b" }],
     ["path", { d: "M12 16h.01", key: "1drbdi" }]
   ];
-  var ShieldAlert = createLucideIcon("shield-alert", __iconNode25);
+  var ShieldAlert = createLucideIcon("shield-alert", __iconNode28);
 
   // node_modules/lucide-react/dist/esm/icons/sparkles.js
-  var __iconNode26 = [
+  var __iconNode29 = [
     [
       "path",
       {
@@ -14913,16 +14949,16 @@ var FrappeAIPanel = (() => {
     ["path", { d: "M22 4h-4", key: "gwowj6" }],
     ["circle", { cx: "4", cy: "20", r: "2", key: "6kqj1y" }]
   ];
-  var Sparkles = createLucideIcon("sparkles", __iconNode26);
+  var Sparkles = createLucideIcon("sparkles", __iconNode29);
 
   // node_modules/lucide-react/dist/esm/icons/square.js
-  var __iconNode27 = [
+  var __iconNode30 = [
     ["rect", { width: "18", height: "18", x: "3", y: "3", rx: "2", key: "afitv7" }]
   ];
-  var Square = createLucideIcon("square", __iconNode27);
+  var Square = createLucideIcon("square", __iconNode30);
 
   // node_modules/lucide-react/dist/esm/icons/thumbs-down.js
-  var __iconNode28 = [
+  var __iconNode31 = [
     ["path", { d: "M17 14V2", key: "8ymqnk" }],
     [
       "path",
@@ -14932,10 +14968,10 @@ var FrappeAIPanel = (() => {
       }
     ]
   ];
-  var ThumbsDown = createLucideIcon("thumbs-down", __iconNode28);
+  var ThumbsDown = createLucideIcon("thumbs-down", __iconNode31);
 
   // node_modules/lucide-react/dist/esm/icons/thumbs-up.js
-  var __iconNode29 = [
+  var __iconNode32 = [
     ["path", { d: "M7 10v12", key: "1qc93n" }],
     [
       "path",
@@ -14945,10 +14981,10 @@ var FrappeAIPanel = (() => {
       }
     ]
   ];
-  var ThumbsUp = createLucideIcon("thumbs-up", __iconNode29);
+  var ThumbsUp = createLucideIcon("thumbs-up", __iconNode32);
 
   // node_modules/lucide-react/dist/esm/icons/volume-2.js
-  var __iconNode30 = [
+  var __iconNode33 = [
     [
       "path",
       {
@@ -14959,10 +14995,10 @@ var FrappeAIPanel = (() => {
     ["path", { d: "M16 9a5 5 0 0 1 0 6", key: "1q6k2b" }],
     ["path", { d: "M19.364 18.364a9 9 0 0 0 0-12.728", key: "ijwkga" }]
   ];
-  var Volume2 = createLucideIcon("volume-2", __iconNode30);
+  var Volume2 = createLucideIcon("volume-2", __iconNode33);
 
   // node_modules/lucide-react/dist/esm/icons/wrench.js
-  var __iconNode31 = [
+  var __iconNode34 = [
     [
       "path",
       {
@@ -14971,14 +15007,14 @@ var FrappeAIPanel = (() => {
       }
     ]
   ];
-  var Wrench = createLucideIcon("wrench", __iconNode31);
+  var Wrench = createLucideIcon("wrench", __iconNode34);
 
   // node_modules/lucide-react/dist/esm/icons/x.js
-  var __iconNode32 = [
+  var __iconNode35 = [
     ["path", { d: "M18 6 6 18", key: "1bl5f8" }],
     ["path", { d: "m6 6 12 12", key: "d8bk6v" }]
   ];
-  var X = createLucideIcon("x", __iconNode32);
+  var X = createLucideIcon("x", __iconNode35);
 
   // src/components/Composer.tsx
   var import_react7 = __toESM(require_react(), 1);
@@ -15208,6 +15244,10 @@ var FrappeAIPanel = (() => {
     }
   });
   var recoverSession = (session) => request("frappe_ai.api.frontend.recover_session", { method: "POST", body: { session } });
+  var setSessionPinned = (session, pinned) => request("frappe_ai.api.frontend.set_session_pinned", {
+    method: "POST",
+    body: { session, pinned: pinned ? 1 : 0 }
+  });
   var stopRun = (runName) => request("frappe_ai.api.frontend.stop_run", { method: "POST", body: { run: runName } });
   var checkMcpConnection = (name) => request("frappe_ai.api.mcp.check_connection", { method: "POST", body: { name } });
   async function uploadAttachment(file) {
@@ -16011,6 +16051,24 @@ var FrappeAIPanel = (() => {
         focusTick: current.focusTick + 1
       }));
     }, [update, voiceReplies.stop]);
+    const togglePinned = (0, import_react4.useCallback)(
+      async (name) => {
+        const target = stateRef.current.history.find((item) => item.name === name);
+        if (!target) return;
+        const pinned = !target.pinned;
+        const mark = (value2) => update((current) => ({
+          ...current,
+          history: current.history.map((item) => item.name === name ? { ...item, pinned: value2 } : item)
+        }));
+        mark(pinned);
+        try {
+          await setSessionPinned(name, pinned);
+        } catch {
+          mark(!pinned);
+        }
+      },
+      [update]
+    );
     const searchSessions2 = (0, import_react4.useCallback)(async (query) => {
       if (!query.trim()) return stateRef.current.history;
       return searchSessions(query).catch(() => []);
@@ -16371,6 +16429,7 @@ var FrappeAIPanel = (() => {
         attachFiles,
         removeAttachment,
         searchSessions: searchSessions2,
+        togglePinned,
         clearForceScroll,
         openAgentInspector,
         openModelInspector,
@@ -16397,6 +16456,7 @@ var FrappeAIPanel = (() => {
       removeAttachment,
       restoreSession,
       searchSessions2,
+      togglePinned,
       selectedAgentRecord,
       send,
       setAgent,
@@ -17161,27 +17221,123 @@ var FrappeAIPanel = (() => {
 
   // src/components/PageSidebar.tsx
   var import_react11 = __toESM(require_react(), 1);
-  var import_jsx_runtime13 = __toESM(require_jsx_runtime(), 1);
-  function bucketLabel(value) {
-    if (!value) return __("Earlier");
+
+  // src/lib/sessionGroups.ts
+  var DAY_MS = 864e5;
+  function bucketLabel(value, now = /* @__PURE__ */ new Date()) {
+    if (!value) return __("Older");
     const date = new Date(value);
-    if (Number.isNaN(date.getTime())) return __("Earlier");
-    const today = /* @__PURE__ */ new Date();
-    const current = new Date(today.getFullYear(), today.getMonth(), today.getDate());
-    const target = new Date(date.getFullYear(), date.getMonth(), date.getDate());
-    const diff = Math.round((current.getTime() - target.getTime()) / 864e5);
-    if (diff === 0) return __("Today");
-    if (diff === 1) return __("Yesterday");
-    return date.toLocaleDateString([], { month: "short", day: "numeric" });
+    if (Number.isNaN(date.getTime())) return __("Older");
+    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const day = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+    const age = Math.round((today.getTime() - day.getTime()) / DAY_MS);
+    if (age <= 0) return __("Today");
+    if (age === 1) return __("Yesterday");
+    if (age <= 7) return __("Previous 7 days");
+    return __("Older");
   }
-  function timeLabel(value) {
-    if (!value) return "";
-    const date = new Date(value);
-    if (Number.isNaN(date.getTime())) return "";
-    return date.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
+  function groupSessions(items, now = /* @__PURE__ */ new Date()) {
+    const groups = /* @__PURE__ */ new Map();
+    for (const item of items) {
+      if (item.pinned) continue;
+      const label = bucketLabel(item.modified, now);
+      groups.set(label, [...groups.get(label) || [], item]);
+    }
+    const pinned = items.filter((item) => item.pinned);
+    const output = pinned.length ? [[__("Pinned"), pinned]] : [];
+    return output.concat(Array.from(groups.entries()));
+  }
+
+  // src/components/PageSidebar.tsx
+  var import_jsx_runtime13 = __toESM(require_jsx_runtime(), 1);
+  function AgentSwitcher({ onNavigate }) {
+    const { agents, selectedAgent, setAgent } = useStore();
+    const [open, setOpen] = (0, import_react11.useState)(false);
+    const ref = (0, import_react11.useRef)(null);
+    const current = agents.find((agent) => agent.name === selectedAgent);
+    (0, import_react11.useEffect)(() => {
+      if (!open) return;
+      const onPointerDown = (event) => {
+        var _a;
+        if (!((_a = ref.current) == null ? void 0 : _a.contains(event.target))) setOpen(false);
+      };
+      const onKeyDown = (event) => {
+        if (event.key === "Escape") setOpen(false);
+      };
+      document.addEventListener("mousedown", onPointerDown);
+      document.addEventListener("keydown", onKeyDown);
+      return () => {
+        document.removeEventListener("mousedown", onPointerDown);
+        document.removeEventListener("keydown", onKeyDown);
+      };
+    }, [open]);
+    return /* @__PURE__ */ (0, import_jsx_runtime13.jsxs)("div", { className: "faip-rail-agent", ref, children: [
+      /* @__PURE__ */ (0, import_jsx_runtime13.jsxs)(
+        "button",
+        {
+          type: "button",
+          className: "faip-rail-agent-button",
+          "aria-haspopup": "listbox",
+          "aria-expanded": open,
+          onClick: () => setOpen((value) => !value),
+          children: [
+            /* @__PURE__ */ (0, import_jsx_runtime13.jsx)("span", { className: "faip-rail-agent-mark", children: /* @__PURE__ */ (0, import_jsx_runtime13.jsx)(Bot, { size: 14 }) }),
+            /* @__PURE__ */ (0, import_jsx_runtime13.jsxs)("span", { className: "faip-rail-agent-copy", children: [
+              /* @__PURE__ */ (0, import_jsx_runtime13.jsx)("span", { className: "faip-rail-agent-name", children: (current == null ? void 0 : current.title) || __("Choose an agent") }),
+              /* @__PURE__ */ (0, import_jsx_runtime13.jsx)("span", { className: "faip-rail-agent-meta", children: (current == null ? void 0 : current.readiness.label) || __("Unavailable") })
+            ] }),
+            /* @__PURE__ */ (0, import_jsx_runtime13.jsx)(ChevronDown, { size: 14 })
+          ]
+        }
+      ),
+      open ? /* @__PURE__ */ (0, import_jsx_runtime13.jsx)("div", { className: "faip-rail-menu", role: "listbox", children: agents.map((agent) => /* @__PURE__ */ (0, import_jsx_runtime13.jsxs)(
+        "button",
+        {
+          type: "button",
+          role: "option",
+          "aria-selected": agent.name === selectedAgent,
+          className: "faip-rail-menu-item",
+          onClick: () => {
+            setAgent(agent.name);
+            setOpen(false);
+            onNavigate();
+          },
+          children: [
+            /* @__PURE__ */ (0, import_jsx_runtime13.jsxs)("span", { className: "faip-rail-agent-copy", children: [
+              /* @__PURE__ */ (0, import_jsx_runtime13.jsx)("span", { className: "faip-rail-agent-name", children: agent.title }),
+              /* @__PURE__ */ (0, import_jsx_runtime13.jsx)("span", { className: "faip-rail-agent-meta", children: agent.readiness.label })
+            ] }),
+            agent.name === selectedAgent ? /* @__PURE__ */ (0, import_jsx_runtime13.jsx)(Check, { size: 14 }) : null
+          ]
+        },
+        agent.name
+      )) }) : null
+    ] });
+  }
+  function SessionRow({
+    item,
+    active,
+    onOpen
+  }) {
+    const { togglePinned } = useStore();
+    const label = item.pinned ? __("Unpin chat") : __("Pin chat");
+    return /* @__PURE__ */ (0, import_jsx_runtime13.jsxs)("div", { className: `faip-rail-row ${active ? "is-active" : ""} ${item.pinned ? "is-pinned" : ""}`, children: [
+      /* @__PURE__ */ (0, import_jsx_runtime13.jsx)("button", { type: "button", className: "faip-rail-row-title", onClick: onOpen, title: item.title, children: item.title }),
+      /* @__PURE__ */ (0, import_jsx_runtime13.jsx)(
+        "button",
+        {
+          type: "button",
+          className: "faip-rail-row-pin",
+          onClick: () => void togglePinned(item.name),
+          "aria-label": label,
+          title: label,
+          children: item.pinned ? /* @__PURE__ */ (0, import_jsx_runtime13.jsx)(PinOff, { size: 13 }) : /* @__PURE__ */ (0, import_jsx_runtime13.jsx)(Pin, { size: 13 })
+        }
+      )
+    ] });
   }
   function PageSidebar({ onClose, onNavigate }) {
-    const { agents, selectedAgent, setAgent, history, currentSession, switchSession, newChat, searchSessions: searchSessions2 } = useStore();
+    const { history, currentSession, switchSession, newChat, searchSessions: searchSessions2 } = useStore();
     const [query, setQuery] = (0, import_react11.useState)("");
     const [items, setItems] = (0, import_react11.useState)(history);
     (0, import_react11.useEffect)(() => setItems(history), [history]);
@@ -17194,30 +17350,18 @@ var FrappeAIPanel = (() => {
         active = false;
       };
     }, [query, searchSessions2]);
-    const groups = (0, import_react11.useMemo)(() => {
-      const output = /* @__PURE__ */ new Map();
-      for (const item of items) {
-        const label = bucketLabel(item.modified);
-        const list = output.get(label) || [];
-        list.push(item);
-        output.set(label, list);
-      }
-      return Array.from(output.entries());
-    }, [items]);
+    const groups = (0, import_react11.useMemo)(() => groupSessions(items), [items]);
     return /* @__PURE__ */ (0, import_jsx_runtime13.jsxs)("aside", { className: "faip-nav", children: [
-      /* @__PURE__ */ (0, import_jsx_runtime13.jsxs)("div", { className: "faip-nav-header", children: [
-        /* @__PURE__ */ (0, import_jsx_runtime13.jsx)("div", { className: "faip-header-mark", children: /* @__PURE__ */ (0, import_jsx_runtime13.jsx)(Bot, { size: 18 }) }),
-        /* @__PURE__ */ (0, import_jsx_runtime13.jsxs)("div", { className: "faip-nav-brand", children: [
-          /* @__PURE__ */ (0, import_jsx_runtime13.jsx)("div", { className: "faip-nav-title", children: "Frappe AI" }),
-          /* @__PURE__ */ (0, import_jsx_runtime13.jsx)("div", { className: "faip-nav-subtitle", children: __("Navigation") })
-        ] }),
+      /* @__PURE__ */ (0, import_jsx_runtime13.jsxs)("div", { className: "faip-rail-header", children: [
+        /* @__PURE__ */ (0, import_jsx_runtime13.jsx)("div", { className: "faip-header-mark", children: /* @__PURE__ */ (0, import_jsx_runtime13.jsx)(Bot, { size: 16 }) }),
+        /* @__PURE__ */ (0, import_jsx_runtime13.jsx)("div", { className: "faip-rail-brand", children: "Frappe AI" }),
         /* @__PURE__ */ (0, import_jsx_runtime13.jsx)(
           "button",
           {
             type: "button",
             className: "faip-icon-button faip-nav-close",
             onClick: onClose,
-            "aria-label": "Close sidebar",
+            "aria-label": __("Close sidebar"),
             children: /* @__PURE__ */ (0, import_jsx_runtime13.jsx)(X, { size: 16 })
           }
         )
@@ -17226,7 +17370,7 @@ var FrappeAIPanel = (() => {
         "button",
         {
           type: "button",
-          className: "faip-page-new-chat",
+          className: "faip-rail-new",
           onClick: () => {
             newChat();
             onNavigate();
@@ -17237,63 +17381,36 @@ var FrappeAIPanel = (() => {
           ]
         }
       ),
-      /* @__PURE__ */ (0, import_jsx_runtime13.jsxs)("div", { className: "faip-page-search", children: [
+      /* @__PURE__ */ (0, import_jsx_runtime13.jsx)(AgentSwitcher, { onNavigate }),
+      /* @__PURE__ */ (0, import_jsx_runtime13.jsxs)("label", { className: "faip-page-search", children: [
         /* @__PURE__ */ (0, import_jsx_runtime13.jsx)(Search, { size: 14 }),
         /* @__PURE__ */ (0, import_jsx_runtime13.jsx)(
           "input",
           {
             value: query,
             onChange: (event) => setQuery(event.target.value),
-            placeholder: __("Search sessions")
+            placeholder: __("Search chats"),
+            "aria-label": __("Search chats")
           }
         )
       ] }),
-      /* @__PURE__ */ (0, import_jsx_runtime13.jsxs)("div", { className: "faip-nav-section", children: [
-        /* @__PURE__ */ (0, import_jsx_runtime13.jsx)("div", { className: "faip-nav-section-title", children: __("Agents") }),
-        /* @__PURE__ */ (0, import_jsx_runtime13.jsx)("div", { className: "faip-nav-list", children: agents.map((agent) => /* @__PURE__ */ (0, import_jsx_runtime13.jsxs)(
-          "button",
-          {
-            type: "button",
-            className: `faip-nav-item ${selectedAgent === agent.name ? "is-active" : ""}`,
-            onClick: () => {
-              setAgent(agent.name);
-              onNavigate();
-            },
-            children: [
-              /* @__PURE__ */ (0, import_jsx_runtime13.jsxs)("div", { className: "faip-nav-item-copy", children: [
-                /* @__PURE__ */ (0, import_jsx_runtime13.jsx)("div", { className: "faip-nav-item-title", children: agent.title }),
-                /* @__PURE__ */ (0, import_jsx_runtime13.jsx)("div", { className: "faip-nav-item-meta", children: agent.readiness.label })
-              ] }),
-              /* @__PURE__ */ (0, import_jsx_runtime13.jsx)(ChevronRight, { size: 14 })
-            ]
-          },
-          agent.name
-        )) })
-      ] }),
-      /* @__PURE__ */ (0, import_jsx_runtime13.jsxs)("div", { className: "faip-nav-section faip-nav-section-sessions", children: [
-        /* @__PURE__ */ (0, import_jsx_runtime13.jsx)("div", { className: "faip-nav-section-title", children: __("Sessions") }),
-        /* @__PURE__ */ (0, import_jsx_runtime13.jsx)("div", { className: "faip-nav-session-scroll", children: groups.map(([label, sessions]) => /* @__PURE__ */ (0, import_jsx_runtime13.jsxs)("div", { className: "faip-nav-group", children: [
-          /* @__PURE__ */ (0, import_jsx_runtime13.jsx)("div", { className: "faip-nav-group-label", children: label }),
-          /* @__PURE__ */ (0, import_jsx_runtime13.jsx)("div", { className: "faip-nav-list", children: sessions.map((item) => /* @__PURE__ */ (0, import_jsx_runtime13.jsxs)(
-            "button",
+      /* @__PURE__ */ (0, import_jsx_runtime13.jsxs)("nav", { className: "faip-rail-sessions", "aria-label": __("Chats"), children: [
+        groups.length === 0 ? /* @__PURE__ */ (0, import_jsx_runtime13.jsx)("div", { className: "faip-rail-empty", children: __("No chats yet") }) : null,
+        groups.map(([label, sessions]) => /* @__PURE__ */ (0, import_jsx_runtime13.jsxs)("section", { className: "faip-rail-group", children: [
+          /* @__PURE__ */ (0, import_jsx_runtime13.jsx)("div", { className: "faip-rail-group-label", children: label }),
+          sessions.map((item) => /* @__PURE__ */ (0, import_jsx_runtime13.jsx)(
+            SessionRow,
             {
-              type: "button",
-              className: `faip-nav-item is-session ${item.name === (currentSession == null ? void 0 : currentSession.name) ? "is-active" : ""}`,
-              onClick: () => {
+              item,
+              active: item.name === (currentSession == null ? void 0 : currentSession.name),
+              onOpen: () => {
                 void switchSession(item.name);
                 onNavigate();
-              },
-              children: [
-                /* @__PURE__ */ (0, import_jsx_runtime13.jsxs)("div", { className: "faip-nav-item-copy", children: [
-                  /* @__PURE__ */ (0, import_jsx_runtime13.jsx)("div", { className: "faip-nav-item-title", children: item.title }),
-                  /* @__PURE__ */ (0, import_jsx_runtime13.jsx)("div", { className: "faip-nav-item-meta", children: timeLabel(item.modified) })
-                ] }),
-                /* @__PURE__ */ (0, import_jsx_runtime13.jsx)(ChevronRight, { size: 14 })
-              ]
+              }
             },
             item.name
-          )) })
-        ] }, label)) })
+          ))
+        ] }, label))
       ] })
     ] });
   }
@@ -17305,18 +17422,24 @@ var FrappeAIPanel = (() => {
     if (!run) return __("Ready");
     return run.status;
   }
+  function statusTone(run, sending) {
+    if (sending) return "running";
+    const status = String((run == null ? void 0 : run.status) || "").toLowerCase();
+    if (status === "paused") return "waiting";
+    if (status === "failed" || status === "error") return "failed";
+    return "idle";
+  }
   function WorkspaceShell({
     variant,
     panelControls
   }) {
-    var _a, _b;
+    var _a;
     const {
       agentRecord,
       currentSession,
       currentRun,
       inspector,
       sending,
-      transcript,
       openAgentInspector,
       openMcpInspector,
       openToolInspector,
@@ -17326,10 +17449,6 @@ var FrappeAIPanel = (() => {
     const [sidebarOpen, setSidebarOpen] = (0, import_react12.useState)(variant === "standalone");
     const [actionsOpen, setActionsOpen] = (0, import_react12.useState)(false);
     const actionsRef = (0, import_react12.useRef)(null);
-    const latestExecution = (0, import_react12.useMemo)(() => {
-      const message = [...transcript].reverse().find((item) => item.role === "assistant" && item.executions.length);
-      return (message == null ? void 0 : message.role) === "assistant" ? message.executions[0] || null : null;
-    }, [transcript]);
     (0, import_react12.useEffect)(() => {
       function onPointerDown(event) {
         var _a2;
@@ -17346,9 +17465,11 @@ var FrappeAIPanel = (() => {
       setActionsOpen(false);
       if (agentRecord == null ? void 0 : agentRecord.mcp_connections.length) openMcpInspector(agentRecord.mcp_connections[0]);
     }
-    function handleOpenActivity() {
-      setActionsOpen(false);
-      openActivityInspector();
+    const activityOpen = inspector.open && inspector.mode === "activity";
+    const title = (currentSession == null ? void 0 : currentSession.title) || __("New chat");
+    function handleToggleActivity() {
+      if (activityOpen) closeInspector();
+      else openActivityInspector();
     }
     function dismissSidebarIfMobile() {
       if (typeof window !== "undefined" && window.matchMedia("(max-width: 767px)").matches) {
@@ -17378,78 +17499,53 @@ var FrappeAIPanel = (() => {
               "button",
               {
                 type: "button",
-                className: "faip-icon-button faip-workspace-menu-button",
+                className: "faip-icon-button",
                 onClick: () => setSidebarOpen((value) => !value),
+                "aria-label": __("Toggle sidebar"),
+                "aria-pressed": sidebarOpen,
                 children: /* @__PURE__ */ (0, import_jsx_runtime14.jsx)(Menu, { size: 16 })
               }
             ),
-            /* @__PURE__ */ (0, import_jsx_runtime14.jsxs)("button", { type: "button", className: "faip-workspace-agent", onClick: openAgentInspector, children: [
-              /* @__PURE__ */ (0, import_jsx_runtime14.jsx)("div", { className: "faip-workspace-agent-title", title: (agentRecord == null ? void 0 : agentRecord.title) || __("Agent"), children: (agentRecord == null ? void 0 : agentRecord.title) || __("Agent") }),
-              /* @__PURE__ */ (0, import_jsx_runtime14.jsxs)(
-                "div",
-                {
-                  className: "faip-workspace-agent-meta",
-                  title: ((_a = agentRecord == null ? void 0 : agentRecord.model) == null ? void 0 : _a.title) || __("Agent default"),
-                  children: [
-                    (agentRecord == null ? void 0 : agentRecord.readiness.label) || __("Unavailable"),
-                    " \xB7",
-                    " ",
-                    ((_b = agentRecord == null ? void 0 : agentRecord.model) == null ? void 0 : _b.title) || __("Agent default")
-                  ]
-                }
-              )
-            ] })
+            /* @__PURE__ */ (0, import_jsx_runtime14.jsx)("h1", { className: "faip-topbar-title", title, children: title }),
+            /* @__PURE__ */ (0, import_jsx_runtime14.jsx)("span", { className: `faip-status-pill is-${statusTone(currentRun, sending)}`, children: runStatusLabel(currentRun, sending) })
           ] }),
           /* @__PURE__ */ (0, import_jsx_runtime14.jsxs)("div", { className: "faip-workspace-header-right", ref: actionsRef, children: [
-            /* @__PURE__ */ (0, import_jsx_runtime14.jsx)("span", { className: "faip-status-pill faip-workspace-status", children: runStatusLabel(currentRun, sending) }),
             /* @__PURE__ */ (0, import_jsx_runtime14.jsxs)(
               "button",
               {
                 type: "button",
-                className: "faip-secondary-button faip-header-action is-tools",
-                onClick: handleOpenTools,
-                disabled: !(agentRecord == null ? void 0 : agentRecord.tools.summaries.length),
+                className: "faip-agent-chip",
+                onClick: openAgentInspector,
+                title: __("Agent and model settings"),
                 children: [
-                  /* @__PURE__ */ (0, import_jsx_runtime14.jsx)(Wrench, { size: 14 }),
-                  __("Tools")
+                  /* @__PURE__ */ (0, import_jsx_runtime14.jsx)("span", { className: "faip-agent-chip-name", children: (agentRecord == null ? void 0 : agentRecord.title) || __("Agent") }),
+                  /* @__PURE__ */ (0, import_jsx_runtime14.jsx)("span", { className: "faip-agent-chip-model", children: ((_a = agentRecord == null ? void 0 : agentRecord.model) == null ? void 0 : _a.title) || __("Agent default") })
                 ]
               }
             ),
-            /* @__PURE__ */ (0, import_jsx_runtime14.jsxs)(
+            /* @__PURE__ */ (0, import_jsx_runtime14.jsx)(
               "button",
               {
                 type: "button",
-                className: "faip-secondary-button faip-header-action is-mcp",
-                onClick: handleOpenMcps,
-                disabled: !(agentRecord == null ? void 0 : agentRecord.mcp_connections.length),
-                children: [
-                  /* @__PURE__ */ (0, import_jsx_runtime14.jsx)(Server, { size: 14 }),
-                  __("MCPs")
-                ]
+                className: `faip-icon-button ${activityOpen ? "is-on" : ""}`,
+                onClick: handleToggleActivity,
+                "aria-label": __("Activity"),
+                "aria-pressed": activityOpen,
+                title: __("Activity"),
+                children: /* @__PURE__ */ (0, import_jsx_runtime14.jsx)(Activity, { size: 16 })
               }
             ),
-            /* @__PURE__ */ (0, import_jsx_runtime14.jsxs)(
-              "button",
-              {
-                type: "button",
-                className: "faip-secondary-button faip-header-action is-activity",
-                onClick: handleOpenActivity,
-                children: [
-                  /* @__PURE__ */ (0, import_jsx_runtime14.jsx)(PanelsTopLeft, { size: 14 }),
-                  __("Activity")
-                ]
-              }
-            ),
-            /* @__PURE__ */ (0, import_jsx_runtime14.jsxs)("div", { className: `faip-overflow ${actionsOpen ? "is-open" : ""}`, children: [
+            /* @__PURE__ */ (0, import_jsx_runtime14.jsxs)("div", { className: "faip-overflow", children: [
               /* @__PURE__ */ (0, import_jsx_runtime14.jsx)(
                 "button",
                 {
                   type: "button",
-                  className: "faip-secondary-button faip-header-action faip-header-overflow-button",
+                  className: "faip-icon-button",
                   onClick: () => setActionsOpen((value) => !value),
                   "aria-expanded": actionsOpen,
                   "aria-label": __("More actions"),
-                  children: /* @__PURE__ */ (0, import_jsx_runtime14.jsx)(Ellipsis, { size: 14 })
+                  title: __("More actions"),
+                  children: /* @__PURE__ */ (0, import_jsx_runtime14.jsx)(Ellipsis, { size: 16 })
                 }
               ),
               actionsOpen ? /* @__PURE__ */ (0, import_jsx_runtime14.jsxs)("div", { className: "faip-overflow-menu", children: [
@@ -17478,26 +17574,33 @@ var FrappeAIPanel = (() => {
                       __("MCPs")
                     ]
                   }
-                ),
-                /* @__PURE__ */ (0, import_jsx_runtime14.jsxs)("button", { type: "button", className: "faip-menu-item", onClick: handleOpenActivity, children: [
-                  /* @__PURE__ */ (0, import_jsx_runtime14.jsx)(PanelsTopLeft, { size: 14 }),
-                  __("Activity")
-                ] })
+                )
               ] }) : null
             ] }),
             variant === "panel" && panelControls ? /* @__PURE__ */ (0, import_jsx_runtime14.jsxs)("div", { className: "faip-panel-controls", children: [
-              /* @__PURE__ */ (0, import_jsx_runtime14.jsx)("button", { type: "button", className: "faip-icon-button", onClick: panelControls.onToggleFullscreen, children: panelControls.fullscreen ? /* @__PURE__ */ (0, import_jsx_runtime14.jsx)(Minimize2, { size: 16 }) : /* @__PURE__ */ (0, import_jsx_runtime14.jsx)(Maximize2, { size: 16 }) }),
-              /* @__PURE__ */ (0, import_jsx_runtime14.jsx)("button", { type: "button", className: "faip-icon-button", onClick: panelControls.onClose, children: /* @__PURE__ */ (0, import_jsx_runtime14.jsx)(PanelRightClose, { size: 16 }) })
+              /* @__PURE__ */ (0, import_jsx_runtime14.jsx)(
+                "button",
+                {
+                  type: "button",
+                  className: "faip-icon-button",
+                  onClick: panelControls.onToggleFullscreen,
+                  "aria-label": panelControls.fullscreen ? __("Exit full screen") : __("Full screen"),
+                  children: panelControls.fullscreen ? /* @__PURE__ */ (0, import_jsx_runtime14.jsx)(Minimize2, { size: 16 }) : /* @__PURE__ */ (0, import_jsx_runtime14.jsx)(Maximize2, { size: 16 })
+                }
+              ),
+              /* @__PURE__ */ (0, import_jsx_runtime14.jsx)(
+                "button",
+                {
+                  type: "button",
+                  className: "faip-icon-button",
+                  onClick: panelControls.onClose,
+                  "aria-label": __("Close panel"),
+                  children: /* @__PURE__ */ (0, import_jsx_runtime14.jsx)(PanelRightClose, { size: 16 })
+                }
+              )
             ] }) : null
           ] })
         ] }),
-        /* @__PURE__ */ (0, import_jsx_runtime14.jsx)("div", { className: "faip-workspace-context", children: /* @__PURE__ */ (0, import_jsx_runtime14.jsxs)("div", { children: [
-          /* @__PURE__ */ (0, import_jsx_runtime14.jsx)("div", { className: "faip-workspace-context-title", children: (currentSession == null ? void 0 : currentSession.title) || __("New chat") }),
-          /* @__PURE__ */ (0, import_jsx_runtime14.jsx)("div", { className: "faip-workspace-context-meta", children: latestExecution ? latestExecution.kind === "mcp_tool" ? __("Latest activity: {0} via {1}", [
-            latestExecution.display_title,
-            latestExecution.connection_name || __("MCP")
-          ]) : __("Latest activity: {0}", [latestExecution.display_title]) : __("Workspace transcript and execution details stay in sync here.") })
-        ] }) }),
         /* @__PURE__ */ (0, import_jsx_runtime14.jsxs)("div", { className: "faip-workspace-content", children: [
           /* @__PURE__ */ (0, import_jsx_runtime14.jsx)(MessageList, {}),
           /* @__PURE__ */ (0, import_jsx_runtime14.jsx)(Composer, {})

@@ -9,6 +9,7 @@
   "agent",
   "model",
   "source",
+  "pinned",
   "section_break_transcript",
   "transcript_html",
   "messages",
@@ -49,6 +50,14 @@
    "label": "Source",
    "options": "Manual\nTrigger",
    "read_only": 1
+  },
+  {
+   "default": "0",
+   "description": "Keep this conversation at the top of its owner's chat list.",
+   "fieldname": "pinned",
+   "fieldtype": "Check",
+   "in_list_view": 0,
+   "label": "Pinned"
   },
   {
    "collapsible": 1,

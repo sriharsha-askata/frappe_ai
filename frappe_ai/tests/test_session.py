@@ -200,6 +200,45 @@ class TestAssertSessionOwner(IntegrationTestCase):
 			assert_session_owner(doc.name)
 
 
+class TestPinnedSessions(IntegrationTestCase):
+	def tearDown(self):
+		frappe.db.rollback()
+
+	def test_pin_and_unpin_keep_modified_time(self):
+		from frappe_ai.api.frontend import set_session_pinned
+
+		doc = frappe.get_doc(_session()).insert(ignore_permissions=True)
+		modified = frappe.db.get_value("AI Session", doc.name, "modified")
+
+		self.assertEqual(set_session_pinned(doc.name, 1), {"session": doc.name, "pinned": True})
+		self.assertEqual(frappe.db.get_value("AI Session", doc.name, "pinned"), 1)
+		self.assertEqual(frappe.db.get_value("AI Session", doc.name, "modified"), modified)
+
+		self.assertFalse(set_session_pinned(doc.name, 0)["pinned"])
+
+	def test_pinned_chats_are_listed_first(self):
+		from frappe_ai.api.frontend import sessions
+
+		older = frappe.get_doc(_session(title="older pinned")).insert(ignore_permissions=True)
+		frappe.get_doc(_session(title="newer plain")).insert(ignore_permissions=True)
+		frappe.db.set_value("AI Session", older.name, "pinned", 1, update_modified=False)
+
+		rows = sessions()["session"]["history"]
+		self.assertEqual(rows[0]["name"], older.name)
+		self.assertTrue(rows[0]["pinned"])
+
+	def test_only_the_owner_can_pin(self):
+		from frappe_ai.api.frontend import set_session_pinned
+
+		doc = frappe.get_doc(_session()).insert(ignore_permissions=True)
+		frappe.set_user("Guest")
+		try:
+			with self.assertRaises(frappe.PermissionError):
+				set_session_pinned(doc.name, 1)
+		finally:
+			frappe.set_user("Administrator")
+
+
 class TestAppendRunMessages(IntegrationTestCase):
 	def tearDown(self):
 		frappe.db.rollback()

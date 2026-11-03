@@ -1,7 +1,7 @@
 /* src/styles/page.css */
 .faip-root.faip-page-host {
   padding: 0;
-  background: #eef3f7;
+  background: var(--faip-bg);
   height: 100dvh;
   max-height: 100dvh;
   overflow: hidden;
@@ -10,30 +10,8 @@
   height: 100dvh;
   max-height: 100dvh;
   overflow: hidden;
-  background:
-    radial-gradient(
-      circle at top left,
-      rgba(22, 163, 74, 0.08),
-      transparent 28%),
-    radial-gradient(
-      circle at top right,
-      rgba(14, 116, 144, 0.12),
-      transparent 32%),
-    #eef3f7;
-  color: #132238;
-}
-.faip-page[data-theme=dark] {
-  background:
-    radial-gradient(
-      circle at top left,
-      rgba(34, 197, 94, 0.1),
-      transparent 26%),
-    radial-gradient(
-      circle at top right,
-      rgba(56, 189, 248, 0.14),
-      transparent 30%),
-    #07131f;
-  color: #eff7ff;
+  background: var(--faip-bg);
+  color: var(--faip-text);
 }
 
 /* src/styles/panel.css */
@@ -49,35 +27,48 @@
   box-sizing: border-box;
 }
 :where(.faip-root, .faip-page-host) {
-  --faip-bg: #eef3f7;
-  --faip-bg-soft: rgba(255, 255, 255, 0.78);
-  --faip-bg-elevated: rgba(255, 255, 255, 0.9);
-  --faip-border: rgba(19, 34, 56, 0.1);
-  --faip-border-strong: rgba(19, 34, 56, 0.16);
-  --faip-text: #132238;
-  --faip-text-muted: #64748b;
+  --faip-bg: #fafaf9;
+  --faip-bg-soft: #f4f4f2;
+  --faip-bg-elevated: #ffffff;
+  --faip-surface: #ffffff;
+  --faip-border: #e7e6e3;
+  --faip-border-strong: #d4d3cf;
+  --faip-text: #1c1b19;
+  --faip-text-muted: #625f5a;
+  --faip-text-faint: #8f8c86;
   --faip-primary: #0f766e;
   --faip-primary-strong: #115e59;
+  --faip-primary-soft: #e6f5f3;
+  --faip-on-primary: #ffffff;
   --faip-accent: #0f766e;
-  --faip-danger: #dc2626;
-  --faip-chip: rgba(255, 255, 255, 0.78);
-  --faip-shadow: 0 26px 60px rgba(15, 23, 42, 0.12);
+  --faip-danger: #b42318;
+  --faip-warning: #b45309;
+  --faip-warning-soft: #fdf6e9;
+  --faip-chip: #ffffff;
+  --faip-radius: 12px;
+  --faip-shadow: 0 1px 2px rgba(28, 27, 25, 0.05), 0 10px 30px rgba(28, 27, 25, 0.08);
 }
 :where(.faip-root, .faip-page-host) .faip-page[data-theme=dark],
 :where(.faip-root, .faip-page-host) .faip-shell[data-theme=dark] {
-  --faip-bg: #07131f;
-  --faip-bg-soft: rgba(9, 22, 36, 0.76);
-  --faip-bg-elevated: rgba(7, 19, 31, 0.9);
-  --faip-border: rgba(148, 163, 184, 0.18);
-  --faip-border-strong: rgba(148, 163, 184, 0.28);
-  --faip-text: #eff7ff;
-  --faip-text-muted: #8ca0b8;
+  --faip-bg: #121211;
+  --faip-bg-soft: #171716;
+  --faip-bg-elevated: #1a1a18;
+  --faip-surface: #1a1a18;
+  --faip-border: #2a2a27;
+  --faip-border-strong: #3a3a36;
+  --faip-text: #ecebe8;
+  --faip-text-muted: #a3a09a;
+  --faip-text-faint: #74716b;
   --faip-primary: #2dd4bf;
-  --faip-primary-strong: #14b8a6;
-  --faip-accent: #38bdf8;
-  --faip-danger: #fb7185;
-  --faip-chip: rgba(8, 20, 34, 0.9);
-  --faip-shadow: 0 30px 70px rgba(2, 8, 23, 0.38);
+  --faip-primary-strong: #5eead4;
+  --faip-primary-soft: #12302c;
+  --faip-on-primary: #05201c;
+  --faip-accent: #2dd4bf;
+  --faip-danger: #f97066;
+  --faip-warning: #f5b04a;
+  --faip-warning-soft: #2a2112;
+  --faip-chip: #1a1a18;
+  --faip-shadow: 0 10px 30px rgba(0, 0, 0, 0.45);
 }
 :where(.faip-root, .faip-page-host) .faip-shell,
 :where(.faip-root, .faip-page-host) .faip-page {
@@ -122,33 +113,210 @@
   opacity: 1;
   pointer-events: auto;
 }
-:where(.faip-root, .faip-page-host) .faip-nav,
-:where(.faip-root, .faip-page-host) .faip-workspace-main,
-:where(.faip-root, .faip-page-host) .faip-inspector,
-:where(.faip-root, .faip-page-host) .faip-user-message,
-:where(.faip-root, .faip-page-host) .faip-assistant-text,
-:where(.faip-root, .faip-page-host) .faip-confirm-card,
-:where(.faip-root, .faip-page-host) .faip-working,
-:where(.faip-root, .faip-page-host) .faip-empty,
-:where(.faip-root, .faip-page-host) .faip-composer,
-:where(.faip-root, .faip-page-host) .faip-execution-card,
-:where(.faip-root, .faip-page-host) .faip-overflow-menu {
-  backdrop-filter: blur(14px);
-}
 :where(.faip-root, .faip-page-host) .faip-nav {
-  flex: 0 0 312px;
-  width: 312px;
+  flex: 0 0 272px;
+  width: 272px;
   min-width: 0;
   min-height: 0;
   display: flex;
   flex-direction: column;
-  gap: 12px;
-  padding: 16px;
+  gap: 10px;
+  padding: 12px;
   border-right: 1px solid var(--faip-border);
   background: var(--faip-bg-soft);
   overflow: hidden;
 }
-:where(.faip-root, .faip-page-host) .faip-nav-header,
+:where(.faip-root, .faip-page-host) .faip-rail-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 2px 4px;
+}
+:where(.faip-root, .faip-page-host) .faip-rail-header .faip-header-mark {
+  width: 28px;
+  height: 28px;
+  border-radius: 9px;
+}
+:where(.faip-root, .faip-page-host) .faip-rail-brand {
+  font-weight: 600;
+  font-size: 14px;
+}
+:where(.faip-root, .faip-page-host) .faip-rail-new {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 9px 12px;
+  border: 0;
+  border-radius: 10px;
+  background: var(--faip-text);
+  color: var(--faip-bg);
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+:where(.faip-root, .faip-page-host) .faip-rail-new:hover {
+  opacity: 0.9;
+}
+:where(.faip-root, .faip-page-host) .faip-rail-agent {
+  position: relative;
+}
+:where(.faip-root, .faip-page-host) .faip-rail-agent-button,
+:where(.faip-root, .faip-page-host) .faip-rail-menu-item {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 10px;
+  border: 1px solid var(--faip-border);
+  border-radius: 10px;
+  background: var(--faip-surface);
+  color: var(--faip-text);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+:where(.faip-root, .faip-page-host) .faip-rail-agent-button:hover,
+:where(.faip-root, .faip-page-host) .faip-rail-menu-item:hover {
+  border-color: var(--faip-border-strong);
+}
+:where(.faip-root, .faip-page-host) .faip-rail-agent-mark {
+  flex: 0 0 auto;
+  width: 24px;
+  height: 24px;
+  display: grid;
+  place-items: center;
+  border-radius: 8px;
+  background: var(--faip-primary-soft);
+  color: var(--faip-primary);
+}
+:where(.faip-root, .faip-page-host) .faip-rail-agent-copy {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+:where(.faip-root, .faip-page-host) .faip-rail-agent-name,
+:where(.faip-root, .faip-page-host) .faip-rail-agent-meta {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+:where(.faip-root, .faip-page-host) .faip-rail-agent-name {
+  font-size: 13px;
+  font-weight: 600;
+}
+:where(.faip-root, .faip-page-host) .faip-rail-agent-meta {
+  font-size: 12px;
+  color: var(--faip-text-muted);
+}
+:where(.faip-root, .faip-page-host) .faip-rail-menu {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  right: 0;
+  z-index: 60;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  max-height: 280px;
+  overflow-y: auto;
+  padding: 6px;
+  border: 1px solid var(--faip-border);
+  border-radius: 12px;
+  background: var(--faip-surface);
+  box-shadow: var(--faip-shadow);
+}
+:where(.faip-root, .faip-page-host) .faip-rail-menu-item {
+  border-color: transparent;
+}
+:where(.faip-root, .faip-page-host) .faip-rail-sessions {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  margin: 0 -6px;
+  padding: 0 6px;
+}
+:where(.faip-root, .faip-page-host) .faip-rail-group-label {
+  padding: 14px 8px 6px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--faip-text-faint);
+}
+:where(.faip-root, .faip-page-host) .faip-rail-empty {
+  padding: 24px 8px;
+  font-size: 13px;
+  color: var(--faip-text-muted);
+}
+:where(.faip-root, .faip-page-host) .faip-rail-row {
+  position: relative;
+  display: flex;
+  align-items: center;
+  border-radius: 8px;
+  color: var(--faip-text-muted);
+}
+:where(.faip-root, .faip-page-host) .faip-rail-row:hover {
+  background: var(--faip-surface);
+}
+:where(.faip-root, .faip-page-host) .faip-rail-row.is-active {
+  background: var(--faip-surface);
+  color: var(--faip-text);
+  box-shadow: 0 0 0 1px var(--faip-border);
+}
+:where(.faip-root, .faip-page-host) .faip-rail-row.is-active::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 9px;
+  bottom: 9px;
+  width: 3px;
+  border-radius: 2px;
+  background: var(--faip-primary);
+}
+:where(.faip-root, .faip-page-host) .faip-rail-row-title {
+  flex: 1 1 auto;
+  min-width: 0;
+  padding: 7px 8px 7px 12px;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  cursor: pointer;
+}
+:where(.faip-root, .faip-page-host) .faip-rail-row-pin {
+  flex: 0 0 auto;
+  display: grid;
+  place-items: center;
+  width: 26px;
+  height: 26px;
+  margin-right: 4px;
+  border: 0;
+  border-radius: 6px;
+  background: none;
+  color: var(--faip-text-faint);
+  opacity: 0;
+  cursor: pointer;
+}
+:where(.faip-root, .faip-page-host) .faip-rail-row:hover .faip-rail-row-pin,
+:where(.faip-root, .faip-page-host) .faip-rail-row-pin:focus-visible,
+:where(.faip-root, .faip-page-host) .faip-rail-row.is-pinned .faip-rail-row-pin {
+  opacity: 1;
+}
+:where(.faip-root, .faip-page-host) .faip-rail-row-pin:hover {
+  background: var(--faip-bg-soft);
+  color: var(--faip-text);
+}
+@media (hover: none) {
+  :where(.faip-root, .faip-page-host) .faip-rail-row-pin {
+    opacity: 1;
+  }
+}
 :where(.faip-root, .faip-page-host) .faip-workspace-header,
 :where(.faip-root, .faip-page-host) .faip-workspace-header-left,
 :where(.faip-root, .faip-page-host) .faip-workspace-header-right,
@@ -174,20 +342,12 @@
   display: grid;
   place-items: center;
   border-radius: 14px;
-  background:
-    linear-gradient(
-      135deg,
-      var(--faip-primary),
-      var(--faip-accent));
-  color: white;
+  background: var(--faip-primary);
+  color: var(--faip-on-primary);
 }
-:where(.faip-root, .faip-page-host) .faip-nav-brand,
-:where(.faip-root, .faip-page-host) .faip-nav-item-copy,
 :where(.faip-root, .faip-page-host) .faip-workspace-main,
 :where(.faip-root, .faip-page-host) .faip-workspace-header-left,
 :where(.faip-root, .faip-page-host) .faip-workspace-header-right,
-:where(.faip-root, .faip-page-host) .faip-workspace-agent,
-:where(.faip-root, .faip-page-host) .faip-workspace-context,
 :where(.faip-root, .faip-page-host) .faip-message-list,
 :where(.faip-root, .faip-page-host) .faip-message-stack,
 :where(.faip-root, .faip-page-host) .faip-inspector,
@@ -195,17 +355,10 @@
 :where(.faip-root, .faip-page-host) .faip-composer-agent-chip {
   min-width: 0;
 }
-:where(.faip-root, .faip-page-host) .faip-nav-title,
-:where(.faip-root, .faip-page-host) .faip-workspace-agent-title,
-:where(.faip-root, .faip-page-host) .faip-workspace-context-title,
 :where(.faip-root, .faip-page-host) .faip-inspector-title {
   font-size: 15px;
   font-weight: 700;
 }
-:where(.faip-root, .faip-page-host) .faip-nav-subtitle,
-:where(.faip-root, .faip-page-host) .faip-nav-item-meta,
-:where(.faip-root, .faip-page-host) .faip-workspace-agent-meta,
-:where(.faip-root, .faip-page-host) .faip-workspace-context-meta,
 :where(.faip-root, .faip-page-host) .faip-execution-card-meta,
 :where(.faip-root, .faip-page-host) .faip-execution-card-status,
 :where(.faip-root, .faip-page-host) .faip-inline-error,
@@ -226,18 +379,15 @@
 :where(.faip-root, .faip-page-host) .faip-nav-close {
   margin-left: auto;
 }
-:where(.faip-root, .faip-page-host) .faip-page-new-chat,
 :where(.faip-root, .faip-page-host) .faip-primary-button,
 :where(.faip-root, .faip-page-host) .faip-secondary-button,
 :where(.faip-root, .faip-page-host) .faip-danger-button,
 :where(.faip-root, .faip-page-host) .faip-icon-button,
 :where(.faip-root, .faip-page-host) .faip-feedback-button,
-:where(.faip-root, .faip-page-host) .faip-nav-item,
 :where(.faip-root, .faip-page-host) .faip-inspector-row,
-:where(.faip-root, .faip-page-host) .faip-workspace-agent,
 :where(.faip-root, .faip-page-host) .faip-menu-item {
   border: 1px solid var(--faip-border);
-  background: rgba(255, 255, 255, 0.58);
+  background: var(--faip-surface);
   color: var(--faip-text);
   border-radius: 14px;
   padding: 9px 11px;
@@ -249,15 +399,10 @@
     background 0.16s ease,
     box-shadow 0.16s ease;
 }
-:where(.faip-root, .faip-page-host) .faip-page-new-chat,
 :where(.faip-root, .faip-page-host) .faip-primary-button {
-  background:
-    linear-gradient(
-      135deg,
-      var(--faip-primary),
-      var(--faip-primary-strong));
+  background: var(--faip-primary);
   border-color: transparent;
-  color: white;
+  color: var(--faip-on-primary);
 }
 :where(.faip-root, .faip-page-host) .faip-icon-button {
   padding: 8px;
@@ -265,7 +410,6 @@
   align-items: center;
   justify-content: center;
 }
-:where(.faip-root, .faip-page-host) .faip-page-new-chat,
 :where(.faip-root, .faip-page-host) .faip-primary-button,
 :where(.faip-root, .faip-page-host) .faip-secondary-button,
 :where(.faip-root, .faip-page-host) .faip-danger-button,
@@ -275,20 +419,15 @@
   align-items: center;
   gap: 8px;
 }
-:where(.faip-root, .faip-page-host) .faip-page-new-chat:hover,
 :where(.faip-root, .faip-page-host) .faip-primary-button:hover,
 :where(.faip-root, .faip-page-host) .faip-secondary-button:hover,
 :where(.faip-root, .faip-page-host) .faip-danger-button:hover,
 :where(.faip-root, .faip-page-host) .faip-icon-button:hover,
 :where(.faip-root, .faip-page-host) .faip-feedback-button:hover,
-:where(.faip-root, .faip-page-host) .faip-nav-item:hover,
 :where(.faip-root, .faip-page-host) .faip-inspector-row:hover,
-:where(.faip-root, .faip-page-host) .faip-workspace-agent:hover,
 :where(.faip-root, .faip-page-host) .faip-menu-item:hover,
 :where(.faip-root, .faip-page-host) .faip-execution-card:hover {
-  transform: translateY(-1px);
-  border-color: color-mix(in srgb, var(--faip-primary) 26%, var(--faip-border));
-  box-shadow: 0 12px 22px rgba(15, 23, 42, 0.08);
+  border-color: var(--faip-border-strong);
 }
 :where(.faip-root, .faip-page-host) .faip-primary-button:disabled,
 :where(.faip-root, .faip-page-host) .faip-secondary-button:disabled,
@@ -308,7 +447,7 @@
   padding: 0 12px;
   border: 1px solid var(--faip-border);
   border-radius: 14px;
-  background: rgba(255, 255, 255, 0.5);
+  background: var(--faip-surface);
 }
 :where(.faip-root, .faip-page-host) .faip-page-search input,
 :where(.faip-root, .faip-page-host) .faip-textarea {
@@ -322,14 +461,6 @@
   font: inherit;
   outline: none;
 }
-:where(.faip-root, .faip-page-host) .faip-nav-section {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  min-height: 0;
-}
-:where(.faip-root, .faip-page-host) .faip-nav-section-title,
-:where(.faip-root, .faip-page-host) .faip-nav-group-label,
 :where(.faip-root, .faip-page-host) .faip-inspector-section-title {
   font-size: 11px;
   font-weight: 700;
@@ -337,13 +468,11 @@
   text-transform: uppercase;
   color: var(--faip-text-muted);
 }
-:where(.faip-root, .faip-page-host) .faip-nav-list,
 :where(.faip-root, .faip-page-host) .faip-inspector-list {
   display: flex;
   flex-direction: column;
   gap: 8px;
 }
-:where(.faip-root, .faip-page-host) .faip-nav-item,
 :where(.faip-root, .faip-page-host) .faip-inspector-row {
   display: flex;
   align-items: flex-start;
@@ -351,35 +480,15 @@
   gap: 10px;
   text-align: left;
 }
-:where(.faip-root, .faip-page-host) .faip-nav-item-title,
 :where(.faip-root, .faip-page-host) .faip-execution-card-title,
 :where(.faip-root, .faip-page-host) .faip-confirm-title,
 :where(.faip-root, .faip-page-host) .faip-inspector-row-title {
   font-size: 13px;
   font-weight: 700;
 }
-:where(.faip-root, .faip-page-host) .faip-nav-item-title {
-  display: -webkit-box;
-  -webkit-box-orient: vertical;
-  -webkit-line-clamp: 2;
-  overflow: hidden;
-  overflow-wrap: anywhere;
-}
-:where(.faip-root, .faip-page-host) .faip-nav-item.is-active,
 :where(.faip-root, .faip-page-host) .faip-feedback-button.is-active {
-  background: color-mix(in srgb, var(--faip-primary) 10%, white);
+  background: var(--faip-primary-soft);
   border-color: color-mix(in srgb, var(--faip-primary) 24%, var(--faip-border));
-}
-:where(.faip-root, .faip-page-host) .faip-nav-section-sessions {
-  flex: 1 1 auto;
-  overflow: hidden;
-}
-:where(.faip-root, .faip-page-host) .faip-nav-session-scroll {
-  flex: 1 1 auto;
-  min-height: 0;
-  overflow-y: auto;
-  overflow-x: hidden;
-  padding-right: 4px;
 }
 :where(.faip-root, .faip-page-host) .faip-workspace-main {
   flex: 1 1 auto;
@@ -393,9 +502,53 @@
   flex: 0 0 auto;
   min-width: 0;
   justify-content: space-between;
-  padding: 14px 16px 10px;
+  height: 52px;
+  padding: 0 12px 0 14px;
   border-bottom: 1px solid var(--faip-border);
+  background: var(--faip-bg);
+}
+:where(.faip-root, .faip-page-host) .faip-topbar-title {
+  margin: 0;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--faip-text);
+}
+:where(.faip-root, .faip-page-host) .faip-agent-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  max-width: 260px;
+  padding: 4px 10px;
+  border: 1px solid var(--faip-border);
+  border-radius: 999px;
+  background: var(--faip-surface);
+  color: var(--faip-text);
+  font: inherit;
+  font-size: 12px;
+  cursor: pointer;
+}
+:where(.faip-root, .faip-page-host) .faip-agent-chip:hover {
+  border-color: var(--faip-border-strong);
+}
+:where(.faip-root, .faip-page-host) .faip-agent-chip-name,
+:where(.faip-root, .faip-page-host) .faip-agent-chip-model {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+:where(.faip-root, .faip-page-host) .faip-agent-chip-name {
+  font-weight: 600;
+}
+:where(.faip-root, .faip-page-host) .faip-agent-chip-model {
+  color: var(--faip-text-muted);
+}
+:where(.faip-root, .faip-page-host) .faip-icon-button.is-on {
   background: var(--faip-bg-soft);
+  box-shadow: inset 0 0 0 1px var(--faip-border);
 }
 :where(.faip-root, .faip-page-host) .faip-workspace-header-left {
   flex: 1 1 auto;
@@ -406,26 +559,6 @@
   min-width: 0;
   position: relative;
 }
-:where(.faip-root, .faip-page-host) .faip-workspace-menu-button {
-  flex: 0 0 auto;
-}
-:where(.faip-root, .faip-page-host) .faip-workspace-agent {
-  flex: 1 1 auto;
-  min-width: 0;
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  text-align: left;
-}
-:where(.faip-root, .faip-page-host) .faip-workspace-agent-title,
-:where(.faip-root, .faip-page-host) .faip-workspace-agent-meta,
-:where(.faip-root, .faip-page-host) .faip-workspace-context-title,
-:where(.faip-root, .faip-page-host) .faip-workspace-context-meta {
-  width: 100%;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
 :where(.faip-root, .faip-page-host) .faip-workspace-content {
   flex: 1 1 auto;
   min-height: 0;
@@ -434,24 +567,34 @@
   flex-direction: column;
   overflow: hidden;
 }
-:where(.faip-root, .faip-page-host) .faip-workspace-context {
-  flex: 0 0 auto;
-  margin: 12px 16px 0;
-  padding: 12px 14px;
-  border: 1px solid var(--faip-border);
-  border-radius: 18px;
-  background: var(--faip-bg-elevated);
-}
 :where(.faip-root, .faip-page-host) .faip-status-pill {
+  --faip-pill-tone: var(--faip-text-faint);
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  padding: 7px 10px;
+  padding: 2px 10px;
   border-radius: 999px;
   border: 1px solid var(--faip-border);
-  background: rgba(255, 255, 255, 0.52);
+  background: var(--faip-surface);
   font-size: 12px;
+  color: var(--faip-text-muted);
   white-space: nowrap;
+}
+:where(.faip-root, .faip-page-host) .faip-status-pill::before {
+  content: "";
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--faip-pill-tone);
+}
+:where(.faip-root, .faip-page-host) .faip-status-pill.is-running {
+  --faip-pill-tone: var(--faip-primary);
+}
+:where(.faip-root, .faip-page-host) .faip-status-pill.is-waiting {
+  --faip-pill-tone: var(--faip-warning);
+}
+:where(.faip-root, .faip-page-host) .faip-status-pill.is-failed {
+  --faip-pill-tone: var(--faip-danger);
 }
 :where(.faip-root, .faip-page-host) .faip-overflow {
   position: relative;
@@ -506,6 +649,7 @@
 }
 :where(.faip-root, .faip-page-host) .faip-empty h3 {
   margin: 0;
+  color: var(--faip-text);
   font-size: 24px;
   letter-spacing: -0.02em;
 }
@@ -535,7 +679,7 @@
   padding: 10px 12px;
   border: 1px solid var(--faip-border);
   border-radius: 14px;
-  background: rgba(255, 255, 255, 0.5);
+  background: var(--faip-surface);
 }
 :where(.faip-root, .faip-page-host) .faip-prompt-card {
   text-align: left;
@@ -557,12 +701,8 @@
 :where(.faip-root, .faip-page-host) .faip-user-message {
   max-width: min(76%, 720px);
   padding: 14px 16px;
-  background:
-    linear-gradient(
-      135deg,
-      var(--faip-primary),
-      var(--faip-accent));
-  color: white;
+  background: var(--faip-primary);
+  color: var(--faip-on-primary);
   border-color: transparent;
 }
 :where(.faip-root, .faip-page-host) .faip-user-attachments,
@@ -592,7 +732,7 @@
 :where(.faip-root, .faip-page-host) .faip-execution-card {
   width: 100%;
   padding: 12px 14px;
-  background: rgba(255, 255, 255, 0.52);
+  background: var(--faip-surface);
   text-align: left;
 }
 :where(.faip-root, .faip-page-host) .faip-execution-card.is-awaiting_confirmation {
@@ -601,7 +741,7 @@
 :where(.faip-root, .faip-page-host) .faip-execution-card.is-error,
 :where(.faip-root, .faip-page-host) .faip-confirm-card.is-danger {
   border-color: color-mix(in srgb, var(--faip-danger) 28%, var(--faip-border));
-  background: color-mix(in srgb, var(--faip-danger) 8%, white);
+  background: color-mix(in srgb, var(--faip-danger) 8%, var(--faip-surface));
 }
 :where(.faip-root, .faip-page-host) .faip-execution-card-status {
   text-transform: uppercase;
@@ -626,7 +766,7 @@
   margin: 10px 0 0;
   padding: 12px 14px;
   border-radius: 14px;
-  background: rgba(15, 23, 42, 0.06);
+  background: var(--faip-bg-soft);
   font-size: 12px;
   line-height: 1.5;
   overflow-x: auto;
@@ -639,18 +779,10 @@
   max-width: 100%;
   padding: 12px 16px 16px;
   border-top: 1px solid var(--faip-border);
-  background:
-    linear-gradient(
-      180deg,
-      rgba(255, 255, 255, 0),
-      var(--faip-bg) 24%);
+  background: var(--faip-bg);
 }
 :where(.faip-root, .faip-page-host) .faip-composer.is-dragging {
-  background:
-    linear-gradient(
-      180deg,
-      rgba(255, 255, 255, 0),
-      color-mix(in srgb, var(--faip-primary) 7%, var(--faip-bg)) 24%);
+  background: color-mix(in srgb, var(--faip-primary) 7%, var(--faip-bg));
 }
 :where(.faip-root, .faip-page-host) .faip-composer > * {
   max-width: 880px;
@@ -693,7 +825,7 @@
   padding: 8px 12px;
   border: 1px solid var(--faip-border);
   border-radius: 14px;
-  background: rgba(255, 255, 255, 0.5);
+  background: var(--faip-surface);
 }
 :where(.faip-root, .faip-page-host) .faip-chip {
   display: inline-flex;
@@ -752,7 +884,6 @@
   }
 }
 @media (min-width: 1200px) {
-  :where(.faip-root, .faip-page-host) .faip-header-overflow-button,
   :where(.faip-root, .faip-page-host) .faip-shell-backdrop {
     display: none;
   }
@@ -762,20 +893,10 @@
     flex-basis: 272px;
     width: 272px;
   }
-  :where(.faip-root, .faip-page-host) .faip-workspace-header {
-    padding: 12px 14px 10px;
-  }
-  :where(.faip-root, .faip-page-host) .faip-workspace-context,
   :where(.faip-root, .faip-page-host) .faip-message-list,
   :where(.faip-root, .faip-page-host) .faip-composer {
     padding-left: 14px;
     padding-right: 14px;
-  }
-  :where(.faip-root, .faip-page-host) .faip-header-action.is-activity {
-    display: none;
-  }
-  :where(.faip-root, .faip-page-host) .faip-header-overflow-button {
-    display: inline-flex;
   }
   :where(.faip-root, .faip-page-host) .faip-inspector {
     position: fixed;
@@ -785,15 +906,6 @@
     width: min(360px, 92vw);
     border-left: 1px solid var(--faip-border);
     box-shadow: var(--faip-shadow);
-  }
-}
-@media (max-width: 1023px) {
-  :where(.faip-root, .faip-page-host) .faip-header-action.is-mcp {
-    display: none;
-  }
-  :where(.faip-root, .faip-page-host) .faip-workspace-agent-meta,
-  :where(.faip-root, .faip-page-host) .faip-workspace-context-meta {
-    display: none;
   }
 }
 @media (max-width: 767px) {
@@ -812,28 +924,18 @@
   :where(.faip-root, .faip-page-host) .faip-workspace-shell.has-sidebar .faip-nav {
     transform: translateX(0);
   }
-  :where(.faip-root, .faip-page-host) .faip-header-action.is-tools,
-  :where(.faip-root, .faip-page-host) .faip-header-action.is-mcp,
-  :where(.faip-root, .faip-page-host) .faip-header-action.is-activity,
   :where(.faip-root, .faip-page-host) .faip-panel-controls {
     display: none;
   }
   :where(.faip-root, .faip-page-host) .faip-workspace-header {
-    padding: 10px 12px 8px;
+    padding: 0 8px 0 10px;
     gap: 8px;
   }
   :where(.faip-root, .faip-page-host) .faip-workspace-header-right {
     gap: 6px;
   }
-  :where(.faip-root, .faip-page-host) .faip-workspace-status {
-    padding-inline: 8px;
-  }
-  :where(.faip-root, .faip-page-host) .faip-workspace-agent {
-    padding: 8px 10px;
-  }
-  :where(.faip-root, .faip-page-host) .faip-workspace-context {
-    margin: 8px 12px 0;
-    padding: 10px 12px;
+  :where(.faip-root, .faip-page-host) .faip-agent-chip-model {
+    display: none;
   }
   :where(.faip-root, .faip-page-host) .faip-message-list {
     padding: 10px 12px;

@@ -217,6 +217,26 @@ export function StoreProvider({ children, host }: { children: React.ReactNode; h
 		}));
 	}, [update, voiceReplies.stop]);
 
+	const togglePinned = useCallback(
+		async (name: string) => {
+			const target = stateRef.current.history.find((item) => item.name === name);
+			if (!target) return;
+			const pinned = !target.pinned;
+			const mark = (value: boolean) =>
+				update((current) => ({
+					...current,
+					history: current.history.map((item) => (item.name === name ? { ...item, pinned: value } : item)),
+				}));
+			mark(pinned);
+			try {
+				await api.setSessionPinned(name, pinned);
+			} catch {
+				mark(!pinned);
+			}
+		},
+		[update]
+	);
+
 	const searchSessions = useCallback(async (query: string) => {
 		if (!query.trim()) return stateRef.current.history;
 		return api.searchSessions(query).catch(() => []);
@@ -609,6 +629,7 @@ export function StoreProvider({ children, host }: { children: React.ReactNode; h
 			attachFiles,
 			removeAttachment,
 			searchSessions,
+			togglePinned,
 			clearForceScroll,
 			openAgentInspector,
 			openModelInspector,
@@ -635,6 +656,7 @@ export function StoreProvider({ children, host }: { children: React.ReactNode; h
 		removeAttachment,
 		restoreSession,
 		searchSessions,
+		togglePinned,
 		selectedAgentRecord,
 		send,
 		setAgent,

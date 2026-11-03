@@ -1,6 +1,6 @@
 .faip-root.faip-page-host {
 	padding: 0;
-	background: #eef3f7;
+	background: var(--faip-bg);
 	height: 100dvh;
 	max-height: 100dvh;
 	overflow: hidden;
@@ -10,17 +10,6 @@
 	height: 100dvh;
 	max-height: 100dvh;
 	overflow: hidden;
-	background:
-		radial-gradient(circle at top left, rgba(22, 163, 74, 0.08), transparent 28%),
-		radial-gradient(circle at top right, rgba(14, 116, 144, 0.12), transparent 32%),
-		#eef3f7;
-	color: #132238;
-}
-
-.faip-page[data-theme="dark"] {
-	background:
-		radial-gradient(circle at top left, rgba(34, 197, 94, 0.1), transparent 26%),
-		radial-gradient(circle at top right, rgba(56, 189, 248, 0.14), transparent 30%),
-		#07131f;
-	color: #eff7ff;
+	background: var(--faip-bg);
+	color: var(--faip-text);
 }

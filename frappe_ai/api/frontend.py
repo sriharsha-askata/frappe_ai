@@ -189,8 +189,8 @@ def _bootstrap_payload(*, current_session: dict[str, Any] | None = None) -> dict
 	history = frappe.get_all(
 		"AI Session",
 		filters={"owner": frappe.session.user, "source": ["!=", "Trigger"]},
-		fields=["name", "title", "modified", "agent", "model", "source"],
-		order_by="modified desc",
+		fields=["name", "title", "modified", "agent", "model", "source", "pinned"],
+		order_by="pinned desc, modified desc",
 		limit=50,
 	)
 	agent_rows = [_agent_row(row) for row in agents]
@@ -260,8 +260,8 @@ def sessions(query: str | None = None, limit: int = 20) -> dict[str, Any]:
 	rows = frappe.get_all(
 		"AI Session",
 		filters=filters,
-		fields=["name", "title", "modified", "agent", "model", "source"],
-		order_by="modified desc",
+		fields=["name", "title", "modified", "agent", "model", "source", "pinned"],
+		order_by="pinned desc, modified desc",
 		limit=max(1, min(int(limit or 20), 100)),
 	)
 	return {"session": {"history": [_session_row(row) for row in rows]}}
@@ -317,6 +317,15 @@ def start_run(
 @frappe.whitelist()
 def resume_run(run: str, answers: dict[str, Any] | str) -> dict[str, Any]:
 	return api.resume_run(run_name=run, answers=answers)
+
+
+@frappe.whitelist()
+def set_session_pinned(session: str, pinned: bool | int | str = True) -> dict[str, Any]:
+	"""Pin or unpin one of the user's chats. Pinning does not change the chat's modified time."""
+	assert_session_owner(session)
+	value = 1 if frappe.utils.cint(pinned) else 0
+	frappe.db.set_value("AI Session", session, "pinned", value, update_modified=False)
+	return {"session": session, "pinned": bool(value)}
 
 
 @frappe.whitelist()

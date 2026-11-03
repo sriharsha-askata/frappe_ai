@@ -145,3 +145,13 @@ changes, and replacing React or esbuild.
 ## Still open
 - Final wording of the four starter cards (they should come from each agent's configured starters).
 - Whether the rail stays open on tablets or starts collapsed.
+
+## Build progress
+Branch `feat/chat-ui-redesign`.
+- **Done, steps 1-3:** neutral design tokens and flat surfaces (light and dark); new sidebar (agent dropdown, search,
+  Pinned / Today / Yesterday / Previous 7 days / Older, one-line rows, pin on hover); slim 52 px top bar (title,
+  status pill, agent chip, Activity toggle, overflow for Tools and MCPs). Pinning is stored per chat
+  (`AI Session.pinned`, API `set_session_pinned`) and pinned chats are listed first.
+- **Not yet:** steps 4-9 (transcript and tool steps, approval card, composer and voice states, empty state,
+  activity drawer tabs, responsive and accessibility pass). Editable titles and generated short titles are part of
+  step 2's remaining scope.
