@@ -74,7 +74,7 @@ Tabs: Run (tokens, cost, duration, model calls, timeline), Tools (calls with arg
 Memory (what was read or saved). Opening a citation or a tool step scrolls to it here.
 
 ## Visual system
-- **Colour tokens** (CSS variables, both themes): `--bg`, `--surface`, `--sunken`, `--line`, `--text`, `--muted`,
+- **Colour tokens** (CSS variables, both themes; neutral greys, teal for actions only): `--bg`, `--surface`, `--sunken`, `--line`, `--text`, `--muted`,
   `--faint`, `--brand` (teal, kept from today), `--brand-soft`, `--warn`, `--ok`, `--danger`. Contrast at least 4.5:1
   for text in both themes.
 - **Type:** Inter (system fallback), 14 px body, 1.55 line height; headings 14-16 px semibold; monospace for tool
@@ -110,7 +110,38 @@ Work lands as small commits on a branch, each leaving the app working.
 Out of scope for now: new features (image attachments in the composer arrive with the multimodal roadmap), branding
 changes, and replacing React or esbuild.
 
-## Open questions for review
-- Keep the teal brand colour, or move to a neutral palette with teal only for actions?
-- Should the Activity drawer be open by default on wide screens?
-- Do you want pinned sessions, or is date grouping enough?
+## Decisions (from review)
+- **Palette:** neutral warm greys for every surface; teal is used only for actions and state: primary buttons, the
+  active-chat marker, focus ring, links, the microphone while listening, waveform. User messages are neutral (not
+  teal); the approval card keeps its amber warning tint.
+- **Activity drawer:** closed by default. Opens from the top-bar button or Ctrl + . and slides in (about 220 ms); the
+  conversation column stays centred. Under 1180 px it is an overlay.
+- **Pinned chats:** a Pinned group at the top of the sidebar. Pin and unpin from the row's hover menu. Needs a small
+  backend field (`pinned` on the session, per user) and an API to toggle it.
+- **Voice input is first-class** (see below).
+
+## Voice input
+- **Entry points:** a mic button in the composer, a large "Tap to talk" button on the empty state, and hold Space
+  while the composer is empty and focused (push-to-talk). Speech replies use the existing server voice with browser
+  fallback.
+- **Listening state:** the composer is replaced by a single bar with a live waveform, elapsed time, **Cancel** and
+  **Send**, with a brand-coloured ring. Nothing is sent until the user confirms (hands-free sending stays out of
+  scope; see `docs/progress/voice-mode.md`).
+- **Speaking state:** a pill above the composer with a waveform and Stop; Esc also stops it.
+- **Transcribing and thinking:** a short "Transcribing..." row, then a three-dot typing indicator while the run starts.
+- **Errors:** microphone blocked, no speech heard, or transcription failed each show an inline message with a retry,
+  and the typed text is never lost.
+- **Availability:** the mic is shown only when transcription is configured (`composer.voice.available`); otherwise it is
+  hidden, not disabled.
+
+## Appeal and polish
+- A generous empty state: logo mark, greeting, one line of help, a prominent talk button, four suggestion cards.
+- Soft depth only where it helps (composer, cards on hover); everything else is flat with 1 px lines.
+- Micro-interactions: cards lift 1 px on hover, the drawer and tool-step groups ease open, a typing indicator while a
+  run starts, the Send button morphs to Stop while running.
+- Consistent 14-18 px radii, a single icon set, and tabular numbers for time and cost.
+- Dark mode is designed, not inverted: lower-contrast surfaces, a lighter teal for actions.
+
+## Still open
+- Final wording of the four starter cards (they should come from each agent's configured starters).
+- Whether the rail stays open on tablets or starts collapsed.
