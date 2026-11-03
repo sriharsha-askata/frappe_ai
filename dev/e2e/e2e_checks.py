@@ -143,3 +143,106 @@ def count_syntax():
 		frappe.db.rollback()
 	print("DIAG " + json.dumps(out, default=str))
 	return out
+
+
+# --- seeding and inspection used by run_scenarios.py ---------------------------------------
+
+STUB_URL = "http://127.0.0.1:11434/v1"
+KB_TEXT = (
+	"Refund policy. Customers may return any product within 30 days of purchase for a full refund. "
+	"Refunds are issued to the original payment method within five business days. "
+	"Shipping policy. Orders ship within two working days and arrive in three to five days. "
+	"Warranty. Hardware carries a one year warranty covering manufacturing defects."
+)
+
+
+def _upsert(doctype: str, name: str, values: dict) -> None:
+	if frappe.db.exists(doctype, name):
+		doc = frappe.get_doc(doctype, name)
+		doc.update(values)
+		doc.save(ignore_permissions=True)
+	else:
+		frappe.get_doc({"doctype": doctype, "name": name, **values}).insert(ignore_permissions=True)
+
+
+def seed():
+	"""Create the provider, model, agent, knowledge base and API keys the scenarios use."""
+	_upsert("AI Provider", "openai", {"provider": "openai", "enabled": 1, "base_url": STUB_URL, "api_key": "stub"})
+	if not frappe.db.exists("AI Model", {"title": "E2E Model"}):
+		frappe.get_doc(
+			{
+				"doctype": "AI Model",
+				"title": "E2E Model",
+				"enabled": 1,
+				"provider": "openai",
+				"model_id": "stub-model",
+				"context_window": 8000,
+			}
+		).insert(ignore_permissions=True)
+	model = frappe.db.get_value("AI Model", {"title": "E2E Model"}, "name")
+	if not frappe.db.exists("AI Knowledge Base", "E2E KB"):
+		frappe.get_doc({"doctype": "AI Knowledge Base", "title": "E2E KB", "enabled": 1}).insert(ignore_permissions=True)
+	kb = frappe.db.get_value("AI Knowledge Base", {"title": "E2E KB"}, "name")
+	if not frappe.db.exists("AI Agent", {"title": "E2E Agent"}):
+		frappe.get_doc(
+			{
+				"doctype": "AI Agent",
+				"title": "E2E Agent",
+				"enabled": 1,
+				"model": model,
+				"instructions": "You are a test assistant.",
+				"markdown": 0,
+				"knowledge_bases": [{"knowledge_base": kb}],
+				"plugin_tools": [
+					{"fac_tool": "search_knowledge", "enabled": 1, "requires_confirmation": 0},
+					{"fac_tool": "update_memory", "enabled": 1, "requires_confirmation": 1},
+				],
+			}
+		).insert(ignore_permissions=True)
+	agent = frappe.db.get_value("AI Agent", {"title": "E2E Agent"}, "name")
+	user = frappe.get_doc("User", "Administrator")
+	if not user.api_key:
+		user.api_key = frappe.generate_hash(length=15)
+	secret = frappe.generate_hash(length=15)
+	user.api_secret = secret
+	user.save(ignore_permissions=True)
+	return {"agent": agent, "model": model, "kb": kb, "token": f"{user.api_key}:{secret}"}
+
+
+def add_text_source(kb: str, title: str = "Policies", content: str = KB_TEXT):
+	"""Create a text source (ingestion is queued after commit) and return its name."""
+	doc = frappe.get_doc(
+		{"doctype": "AI Knowledge Source", "title": title, "knowledge_base": kb, "source_type": "Text", "content": content}
+	).insert(ignore_permissions=True)
+	return doc.name
+
+
+def source_state(name: str):
+	doc = frappe.get_doc("AI Knowledge Source", name)
+	return {"status": doc.status, "chunk_count": doc.chunk_count, "error": doc.error_log}
+
+
+def index_consistency():
+	"""Chunk rows in the database must match the ids in the search index exactly."""
+	from frappe_ai.knowledge import index
+
+	db_ids = {int(n) for n in frappe.get_all("AI Knowledge Chunk", pluck="name")}
+	idx_ids = index.chunks.ids() if index.chunks.exists() else set()
+	return {"db": len(db_ids), "index": len(idx_ids), "equal": db_ids == idx_ids}
+
+
+def run_state(run: str):
+	doc = frappe.get_doc("AI Run", run)
+	return {
+		"status": doc.status,
+		"error": doc.error,
+		"iterations": doc.iterations,
+		"usage": frappe.parse_json(doc.usage) if doc.usage else None,
+		"approvals": frappe.parse_json(doc.approvals) if doc.approvals else {},
+		"questions": frappe.parse_json(doc.questions) if doc.questions else None,
+		"budget": frappe.parse_json(doc.budget_usage) if doc.budget_usage else None,
+	}
+
+
+def memories(agent: str):
+	return frappe.get_all("AI Agent Memory", filters={"agent": agent}, fields=["name", "scope", "content", "status"])
