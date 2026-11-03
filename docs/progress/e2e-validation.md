@@ -75,8 +75,10 @@ native tools reach Assistant Core's registry, and the Error Log stays clean.
 * **LanceDB and Chroma are not transactional:** a failure right after the index write leaves an orphan
   vector (seen: 1). Retrieval ignores it because chunks are read back from the database, and a rebuild
   clears it. pgvector leaves none.
-* The `text` frames of a run arrive together at the end of the turn (the service buffers them), not as
-  the model produces them.
+* **Streaming is not live.** With the stub emitting a word every 0.25 s, `run_started` reached the client
+  at 0.01 s, but every `text` frame arrived together at 1.93 s and `done` at 2.0 s. The service buffers the
+  whole turn before it sends the frames (this is what makes the fallback-model retry safe), so the user
+  sees nothing until the model has finished.
 
 ## Not tested
 

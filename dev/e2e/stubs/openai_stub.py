@@ -39,6 +39,7 @@ _WORD = re.compile(r"\w+", re.UNICODE)
 _DIRECTIVE = re.compile(r"\[\[(search|tool|fail)(?::\s*|\s+)?(.*?)\]\]", re.S)
 
 LOG_PATH: str | None = None
+CHUNK_DELAY = 0.0
 LOG_LOCK = threading.Lock()
 REQUESTS: list[dict] = []
 
@@ -209,6 +210,8 @@ class Handler(BaseHTTPRequestHandler):
 			words = decision["text"].split(" ")
 			for position, word in enumerate(words):
 				emit(_chunk(model, {"content": word + (" " if position < len(words) - 1 else "")}))
+				if CHUNK_DELAY:
+					time.sleep(CHUNK_DELAY)
 			emit(_chunk(model, {}, finish="stop"))
 		emit(_chunk(model, {}, usage=usage))
 		emit("[DONE]")
@@ -217,13 +220,17 @@ class Handler(BaseHTTPRequestHandler):
 
 
 def main() -> None:
-	global LOG_PATH
+	global LOG_PATH, CHUNK_DELAY
 	parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
 	parser.add_argument("--port", type=int, default=11434)
 	parser.add_argument("--host", default="127.0.0.1")
+	parser.add_argument(
+		"--delay", type=float, default=0.0, help="seconds to wait after each streamed text chunk"
+	)
 	parser.add_argument("--log", default=None, help="append each request body to this JSON-lines file")
 	args = parser.parse_args()
 	LOG_PATH = args.log
+	CHUNK_DELAY = args.delay
 	server = ThreadingHTTPServer((args.host, args.port), Handler)
 	print(f"openai stub listening on http://{args.host}:{args.port}", flush=True)
 	server.serve_forever()
