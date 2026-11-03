@@ -1,4 +1,4 @@
-import { mkdtempSync, rmSync } from "node:fs";
+import { mkdtempSync, readdirSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { createRequire } from "node:module";
@@ -16,21 +16,28 @@ function loadFromFallback(moduleName) {
 	}
 }
 
-const outputDir = mkdtempSync(path.join(tmpdir(), "frappe-ai-events-"));
+const testsDir = path.join(rootDir, "tests");
+const testFiles = readdirSync(testsDir).filter((name) => name.endsWith(".test.ts")).sort();
+const esbuild = loadFromFallback("esbuild");
+const outputDir = mkdtempSync(path.join(tmpdir(), "frappe-ai-tests-"));
+let failed = false;
 try {
-	const output = path.join(outputDir, "runEvents.test.cjs");
-	await loadFromFallback("esbuild").build({
-		entryPoints: [path.join(rootDir, "tests/runEvents.test.ts")],
-		outfile: output,
-		bundle: true,
-		platform: "node",
-		format: "cjs",
-		target: "node18",
-		external: ["node:*"],
-	});
-	const result = spawnSync(process.execPath, [output], { stdio: "inherit" });
-	if (result.error) throw result.error;
-	process.exitCode = result.status ?? 1;
+	for (const name of testFiles) {
+		const output = path.join(outputDir, name.replace(/\.ts$/, ".cjs"));
+		await esbuild.build({
+			entryPoints: [path.join(testsDir, name)],
+			outfile: output,
+			bundle: true,
+			platform: "node",
+			format: "cjs",
+			target: "node18",
+			external: ["node:*"],
+		});
+		const result = spawnSync(process.execPath, [output], { stdio: "inherit" });
+		if (result.error) throw result.error;
+		if (result.status !== 0) failed = true;
+	}
+	process.exitCode = failed ? 1 : 0;
 } finally {
 	rmSync(outputDir, { recursive: true, force: true });
 }

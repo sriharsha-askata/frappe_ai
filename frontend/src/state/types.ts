@@ -53,6 +53,9 @@ export type AttachmentItem = {
 	status: "uploading" | "ready" | "error";
 	error: string;
 };
+/** What the server says about voice mode: whether it can be used, and which voice speaks replies. */
+export type VoiceInfo = { available: boolean; tts: "server" | "browser" };
+export type SendOptions = { spoken?: boolean };
 export type Feedback = { rating: string; comment: string } | null;
 export type Question = {
 	key: string;
@@ -121,6 +124,7 @@ export type StoreState = {
 	transcript: TranscriptMessage[];
 	attachments: AttachmentItem[];
 	supportedFileTypes: string[];
+	voice: VoiceInfo;
 	sending: boolean;
 	loaded: boolean;
 	scrollTick: number;
@@ -141,7 +145,12 @@ export type StoreContextValue = StoreState & {
 	switchSession: (name: string) => Promise<void>;
 	setAgent: (name: string) => void;
 	setModel: (name: string | null) => void;
-	send: (text: string) => Promise<void>;
+	send: (text: string, options?: SendOptions) => Promise<void>;
+	/** True while a spoken reply is playing. */
+	speaking: boolean;
+	stopSpeaking: () => void;
+	/** Allow audio playback; call it inside a click. */
+	unlockAudio: () => void;
 	stopRun: () => void;
 	answerQuestion: (messageId: string, questionKey: string, answer: string) => Promise<void>;
 	submitFeedback: (runName: string, rating: string, comment?: string) => Promise<void>;

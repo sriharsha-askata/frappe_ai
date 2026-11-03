@@ -863,3 +863,34 @@
     flex-basis: 100%;
   }
 }
+:where(.faip-root, .faip-page-host) .faip-voice-button.is-recording {
+  background: var(--faip-danger, #d92d20);
+  border-color: transparent;
+  color: white;
+  animation: faip-voice-pulse 1.4s ease-in-out infinite;
+}
+:where(.faip-root, .faip-page-host) .faip-voice-status {
+  font-size: 12px;
+  opacity: 0.75;
+  align-self: center;
+}
+:where(.faip-root, .faip-page-host) .faip-voice-status.is-error {
+  color: var(--faip-danger, #d92d20);
+  opacity: 1;
+}
+:where(.faip-root, .faip-page-host) .faip-spin {
+  animation: faip-voice-spin 0.9s linear infinite;
+}
+@keyframes faip-voice-pulse {
+  0%, 100% {
+    box-shadow: 0 0 0 0 rgba(217, 45, 32, 0.45);
+  }
+  50% {
+    box-shadow: 0 0 0 6px rgba(217, 45, 32, 0);
+  }
+}
+@keyframes faip-voice-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}

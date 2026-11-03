@@ -6,7 +6,7 @@ import type { StoreState } from "../src/state/types";
 function state(): StoreState {
 	return {
 		agents: [], models: [], history: [], selectedAgent: null, selectedModel: null,
-		currentSession: null, currentRun: null, attachments: [], supportedFileTypes: [],
+		currentSession: null, currentRun: null, attachments: [], supportedFileTypes: [], voice: { available: false, tts: "browser" },
 		sending: true, loaded: true, scrollTick: 0, forceScroll: false, focusTick: 0,
 		inspector: { open: false, mode: "agent", title: "", payload: null },
 		transcript: [{ id: "m1", role: "assistant", run: null, content: "", executions: [], questions: [], feedback: null, pending: true }],

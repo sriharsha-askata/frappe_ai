@@ -4,6 +4,7 @@ import { resumeRun, startRun } from "../api/stream";
 import type { RunEvent } from "../api/stream";
 import { __ } from "../lib/translate";
 import { summarizeSchema } from "../lib/toolMeta";
+import { useVoiceReplies } from "./useVoiceReplies";
 
 import type {
 	AgentToolSummary,
@@ -13,6 +14,7 @@ import type {
 	InspectorState,
 	StoreState,
 	StoreContextValue,
+	SendOptions,
 } from "./types";
 import { applyRunEvent, cloneTranscript, findAssistant } from "./runEvents";
 
@@ -32,6 +34,7 @@ const initialState: StoreState = {
 	transcript: [],
 	attachments: [],
 	supportedFileTypes: [],
+	voice: { available: false, tts: "browser" },
 	sending: false,
 	loaded: false,
 	scrollTick: 0,
@@ -74,6 +77,7 @@ export function StoreProvider({ children, host }: { children: React.ReactNode; h
 	const sessionRestored = useRef(false);
 	const switchSeq = useRef(0);
 	const abortController = useRef<AbortController | null>(null);
+	const voiceReplies = useVoiceReplies(state.voice.tts);
 
 	const commit = useCallback((next: StoreState) => {
 		stateRef.current = next;
@@ -114,6 +118,7 @@ export function StoreProvider({ children, host }: { children: React.ReactNode; h
 				currentRun: data.execution?.current_run || null,
 				transcript: data.execution?.transcript || [],
 				supportedFileTypes: data.composer?.supported_file_types || [],
+				voice: data.composer?.voice || { available: false, tts: "browser" },
 				loaded: true,
 				focusTick: current.focusTick + 1,
 			}));
@@ -141,6 +146,7 @@ export function StoreProvider({ children, host }: { children: React.ReactNode; h
 	const switchSession = useCallback(
 		async (name: string) => {
 			if (stateRef.current.sending) return;
+			voiceReplies.stop();
 			const seq = ++switchSeq.current;
 			update((current) => ({
 				...current,
@@ -167,7 +173,7 @@ export function StoreProvider({ children, host }: { children: React.ReactNode; h
 			}));
 			update((current) => requestScrollState(current));
 		},
-		[update]
+		[update, voiceReplies.stop]
 	);
 
 	const restoreSession = useCallback(async () => {
@@ -199,6 +205,7 @@ export function StoreProvider({ children, host }: { children: React.ReactNode; h
 
 	const newChat = useCallback(() => {
 		if (stateRef.current.sending) return;
+		voiceReplies.stop();
 		update((current) => ({
 			...current,
 			currentSession: null,
@@ -208,7 +215,7 @@ export function StoreProvider({ children, host }: { children: React.ReactNode; h
 			selectedModel: null,
 			focusTick: current.focusTick + 1,
 		}));
-	}, [update]);
+	}, [update, voiceReplies.stop]);
 
 	const searchSessions = useCallback(async (query: string) => {
 		if (!query.trim()) return stateRef.current.history;
@@ -230,6 +237,7 @@ export function StoreProvider({ children, host }: { children: React.ReactNode; h
 	const handleEvent = useCallback(
 		(event: RunEvent, messageId: string) => {
 			update((current) => applyRunEvent(current, event, messageId));
+			voiceReplies.onEvent(event);
 			if (["text", "tool_started", "tool_ended"].includes(event.type)) {
 				update((current) => requestScrollState(current));
 			}
@@ -238,11 +246,11 @@ export function StoreProvider({ children, host }: { children: React.ReactNode; h
 			}
 			if (event.type === "done") void refreshHistory();
 		},
-		[refreshHistory, update]
+		[refreshHistory, update, voiceReplies.onEvent]
 	);
 
 	const send = useCallback(
-		async (rawText: string) => {
+		async (rawText: string, options: SendOptions = {}) => {
 			const text = rawText.trim();
 			const current = stateRef.current;
 			const paused = current.transcript.some(
@@ -250,6 +258,10 @@ export function StoreProvider({ children, host }: { children: React.ReactNode; h
 			);
 			const uploading = current.attachments.some((item) => item.status === "uploading");
 			if (!text || current.sending || paused || uploading) return;
+
+			// A spoken request gets a spoken reply; typing over a reply that is still being read silences it.
+			if (options.spoken) voiceReplies.begin();
+			else voiceReplies.stop();
 
 			const ready = current.attachments.filter((item) => item.status === "ready");
 			const files = ready.map((item) => item.file).filter(Boolean);
@@ -312,7 +324,7 @@ export function StoreProvider({ children, host }: { children: React.ReactNode; h
 				}));
 			}
 		},
-		[findAssistant, handleEvent, update]
+		[findAssistant, handleEvent, update, voiceReplies.begin, voiceReplies.stop]
 	);
 
 	const resume = useCallback(
@@ -364,6 +376,7 @@ export function StoreProvider({ children, host }: { children: React.ReactNode; h
 	);
 
 	const stopRun = useCallback(() => {
+		voiceReplies.stop();
 		if (!stateRef.current.sending) return;
 		abortController.current?.abort();
 		const runName = stateRef.current.currentRun?.run;
@@ -372,7 +385,7 @@ export function StoreProvider({ children, host }: { children: React.ReactNode; h
 		} else if (stateRef.current.currentSession) {
 			void api.recoverSession(stateRef.current.currentSession.name).catch(() => {});
 		}
-	}, []);
+	}, [voiceReplies.stop]);
 
 	const submitFeedback = useCallback(
 		async (runName: string, rating: string, comment = "") => {
@@ -588,6 +601,9 @@ export function StoreProvider({ children, host }: { children: React.ReactNode; h
 			setModel,
 			send,
 			stopRun,
+			speaking: voiceReplies.speaking,
+			stopSpeaking: voiceReplies.stop,
+			unlockAudio: voiceReplies.unlock,
 			answerQuestion,
 			submitFeedback,
 			attachFiles,
@@ -628,6 +644,9 @@ export function StoreProvider({ children, host }: { children: React.ReactNode; h
 		submitFeedback,
 		switchSession,
 		testMcpConnection,
+		voiceReplies.speaking,
+		voiceReplies.stop,
+		voiceReplies.unlock,
 	]);
 
 	return <StoreContext.Provider value={value}>{children}</StoreContext.Provider>;

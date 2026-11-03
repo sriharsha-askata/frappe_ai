@@ -94,6 +94,18 @@ export async function uploadAttachment(file: File) {
 	}).then((data) => data.attachment);
 }
 
+/** Plain text of one recorded phrase (a WAV blob). */
+export async function transcribeVoice(wav: Blob): Promise<string> {
+	const form = new FormData();
+	form.append("file", wav, "utterance.wav");
+	const data = await request("frappe_ai.api.frontend.transcribe_voice", { method: "POST", body: form });
+	return String(data.text || "").trim();
+}
+
+/** Server-synthesized speech for one sentence, as base64 audio. */
+export const speakText = (text: string): Promise<{ audio: string; format: string }> =>
+	request("frappe_ai.api.frontend.speak_text", { method: "POST", body: { text } });
+
 export function serverMessage(data: any) {
 	try {
 		const messages = JSON.parse(data._server_messages || "[]");

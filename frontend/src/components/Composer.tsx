@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { ArrowUp, Paperclip, Square } from "lucide-react";
 import { AttachmentChip } from "./AttachmentChip";
+import { VoiceButton } from "./VoiceButton";
 import { useStore } from "../state/store";
 import { __ } from "../lib/translate";
 
@@ -129,6 +130,7 @@ export function Composer() {
 							event.target.value = "";
 						}}
 					/>
+					<VoiceButton />
 					<div className="faip-composer-agent-chip">
 						<span>{agentRecord?.title || __("Agent")}</span>
 						<small>{agentRecord?.model?.title || __("Agent default model")}</small>

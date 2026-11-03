@@ -25,9 +25,9 @@ var FrappeAIPanel = (() => {
     mod
   ));
 
-  // ../../factory_automation_api/fact-frontend/node_modules/react/cjs/react.production.js
+  // node_modules/react/cjs/react.production.js
   var require_react_production = __commonJS({
-    "../../factory_automation_api/fact-frontend/node_modules/react/cjs/react.production.js"(exports) {
+    "node_modules/react/cjs/react.production.js"(exports) {
       "use strict";
       var REACT_ELEMENT_TYPE = /* @__PURE__ */ Symbol.for("react.transitional.element");
       var REACT_PORTAL_TYPE = /* @__PURE__ */ Symbol.for("react.portal");
@@ -41,6 +41,7 @@ var FrappeAIPanel = (() => {
       var REACT_MEMO_TYPE = /* @__PURE__ */ Symbol.for("react.memo");
       var REACT_LAZY_TYPE = /* @__PURE__ */ Symbol.for("react.lazy");
       var REACT_ACTIVITY_TYPE = /* @__PURE__ */ Symbol.for("react.activity");
+      var REACT_VIEW_TRANSITION_TYPE = /* @__PURE__ */ Symbol.for("react.view_transition");
       var MAYBE_ITERATOR_SYMBOL = Symbol.iterator;
       function getIteratorFn(maybeIterable) {
         if (null === maybeIterable || "object" !== typeof maybeIterable) return null;
@@ -228,19 +229,18 @@ var FrappeAIPanel = (() => {
       }
       function lazyInitializer(payload) {
         if (-1 === payload._status) {
-          var ctor = payload._result;
-          ctor = ctor();
-          ctor.then(
+          var ctor = payload._result, thenable = ctor();
+          thenable.then(
             function(moduleObject) {
               if (0 === payload._status || -1 === payload._status)
-                payload._status = 1, payload._result = moduleObject;
+                payload._status = 1, payload._result = moduleObject, void 0 === thenable.status && (thenable.status = "fulfilled", thenable.value = moduleObject);
             },
             function(error) {
               if (0 === payload._status || -1 === payload._status)
-                payload._status = 2, payload._result = error;
+                payload._status = 2, payload._result = error, void 0 === thenable.status && (thenable.status = "rejected", thenable.reason = error);
             }
           );
-          -1 === payload._status && (payload._status = 0, payload._result = ctor);
+          -1 === payload._status && (payload._status = 0, payload._result = thenable);
         }
         if (1 === payload._status) return payload._result.default;
         throw payload._result;
@@ -260,6 +260,27 @@ var FrappeAIPanel = (() => {
         }
         console.error(error);
       };
+      function startTransition(scope) {
+        var prevTransition = ReactSharedInternals.T, currentTransition = {};
+        currentTransition.types = null !== prevTransition ? prevTransition.types : null;
+        ReactSharedInternals.T = currentTransition;
+        try {
+          var returnValue = scope(), onStartTransitionFinish = ReactSharedInternals.S;
+          null !== onStartTransitionFinish && onStartTransitionFinish(currentTransition, returnValue);
+          "object" === typeof returnValue && null !== returnValue && "function" === typeof returnValue.then && returnValue.then(noop, reportGlobalError);
+        } catch (error) {
+          reportGlobalError(error);
+        } finally {
+          null !== prevTransition && null !== currentTransition.types && (prevTransition.types = currentTransition.types), ReactSharedInternals.T = prevTransition;
+        }
+      }
+      function addTransitionType(type) {
+        var transition = ReactSharedInternals.T;
+        if (null !== transition) {
+          var transitionTypes = transition.types;
+          null === transitionTypes ? transition.types = [type] : -1 === transitionTypes.indexOf(type) && transitionTypes.push(type);
+        } else startTransition(addTransitionType.bind(null, type));
+      }
       var Children = {
         map: mapChildren,
         forEach: function(children, forEachFunc, forEachContext) {
@@ -299,6 +320,7 @@ var FrappeAIPanel = (() => {
       exports.PureComponent = PureComponent;
       exports.StrictMode = REACT_STRICT_MODE_TYPE;
       exports.Suspense = REACT_SUSPENSE_TYPE;
+      exports.ViewTransition = REACT_VIEW_TRANSITION_TYPE;
       exports.__CLIENT_INTERNALS_DO_NOT_USE_OR_WARN_USERS_THEY_CANNOT_UPGRADE = ReactSharedInternals;
       exports.__COMPILER_RUNTIME = {
         __proto__: null,
@@ -306,6 +328,7 @@ var FrappeAIPanel = (() => {
           return ReactSharedInternals.H.useMemoCache(size);
         }
       };
+      exports.addTransitionType = addTransitionType;
       exports.cache = function(fn) {
         return function() {
           return fn.apply(null, arguments);
@@ -386,19 +409,7 @@ var FrappeAIPanel = (() => {
           compare: void 0 === compare ? null : compare
         };
       };
-      exports.startTransition = function(scope) {
-        var prevTransition = ReactSharedInternals.T, currentTransition = {};
-        ReactSharedInternals.T = currentTransition;
-        try {
-          var returnValue = scope(), onStartTransitionFinish = ReactSharedInternals.S;
-          null !== onStartTransitionFinish && onStartTransitionFinish(currentTransition, returnValue);
-          "object" === typeof returnValue && null !== returnValue && "function" === typeof returnValue.then && returnValue.then(noop, reportGlobalError);
-        } catch (error) {
-          reportGlobalError(error);
-        } finally {
-          null !== prevTransition && null !== currentTransition.types && (prevTransition.types = currentTransition.types), ReactSharedInternals.T = prevTransition;
-        }
-      };
+      exports.startTransition = startTransition;
       exports.unstable_useCacheRefresh = function() {
         return ReactSharedInternals.H.useCacheRefresh();
       };
@@ -462,13 +473,13 @@ var FrappeAIPanel = (() => {
       exports.useTransition = function() {
         return ReactSharedInternals.H.useTransition();
       };
-      exports.version = "19.2.3";
+      exports.version = "19.3.1";
     }
   });
 
-  // ../../factory_automation_api/fact-frontend/node_modules/react/index.js
+  // node_modules/react/index.js
   var require_react = __commonJS({
-    "../../factory_automation_api/fact-frontend/node_modules/react/index.js"(exports, module) {
+    "node_modules/react/index.js"(exports, module) {
       "use strict";
       if (true) {
         module.exports = require_react_production();
@@ -478,9 +489,9 @@ var FrappeAIPanel = (() => {
     }
   });
 
-  // ../../factory_automation_api/fact-frontend/node_modules/scheduler/cjs/scheduler.production.js
+  // node_modules/scheduler/cjs/scheduler.production.js
   var require_scheduler_production = __commonJS({
-    "../../factory_automation_api/fact-frontend/node_modules/scheduler/cjs/scheduler.production.js"(exports) {
+    "node_modules/scheduler/cjs/scheduler.production.js"(exports) {
       "use strict";
       function push(heap, node) {
         var index = heap.length;
@@ -751,9 +762,9 @@ var FrappeAIPanel = (() => {
     }
   });
 
-  // ../../factory_automation_api/fact-frontend/node_modules/scheduler/index.js
+  // node_modules/scheduler/index.js
   var require_scheduler = __commonJS({
-    "../../factory_automation_api/fact-frontend/node_modules/scheduler/index.js"(exports, module) {
+    "node_modules/scheduler/index.js"(exports, module) {
       "use strict";
       if (true) {
         module.exports = require_scheduler_production();
@@ -763,11 +774,11 @@ var FrappeAIPanel = (() => {
     }
   });
 
-  // ../../factory_automation_api/fact-frontend/node_modules/react-dom/cjs/react-dom.production.js
+  // node_modules/react-dom/cjs/react-dom.production.js
   var require_react_dom_production = __commonJS({
-    "../../factory_automation_api/fact-frontend/node_modules/react-dom/cjs/react-dom.production.js"(exports) {
+    "node_modules/react-dom/cjs/react-dom.production.js"(exports) {
       "use strict";
-      var React11 = require_react();
+      var React12 = require_react();
       function formatProdErrorMessage(code) {
         var url = "https://react.dev/errors/" + code;
         if (1 < arguments.length) {
@@ -797,23 +808,28 @@ var FrappeAIPanel = (() => {
         findDOMNode: null
       };
       var REACT_PORTAL_TYPE = /* @__PURE__ */ Symbol.for("react.portal");
+      var REACT_RECOVERABLE_TYPE = /* @__PURE__ */ Symbol.for("react.recoverable");
+      var REACT_OPTIMISTIC_KEY = /* @__PURE__ */ Symbol.for("react.optimistic_key");
       function createPortal$1(children, containerInfo, implementation) {
         var key = 3 < arguments.length && void 0 !== arguments[3] ? arguments[3] : null;
         return {
           $$typeof: REACT_PORTAL_TYPE,
-          key: null == key ? null : "" + key,
+          key: null == key ? null : key === REACT_OPTIMISTIC_KEY ? REACT_OPTIMISTIC_KEY : "" + key,
           children,
           containerInfo,
           implementation
         };
       }
-      var ReactSharedInternals = React11.__CLIENT_INTERNALS_DO_NOT_USE_OR_WARN_USERS_THEY_CANNOT_UPGRADE;
+      var ReactSharedInternals = React12.__CLIENT_INTERNALS_DO_NOT_USE_OR_WARN_USERS_THEY_CANNOT_UPGRADE;
       function getCrossOriginStringAs(as, input) {
         if ("font" === as) return "";
         if ("string" === typeof input)
           return "use-credentials" === input ? input : "";
       }
       exports.__DOM_INTERNALS_DO_NOT_USE_OR_WARN_USERS_THEY_CANNOT_UPGRADE = Internals;
+      exports.browser = function(reason) {
+        return { $$typeof: REACT_RECOVERABLE_TYPE, _reason: reason };
+      };
       exports.createPortal = function(children, container) {
         var key = 2 < arguments.length && void 0 !== arguments[2] ? arguments[2] : null;
         if (!container || 1 !== container.nodeType && 9 !== container.nodeType && 11 !== container.nodeType)
@@ -864,7 +880,8 @@ var FrappeAIPanel = (() => {
               Internals.d.M(href, {
                 crossOrigin,
                 integrity: "string" === typeof options.integrity ? options.integrity : void 0,
-                nonce: "string" === typeof options.nonce ? options.nonce : void 0
+                nonce: "string" === typeof options.nonce ? options.nonce : void 0,
+                fetchPriority: "string" === typeof options.fetchPriority ? options.fetchPriority : void 0
               });
             }
           } else null == options && Internals.d.M(href);
@@ -892,7 +909,9 @@ var FrappeAIPanel = (() => {
             Internals.d.m(href, {
               as: "string" === typeof options.as && "script" !== options.as ? options.as : void 0,
               crossOrigin,
-              integrity: "string" === typeof options.integrity ? options.integrity : void 0
+              integrity: "string" === typeof options.integrity ? options.integrity : void 0,
+              nonce: "string" === typeof options.nonce ? options.nonce : void 0,
+              fetchPriority: "string" === typeof options.fetchPriority ? options.fetchPriority : void 0
             });
           } else Internals.d.m(href);
       };
@@ -908,13 +927,13 @@ var FrappeAIPanel = (() => {
       exports.useFormStatus = function() {
         return ReactSharedInternals.H.useHostTransitionStatus();
       };
-      exports.version = "19.2.3";
+      exports.version = "19.3.1";
     }
   });
 
-  // ../../factory_automation_api/fact-frontend/node_modules/react-dom/index.js
+  // node_modules/react-dom/index.js
   var require_react_dom = __commonJS({
-    "../../factory_automation_api/fact-frontend/node_modules/react-dom/index.js"(exports, module) {
+    "node_modules/react-dom/index.js"(exports, module) {
       "use strict";
       function checkDCE() {
         if (typeof __REACT_DEVTOOLS_GLOBAL_HOOK__ === "undefined" || typeof __REACT_DEVTOOLS_GLOBAL_HOOK__.checkDCE !== "function") {
@@ -938,12 +957,12 @@ var FrappeAIPanel = (() => {
     }
   });
 
-  // ../../factory_automation_api/fact-frontend/node_modules/react-dom/cjs/react-dom-client.production.js
+  // node_modules/react-dom/cjs/react-dom-client.production.js
   var require_react_dom_client_production = __commonJS({
-    "../../factory_automation_api/fact-frontend/node_modules/react-dom/cjs/react-dom-client.production.js"(exports) {
+    "node_modules/react-dom/cjs/react-dom-client.production.js"(exports) {
       "use strict";
       var Scheduler = require_scheduler();
-      var React11 = require_react();
+      var React12 = require_react();
       var ReactDOM = require_react_dom();
       function formatProdErrorMessage(code) {
         var url = "https://react.dev/errors/" + code;
@@ -958,15 +977,10 @@ var FrappeAIPanel = (() => {
         return !(!node || 1 !== node.nodeType && 9 !== node.nodeType && 11 !== node.nodeType);
       }
       function getNearestMountedFiber(fiber) {
-        var node = fiber, nearestMounted = fiber;
-        if (fiber.alternate) for (; node.return; ) node = node.return;
-        else {
-          fiber = node;
-          do
-            node = fiber, 0 !== (node.flags & 4098) && (nearestMounted = node.return), fiber = node.return;
-          while (fiber);
-        }
-        return 3 === node.tag ? nearestMounted : null;
+        for (var node = fiber, nextNode = node; nextNode && !nextNode.alternate; )
+          node = nextNode, 0 !== (node.flags & 4098) && (fiber = node.return), nextNode = node.return;
+        for (; node.return; ) node = node.return;
+        return 3 === node.tag ? fiber : null;
       }
       function getSuspenseInstanceFromFiber(fiber) {
         if (13 === fiber.tag) {
@@ -1066,6 +1080,106 @@ var FrappeAIPanel = (() => {
         }
         return null;
       }
+      function traverseVisibleInstancesAndTextInstances(child, searchWithinHosts, fn, a, b, c) {
+        for (; null !== child; ) {
+          if ((5 === child.tag || 27 === child.tag || 6 === child.tag) && fn(child, a, b, c) || (22 !== child.tag || null === child.memoizedState) && (searchWithinHosts || 5 !== child.tag && 27 !== child.tag) && traverseVisibleInstancesAndTextInstances(
+            child.child,
+            searchWithinHosts,
+            fn,
+            a,
+            b,
+            c
+          ))
+            return true;
+          child = child.sibling;
+        }
+        return false;
+      }
+      function getFragmentParentInstanceOrContainerFiber(fiber) {
+        for (fiber = fiber.return; null !== fiber; ) {
+          if (3 === fiber.tag || 5 === fiber.tag || 27 === fiber.tag) return fiber;
+          fiber = fiber.return;
+        }
+        return null;
+      }
+      function fiberIsPortaledIntoHost(fiber) {
+        var foundPortalParent = false;
+        for (fiber = fiber.return; null !== fiber; ) {
+          4 === fiber.tag && (foundPortalParent = true);
+          if (3 === fiber.tag || 5 === fiber.tag || 27 === fiber.tag) break;
+          fiber = fiber.return;
+        }
+        return foundPortalParent;
+      }
+      function getFragmentInstanceOrTextInstanceSiblings(fiber) {
+        var result = [null, null], parentHostFiber = getFragmentParentInstanceOrContainerFiber(fiber);
+        if (null === parentHostFiber) return result;
+        findFragmentInstanceOrTextInstanceSiblings(
+          result,
+          fiber,
+          parentHostFiber.child,
+          { foundSelf: false }
+        );
+        return result;
+      }
+      function findFragmentInstanceOrTextInstanceSiblings(result, self, child, state) {
+        for (; null !== child; ) {
+          if (child === self) state.foundSelf = true;
+          else if (5 === child.tag || 27 === child.tag || 6 === child.tag) {
+            if (state.foundSelf) return result[1] = child, true;
+            result[0] = child;
+          } else if ((22 !== child.tag || null === child.memoizedState) && findFragmentInstanceOrTextInstanceSiblings(
+            result,
+            self,
+            child.child,
+            state
+          ))
+            return true;
+          child = child.sibling;
+        }
+        return false;
+      }
+      function getInstanceFromHostFiber(fiber) {
+        switch (fiber.tag) {
+          case 5:
+          case 27:
+          case 6:
+            return fiber.stateNode;
+          case 3:
+            return fiber.stateNode.containerInfo;
+          default:
+            throw Error(formatProdErrorMessage(559));
+        }
+      }
+      var searchTarget = null;
+      var searchBoundary = null;
+      function isFiberPrecedingCheck(child, target, boundary) {
+        return child === boundary ? true : child === target ? (searchTarget = child, true) : false;
+      }
+      function isFiberFollowingCheck(child, target, boundary) {
+        return child === boundary ? (searchBoundary = child, false) : child === target ? (null !== searchBoundary && (searchTarget = child), true) : false;
+      }
+      function getParentForFragmentAncestors(inst) {
+        if (null === inst) return null;
+        do
+          inst = null === inst ? null : inst.return;
+        while (inst && 5 !== inst.tag && 27 !== inst.tag && 3 !== inst.tag);
+        return inst ? inst : null;
+      }
+      function getLowestCommonAncestor(instA, instB, getParent2) {
+        for (var depthA = 0, tempA = instA; tempA; tempA = getParent2(tempA)) depthA++;
+        tempA = 0;
+        for (var tempB = instB; tempB; tempB = getParent2(tempB)) tempA++;
+        for (; 0 < depthA - tempA; ) instA = getParent2(instA), depthA--;
+        for (; 0 < tempA - depthA; ) instB = getParent2(instB), tempA--;
+        for (; depthA--; ) {
+          if (instA === instB || null !== instB && instA === instB.alternate)
+            return instA;
+          instA = getParent2(instA);
+          instB = getParent2(instB);
+        }
+        return null;
+      }
       var assign = Object.assign;
       var REACT_LEGACY_ELEMENT_TYPE = /* @__PURE__ */ Symbol.for("react.element");
       var REACT_ELEMENT_TYPE = /* @__PURE__ */ Symbol.for("react.transitional.element");
@@ -1081,7 +1195,10 @@ var FrappeAIPanel = (() => {
       var REACT_MEMO_TYPE = /* @__PURE__ */ Symbol.for("react.memo");
       var REACT_LAZY_TYPE = /* @__PURE__ */ Symbol.for("react.lazy");
       var REACT_ACTIVITY_TYPE = /* @__PURE__ */ Symbol.for("react.activity");
+      var REACT_LEGACY_HIDDEN_TYPE = /* @__PURE__ */ Symbol.for("react.legacy_hidden");
       var REACT_MEMO_CACHE_SENTINEL = /* @__PURE__ */ Symbol.for("react.memo_cache_sentinel");
+      var REACT_VIEW_TRANSITION_TYPE = /* @__PURE__ */ Symbol.for("react.view_transition");
+      var REACT_RECOVERABLE_TYPE = /* @__PURE__ */ Symbol.for("react.recoverable");
       var MAYBE_ITERATOR_SYMBOL = Symbol.iterator;
       function getIteratorFn(maybeIterable) {
         if (null === maybeIterable || "object" !== typeof maybeIterable) return null;
@@ -1107,6 +1224,8 @@ var FrappeAIPanel = (() => {
             return "SuspenseList";
           case REACT_ACTIVITY_TYPE:
             return "Activity";
+          case REACT_VIEW_TRANSITION_TYPE:
+            return "ViewTransition";
         }
         if ("object" === typeof type)
           switch (type.$$typeof) {
@@ -1134,7 +1253,7 @@ var FrappeAIPanel = (() => {
         return null;
       }
       var isArrayImpl = Array.isArray;
-      var ReactSharedInternals = React11.__CLIENT_INTERNALS_DO_NOT_USE_OR_WARN_USERS_THEY_CANNOT_UPGRADE;
+      var ReactSharedInternals = React12.__CLIENT_INTERNALS_DO_NOT_USE_OR_WARN_USERS_THEY_CANNOT_UPGRADE;
       var ReactDOMSharedInternals = ReactDOM.__DOM_INTERNALS_DO_NOT_USE_OR_WARN_USERS_THEY_CANNOT_UPGRADE;
       var sharedNotPendingObject = {
         pending: false,
@@ -1192,10 +1311,11 @@ var FrappeAIPanel = (() => {
         pop(rootInstanceStackCursor);
       }
       function pushHostContext(fiber) {
-        null !== fiber.memoizedState && push(hostTransitionProviderCursor, fiber);
-        var context = contextStackCursor.current;
-        var JSCompiler_inline_result = getChildHostContextProd(context, fiber.type);
-        context !== JSCompiler_inline_result && (push(contextFiberStackCursor, fiber), push(contextStackCursor, JSCompiler_inline_result));
+        var stateHook = fiber.memoizedState;
+        null !== stateHook && (HostTransitionContext._currentValue = stateHook.memoizedState, push(hostTransitionProviderCursor, fiber));
+        stateHook = contextStackCursor.current;
+        var JSCompiler_inline_result = getChildHostContextProd(stateHook, fiber.type);
+        stateHook !== JSCompiler_inline_result && (push(contextFiberStackCursor, fiber), push(contextStackCursor, JSCompiler_inline_result));
       }
       function popHostContext(fiber) {
         contextFiberStackCursor.current === fiber && (pop(contextStackCursor), pop(contextFiberStackCursor));
@@ -1246,7 +1366,23 @@ var FrappeAIPanel = (() => {
                     } catch (x$1) {
                       control = x$1;
                     }
-                    fn.call(Fake.prototype);
+                    Fake = false;
+                    try {
+                      var prevProps = Object.getOwnPropertyDescriptor(
+                        fn.prototype,
+                        "props"
+                      );
+                      Object.defineProperty(fn.prototype, "props", {
+                        configurable: true,
+                        set: function() {
+                          throw Error();
+                        }
+                      });
+                      Fake = true;
+                      new fn();
+                    } finally {
+                      Fake && (void 0 !== prevProps ? Object.defineProperty(fn.prototype, "props", prevProps) : delete fn.prototype.props);
+                    }
                   }
                 } else {
                   try {
@@ -1326,6 +1462,8 @@ var FrappeAIPanel = (() => {
             return describeNativeComponentFrame(fiber.type, true);
           case 31:
             return describeBuiltInComponentFrame("Activity");
+          case 30:
+            return describeBuiltInComponentFrame("ViewTransition");
           default:
             return "";
         }
@@ -1405,7 +1543,7 @@ var FrappeAIPanel = (() => {
           case 32768:
           case 65536:
           case 131072:
-            return lanes & 261888;
+            return lanes & -lanes;
           case 262144:
           case 524288:
           case 1048576:
@@ -1441,6 +1579,17 @@ var FrappeAIPanel = (() => {
       }
       function checkIfRootIsPrerendering(root2, renderLanes2) {
         return 0 === (root2.pendingLanes & ~(root2.suspendedLanes & ~root2.pingedLanes) & renderLanes2);
+      }
+      function getEntangledLanes(root2, renderLanes2) {
+        0 !== (renderLanes2 & 8) && (renderLanes2 |= renderLanes2 & 32);
+        var allEntangledLanes = root2.entangledLanes;
+        if (0 !== allEntangledLanes)
+          for (root2 = root2.entanglements, allEntangledLanes &= renderLanes2; 0 < allEntangledLanes; ) {
+            var index$4 = 31 - clz32(allEntangledLanes), lane = 1 << index$4;
+            renderLanes2 |= root2[index$4];
+            allEntangledLanes &= ~lane;
+          }
+        return renderLanes2;
       }
       function computeExpirationTime(lane, currentTime) {
         switch (lane) {
@@ -1609,16 +1758,16 @@ var FrappeAIPanel = (() => {
       var internalEventHandlesSetKey = "__reactHandles$" + randomKey;
       var internalRootNodeResourcesKey = "__reactResources$" + randomKey;
       var internalHoistableMarker = "__reactMarker$" + randomKey;
+      var internalLoadPendingKey = "__reactLoad$" + randomKey;
       function detachDeletedInstance(node) {
         delete node[internalInstanceKey];
         delete node[internalPropsKey];
-        delete node[internalEventHandlersKey];
         delete node[internalEventHandlerListenersKey];
         delete node[internalEventHandlesSetKey];
       }
       function getClosestInstanceFromNode(targetNode) {
-        var targetInst = targetNode[internalInstanceKey];
-        if (targetInst) return targetInst;
+        var targetInst;
+        if (targetInst = targetNode[internalInstanceKey]) return targetInst;
         for (var parentNode = targetNode.parentNode; parentNode; ) {
           if (targetInst = parentNode[internalContainerInstanceKey] || parentNode[internalInstanceKey]) {
             parentNode = targetInst.alternate;
@@ -1655,6 +1804,9 @@ var FrappeAIPanel = (() => {
       function markNodeAsHoistable(node) {
         node[internalHoistableMarker] = true;
       }
+      function clearPendingLoadOnNode(node) {
+        node[internalLoadPendingKey] = void 0;
+      }
       var allNativeEvents = /* @__PURE__ */ new Set();
       var registrationNameDependencies = {};
       function registerTwoPhaseEvent(registrationName, dependencies) {
@@ -1680,6 +1832,12 @@ var FrappeAIPanel = (() => {
         illegalAttributeNameCache[attributeName] = true;
         return false;
       }
+      var viewTransitionMutationContext = false;
+      function pushMutationContext() {
+        var prev = viewTransitionMutationContext;
+        viewTransitionMutationContext = false;
+        return prev;
+      }
       function setValueForAttribute(node, name, value) {
         if (isAttributeNameSafe(name))
           if (null === value) node.removeAttribute(name);
@@ -1697,7 +1855,7 @@ var FrappeAIPanel = (() => {
                   return;
                 }
             }
-            node.setAttribute(name, "" + value);
+            node.setAttribute(name, value);
           }
       }
       function setValueForKnownAttribute(node, name, value) {
@@ -1711,7 +1869,7 @@ var FrappeAIPanel = (() => {
               node.removeAttribute(name);
               return;
           }
-          node.setAttribute(name, "" + value);
+          node.setAttribute(name, value);
         }
       }
       function setValueForNamespacedAttribute(node, namespace, name, value) {
@@ -1725,7 +1883,7 @@ var FrappeAIPanel = (() => {
               node.removeAttribute(name);
               return;
           }
-          node.setAttributeNS(namespace, name, "" + value);
+          node.setAttributeNS(namespace, name, value);
         }
       }
       function getToStringValue(value) {
@@ -1800,15 +1958,6 @@ var FrappeAIPanel = (() => {
         node = value;
         return node !== lastValue ? (tracker.setValue(node), true) : false;
       }
-      function getActiveElement(doc) {
-        doc = doc || ("undefined" !== typeof document ? document : void 0);
-        if ("undefined" === typeof doc) return null;
-        try {
-          return doc.activeElement || doc.body;
-        } catch (e) {
-          return doc.body;
-        }
-      }
       var escapeSelectorAttributeValueInsideDoubleQuotesRegex = /[\n"\\]/g;
       function escapeSelectorAttributeValueInsideDoubleQuotes(value) {
         return value.replace(
@@ -1829,7 +1978,7 @@ var FrappeAIPanel = (() => {
             element.value !== "" + getToStringValue(value) && (element.value = "" + getToStringValue(value));
         else
           "submit" !== type && "reset" !== type || element.removeAttribute("value");
-        null != value ? setDefaultValue(element, type, getToStringValue(value)) : null != defaultValue ? setDefaultValue(element, type, getToStringValue(defaultValue)) : null != lastDefaultValue && element.removeAttribute("value");
+        null != value ? "number" === type && element.value == value ? setDefaultValue(element, getToStringValue(element.value)) : setDefaultValue(element, getToStringValue(value)) : null != defaultValue ? setDefaultValue(element, getToStringValue(defaultValue)) : null != lastDefaultValue && element.removeAttribute("value");
         null == checked && null != defaultChecked && (element.defaultChecked = !!defaultChecked);
         null != checked && (element.checked = checked && "function" !== typeof checked && "symbol" !== typeof checked);
         null != name && "function" !== typeof name && "symbol" !== typeof name && "boolean" !== typeof name ? element.name = "" + getToStringValue(name) : element.removeAttribute("name");
@@ -1853,8 +2002,8 @@ var FrappeAIPanel = (() => {
         null != name && "function" !== typeof name && "symbol" !== typeof name && "boolean" !== typeof name && (element.name = name);
         track(element);
       }
-      function setDefaultValue(node, type, value) {
-        "number" === type && getActiveElement(node.ownerDocument) === node || node.defaultValue === "" + value || (node.defaultValue = "" + value);
+      function setDefaultValue(node, value) {
+        node.defaultValue !== "" + value && (node.defaultValue = "" + value);
       }
       function updateOptions(node, multiple, propValue, setDefaultSelected) {
         node = node.options;
@@ -1929,9 +2078,9 @@ var FrappeAIPanel = (() => {
         node = node.style;
         if (null != prevStyles) {
           for (var styleName in prevStyles)
-            !prevStyles.hasOwnProperty(styleName) || null != styles && styles.hasOwnProperty(styleName) || (0 === styleName.indexOf("--") ? node.setProperty(styleName, "") : "float" === styleName ? node.cssFloat = "" : node[styleName] = "");
+            !prevStyles.hasOwnProperty(styleName) || null != styles && styles.hasOwnProperty(styleName) || (0 === styleName.indexOf("--") ? node.setProperty(styleName, "") : "float" === styleName ? node.cssFloat = "" : node[styleName] = "", viewTransitionMutationContext = true);
           for (var styleName$16 in styles)
-            styleName = styles[styleName$16], styles.hasOwnProperty(styleName$16) && prevStyles[styleName$16] !== styleName && setValueForStyle(node, styleName$16, styleName);
+            styleName = styles[styleName$16], styles.hasOwnProperty(styleName$16) && prevStyles[styleName$16] !== styleName && (setValueForStyle(node, styleName$16, styleName), viewTransitionMutationContext = true);
         } else
           for (var styleName$17 in styles)
             styles.hasOwnProperty(styleName$17) && setValueForStyle(node, styleName$17, styles[styleName$17]);
@@ -1992,6 +2141,7 @@ var FrappeAIPanel = (() => {
         ["markerEnd", "marker-end"],
         ["markerMid", "marker-mid"],
         ["markerStart", "marker-start"],
+        ["maskType", "mask-type"],
         ["overlinePosition", "overline-position"],
         ["overlineThickness", "overline-thickness"],
         ["paintOrder", "paint-order"],
@@ -2380,6 +2530,8 @@ var FrappeAIPanel = (() => {
         isPrimary: 0
       });
       var SyntheticPointerEvent = createSyntheticEvent(PointerEventInterface);
+      var SubmitEventInterface = assign({}, EventInterface, { submitter: 0 });
+      var SyntheticSubmitEvent = createSyntheticEvent(SubmitEventInterface);
       var TouchEventInterface = assign({}, UIEventInterface, {
         touches: 0,
         targetTouches: 0,
@@ -2410,7 +2562,8 @@ var FrappeAIPanel = (() => {
       var SyntheticWheelEvent = createSyntheticEvent(WheelEventInterface);
       var ToggleEventInterface = assign({}, EventInterface, {
         newState: 0,
-        oldState: 0
+        oldState: 0,
+        source: 0
       });
       var SyntheticToggleEvent = createSyntheticEvent(ToggleEventInterface);
       var END_KEYCODES = [9, 13, 27, 32];
@@ -2520,19 +2673,19 @@ var FrappeAIPanel = (() => {
       var isInputEventSupported = false;
       if (canUseDOM) {
         if (canUseDOM) {
-          isSupported$jscomp$inline_427 = "oninput" in document;
-          if (!isSupported$jscomp$inline_427) {
-            element$jscomp$inline_428 = document.createElement("div");
-            element$jscomp$inline_428.setAttribute("oninput", "return;");
-            isSupported$jscomp$inline_427 = "function" === typeof element$jscomp$inline_428.oninput;
+          isSupported$jscomp$inline_474 = "oninput" in document;
+          if (!isSupported$jscomp$inline_474) {
+            element$jscomp$inline_475 = document.createElement("div");
+            element$jscomp$inline_475.setAttribute("oninput", "return;");
+            isSupported$jscomp$inline_474 = "function" === typeof element$jscomp$inline_475.oninput;
           }
-          JSCompiler_inline_result$jscomp$286 = isSupported$jscomp$inline_427;
-        } else JSCompiler_inline_result$jscomp$286 = false;
-        isInputEventSupported = JSCompiler_inline_result$jscomp$286 && (!document.documentMode || 9 < document.documentMode);
+          JSCompiler_inline_result$jscomp$318 = isSupported$jscomp$inline_474;
+        } else JSCompiler_inline_result$jscomp$318 = false;
+        isInputEventSupported = JSCompiler_inline_result$jscomp$318 && (!document.documentMode || 9 < document.documentMode);
       }
-      var JSCompiler_inline_result$jscomp$286;
-      var isSupported$jscomp$inline_427;
-      var element$jscomp$inline_428;
+      var JSCompiler_inline_result$jscomp$318;
+      var isSupported$jscomp$inline_474;
+      var element$jscomp$inline_475;
       function stopWatchingForValueChange() {
         activeElement$1 && (activeElement$1.detachEvent("onpropertychange", handlePropertyChange), activeElementInst$1 = activeElement$1 = null);
       }
@@ -2578,6 +2731,15 @@ var FrappeAIPanel = (() => {
             return false;
         }
         return true;
+      }
+      function getActiveElement(doc) {
+        doc = doc || ("undefined" !== typeof document ? document : void 0);
+        if ("undefined" === typeof doc) return null;
+        try {
+          return doc.activeElement || doc.body;
+        } catch (e$20) {
+          return doc.body;
+        }
       }
       function getLeafNode(node) {
         for (; node && node.firstChild; ) node = node.firstChild;
@@ -2683,13 +2845,41 @@ var FrappeAIPanel = (() => {
       var TRANSITION_CANCEL = getVendorPrefixedEventName("transitioncancel");
       var TRANSITION_END = getVendorPrefixedEventName("transitionend");
       var topLevelEventsToReactNames = /* @__PURE__ */ new Map();
-      var simpleEventPluginEvents = "abort auxClick beforeToggle cancel canPlay canPlayThrough click close contextMenu copy cut drag dragEnd dragEnter dragExit dragLeave dragOver dragStart drop durationChange emptied encrypted ended error gotPointerCapture input invalid keyDown keyPress keyUp load loadedData loadedMetadata loadStart lostPointerCapture mouseDown mouseMove mouseOut mouseOver mouseUp paste pause play playing pointerCancel pointerDown pointerMove pointerOut pointerOver pointerUp progress rateChange reset resize seeked seeking stalled submit suspend timeUpdate touchCancel touchEnd touchStart volumeChange scroll toggle touchMove waiting wheel".split(
+      var simpleEventPluginEvents = "abort auxClick beforeToggle cancel canPlay canPlayThrough click close contextMenu copy cut drag dragEnd dragEnter dragExit dragLeave dragOver dragStart drop durationChange emptied encrypted ended error fullscreenChange fullscreenError gotPointerCapture input invalid keyDown keyPress keyUp load loadedData loadedMetadata loadStart lostPointerCapture mouseDown mouseMove mouseOut mouseOver mouseUp paste pause play playing pointerCancel pointerDown pointerMove pointerOut pointerOver pointerUp progress rateChange reset resize seeked seeking stalled submit suspend timeUpdate touchCancel touchEnd touchStart volumeChange scroll toggle touchMove waiting wheel".split(
         " "
       );
       simpleEventPluginEvents.push("scrollEnd");
       function registerSimpleEvent(domEventName, reactName) {
         topLevelEventsToReactNames.set(domEventName, reactName);
         registerTwoPhaseEvent(reactName, [domEventName]);
+      }
+      var globalClientIdCounter$1 = 0;
+      function getViewTransitionName(props, instance) {
+        if (null != props.name && "auto" !== props.name) return props.name;
+        if (null !== instance.autoName) return instance.autoName;
+        props = pendingEffectsRoot.identifierPrefix;
+        var globalClientId = globalClientIdCounter$1++;
+        props = "_" + props + "t_" + globalClientId.toString(32) + "_";
+        return instance.autoName = props;
+      }
+      function getClassNameByType(classByType) {
+        if (null == classByType || "string" === typeof classByType)
+          return classByType;
+        var className = null, activeTypes = pendingTransitionTypes;
+        if (null !== activeTypes)
+          for (var i = 0; i < activeTypes.length; i++) {
+            var match = classByType[activeTypes[i]];
+            if (null != match) {
+              if ("none" === match) return "none";
+              className = null == className ? match : className + (" " + match);
+            }
+          }
+        return null == className ? classByType.default : className;
+      }
+      function getViewTransitionClassName(defaultClass, eventClass) {
+        defaultClass = getClassNameByType(defaultClass);
+        eventClass = getClassNameByType(eventClass);
+        return null == eventClass ? "auto" === defaultClass ? null : defaultClass : "auto" === eventClass ? null : eventClass;
       }
       var reportGlobalError = "function" === typeof reportError ? reportError : function(error) {
         if ("object" === typeof window && "function" === typeof window.ErrorEvent) {
@@ -2790,7 +2980,7 @@ var FrappeAIPanel = (() => {
           current.key,
           current.mode
         ), workInProgress2.elementType = current.elementType, workInProgress2.type = current.type, workInProgress2.stateNode = current.stateNode, workInProgress2.alternate = current, current.alternate = workInProgress2) : (workInProgress2.pendingProps = pendingProps, workInProgress2.type = current.type, workInProgress2.flags = 0, workInProgress2.subtreeFlags = 0, workInProgress2.deletions = null);
-        workInProgress2.flags = current.flags & 65011712;
+        workInProgress2.flags = current.flags & 1206910976;
         workInProgress2.childLanes = current.childLanes;
         workInProgress2.lanes = current.lanes;
         workInProgress2.child = current.child;
@@ -2806,7 +2996,7 @@ var FrappeAIPanel = (() => {
         return workInProgress2;
       }
       function resetWorkInProgress(workInProgress2, renderLanes2) {
-        workInProgress2.flags &= 65011714;
+        workInProgress2.flags &= 1206910978;
         var current = workInProgress2.alternate;
         null === current ? (workInProgress2.childLanes = 0, workInProgress2.lanes = renderLanes2, workInProgress2.child = null, workInProgress2.subtreeFlags = 0, workInProgress2.memoizedProps = null, workInProgress2.memoizedState = null, workInProgress2.updateQueue = null, workInProgress2.dependencies = null, workInProgress2.stateNode = null) : (workInProgress2.childLanes = current.childLanes, workInProgress2.lanes = current.lanes, workInProgress2.child = current.child, workInProgress2.subtreeFlags = 0, workInProgress2.deletions = null, workInProgress2.memoizedProps = current.memoizedProps, workInProgress2.memoizedState = current.memoizedState, workInProgress2.updateQueue = current.updateQueue, workInProgress2.type = current.type, renderLanes2 = current.dependencies, workInProgress2.dependencies = null === renderLanes2 ? null : {
           lanes: renderLanes2.lanes,
@@ -2817,15 +3007,15 @@ var FrappeAIPanel = (() => {
       function createFiberFromTypeAndProps(type, key, pendingProps, owner, mode, lanes) {
         var fiberTag = 0;
         owner = type;
-        if ("function" === typeof type) shouldConstruct(type) && (fiberTag = 1);
-        else if ("string" === typeof type)
+        if ("function" === typeof owner) shouldConstruct(owner) && (fiberTag = 1);
+        else if ("string" === typeof owner)
           fiberTag = isHostHoistableType(
             type,
             pendingProps,
             contextStackCursor.current
           ) ? 26 : "html" === type || "head" === type || "body" === type ? 27 : 5;
         else
-          a: switch (type) {
+          a: switch (owner) {
             case REACT_ACTIVITY_TYPE:
               return type = createFiberImplClass(31, pendingProps, key, mode), type.elementType = REACT_ACTIVITY_TYPE, type.lanes = lanes, type;
             case REACT_FRAGMENT_TYPE:
@@ -2840,9 +3030,17 @@ var FrappeAIPanel = (() => {
               return type = createFiberImplClass(13, pendingProps, key, mode), type.elementType = REACT_SUSPENSE_TYPE, type.lanes = lanes, type;
             case REACT_SUSPENSE_LIST_TYPE:
               return type = createFiberImplClass(19, pendingProps, key, mode), type.elementType = REACT_SUSPENSE_LIST_TYPE, type.lanes = lanes, type;
+            case REACT_LEGACY_HIDDEN_TYPE:
+            case REACT_VIEW_TRANSITION_TYPE:
+              return type = mode | 32, type = createFiberImplClass(30, pendingProps, key, type), type.elementType = REACT_VIEW_TRANSITION_TYPE, type.lanes = lanes, type.stateNode = {
+                autoName: null,
+                paired: null,
+                clones: null,
+                ref: null
+              }, type;
             default:
-              if ("object" === typeof type && null !== type)
-                switch (type.$$typeof) {
+              if ("object" === typeof owner && null !== owner)
+                switch (owner.$$typeof) {
                   case REACT_CONTEXT_TYPE:
                     fiberTag = 10;
                     break a;
@@ -3154,7 +3352,12 @@ var FrappeAIPanel = (() => {
             null !== list && (list.lanes |= renderLanes2);
             scheduleContextWorkOnParentPath(nextFiber, renderLanes2, workInProgress2);
             nextFiber = null;
-          } else nextFiber = fiber.child;
+          } else
+            13 === fiber.tag && null !== fiber.memoizedState && null === fiber.memoizedState.dehydrated ? (fiber.lanes |= renderLanes2, nextFiber = fiber.alternate, null !== nextFiber && (nextFiber.lanes |= renderLanes2), scheduleContextWorkOnParentPath(
+              fiber.return,
+              renderLanes2,
+              workInProgress2
+            ), nextFiber = fiber.child, nextFiber = null !== nextFiber ? nextFiber.sibling : null) : nextFiber = fiber.child;
           if (null !== nextFiber) nextFiber.return = fiber;
           else
             for (nextFiber = fiber; null !== nextFiber; ) {
@@ -3202,6 +3405,7 @@ var FrappeAIPanel = (() => {
           forcePropagateEntireTree
         );
         workInProgress2.flags |= 262144;
+        return null !== current;
       }
       function checkIfContextChanged(currentDependencies) {
         for (currentDependencies = currentDependencies.firstContext; null !== currentDependencies; ) {
@@ -3275,6 +3479,22 @@ var FrappeAIPanel = (() => {
           cache.controller.abort();
         });
       }
+      function queueTransitionTypes(root2, transitionTypes) {
+        if (0 !== (root2.pendingLanes & 4194048)) {
+          var queued = root2.transitionTypes;
+          null === queued && (queued = root2.transitionTypes = []);
+          for (root2 = 0; root2 < transitionTypes.length; root2++) {
+            var transitionType = transitionTypes[root2];
+            -1 === queued.indexOf(transitionType) && queued.push(transitionType);
+          }
+        }
+      }
+      var entangledTransitionTypes = null;
+      function claimQueuedTransitionTypes(root2) {
+        var claimed = root2.transitionTypes;
+        root2.transitionTypes = null;
+        return claimed;
+      }
       var currentEntangledListeners = null;
       var currentEntangledPendingCount = 0;
       var currentEntangledLane = 0;
@@ -3297,7 +3517,7 @@ var FrappeAIPanel = (() => {
         return thenable;
       }
       function pingEngtangledActionScope() {
-        if (0 === --currentEntangledPendingCount && null !== currentEntangledListeners) {
+        if (0 === --currentEntangledPendingCount && (entangledTransitionTypes = null, null !== currentEntangledListeners)) {
           null !== currentEntangledActionThenable && (currentEntangledActionThenable.status = "fulfilled");
           var listeners = currentEntangledListeners;
           currentEntangledListeners = null;
@@ -3334,6 +3554,22 @@ var FrappeAIPanel = (() => {
       ReactSharedInternals.S = function(transition, returnValue) {
         globalMostRecentTransitionTime = now();
         "object" === typeof returnValue && null !== returnValue && "function" === typeof returnValue.then && entangleAsyncAction(transition, returnValue);
+        if (null !== entangledTransitionTypes)
+          for (var root$28 = firstScheduledRoot; null !== root$28; )
+            queueTransitionTypes(root$28, entangledTransitionTypes), root$28 = root$28.next;
+        root$28 = transition.types;
+        if (null !== root$28) {
+          for (var root$29 = firstScheduledRoot; null !== root$29; )
+            queueTransitionTypes(root$29, root$28), root$29 = root$29.next;
+          if (0 !== currentEntangledLane) {
+            root$29 = entangledTransitionTypes;
+            null === root$29 && (root$29 = entangledTransitionTypes = []);
+            for (var i = 0; i < root$28.length; i++) {
+              var transitionType = root$28[i];
+              -1 === root$29.indexOf(transitionType) && root$29.push(transitionType);
+            }
+          }
+        }
         null !== prevOnStartTransitionFinish && prevOnStartTransitionFinish(transition, returnValue);
       };
       var resumedCache = createCursor(null);
@@ -3364,7 +3600,11 @@ var FrappeAIPanel = (() => {
           case "fulfilled":
             return thenable.value;
           case "rejected":
-            throw thenableState2 = thenable.reason, checkIfUseWrappedInAsyncCatch(thenableState2), thenableState2;
+            thenableState2 = thenable.reason;
+            checkIfUseWrappedInAsyncCatch(thenableState2);
+            if (void 0 === thenableState2 && !("reason" in thenable))
+              throw Error(formatProdErrorMessage(600));
+            throw thenableState2;
           default:
             if ("string" === typeof thenable.status) thenable.then(noop$1, noop$1);
             else {
@@ -3459,7 +3699,7 @@ var FrappeAIPanel = (() => {
         }
         function mapRemainingChildren(currentFirstChild) {
           for (var existingChildren = /* @__PURE__ */ new Map(); null !== currentFirstChild; )
-            null !== currentFirstChild.key ? existingChildren.set(currentFirstChild.key, currentFirstChild) : existingChildren.set(currentFirstChild.index, currentFirstChild), currentFirstChild = currentFirstChild.sibling;
+            null === currentFirstChild.key ? existingChildren.set(currentFirstChild.index, currentFirstChild) : existingChildren.set(currentFirstChild.key, currentFirstChild), currentFirstChild = currentFirstChild.sibling;
           return existingChildren;
         }
         function useFiber(fiber, pendingProps) {
@@ -3474,12 +3714,12 @@ var FrappeAIPanel = (() => {
             return newFiber.flags |= 1048576, lastPlacedIndex;
           newIndex = newFiber.alternate;
           if (null !== newIndex)
-            return newIndex = newIndex.index, newIndex < lastPlacedIndex ? (newFiber.flags |= 67108866, lastPlacedIndex) : newIndex;
-          newFiber.flags |= 67108866;
+            return newIndex = newIndex.index, newIndex < lastPlacedIndex ? (newFiber.flags |= 2, lastPlacedIndex) : newIndex;
+          newFiber.flags |= 134217730;
           return lastPlacedIndex;
         }
         function placeSingleChild(newFiber) {
-          shouldTrackSideEffects && null === newFiber.alternate && (newFiber.flags |= 67108866);
+          shouldTrackSideEffects && null === newFiber.alternate && (newFiber.flags |= 134217730);
           return newFiber;
         }
         function updateTextNode(returnFiber, current, textContent, lanes) {
@@ -3492,13 +3732,13 @@ var FrappeAIPanel = (() => {
         function updateElement(returnFiber, current, element, lanes) {
           var elementType = element.type;
           if (elementType === REACT_FRAGMENT_TYPE)
-            return updateFragment(
+            return returnFiber = updateFragment(
               returnFiber,
               current,
               element.props.children,
               lanes,
               element.key
-            );
+            ), coerceRef(returnFiber, element), returnFiber;
           if (null !== current && (current.elementType === elementType || "object" === typeof elementType && null !== elementType && elementType.$$typeof === REACT_LAZY_TYPE && resolveLazy(elementType) === current.type))
             return current = useFiber(current, element.props), coerceRef(current, element), current.return = returnFiber, current;
           current = createFiberFromTypeAndProps(
@@ -3693,9 +3933,7 @@ var FrappeAIPanel = (() => {
               newIdx,
               newChildren[newIdx],
               lanes
-            ), null !== nextOldFiber && (shouldTrackSideEffects && null !== nextOldFiber.alternate && oldFiber.delete(
-              null === nextOldFiber.key ? newIdx : nextOldFiber.key
-            ), currentFirstChild = placeChild(
+            ), null !== nextOldFiber && (shouldTrackSideEffects && (newFiber = nextOldFiber.alternate, null !== newFiber && oldFiber.delete(null === newFiber.key ? newIdx : newFiber.key)), currentFirstChild = placeChild(
               nextOldFiber,
               currentFirstChild,
               newIdx
@@ -3730,7 +3968,9 @@ var FrappeAIPanel = (() => {
             return resultingFirstChild;
           }
           for (oldFiber = mapRemainingChildren(oldFiber); !step.done; newIdx++, step = newChildren.next())
-            step = updateFromMap(oldFiber, returnFiber, newIdx, step.value, lanes), null !== step && (shouldTrackSideEffects && null !== step.alternate && oldFiber.delete(null === step.key ? newIdx : step.key), currentFirstChild = placeChild(step, currentFirstChild, newIdx), null === previousNewFiber ? resultingFirstChild = step : previousNewFiber.sibling = step, previousNewFiber = step);
+            step = updateFromMap(oldFiber, returnFiber, newIdx, step.value, lanes), null !== step && (shouldTrackSideEffects && (nextOldFiber = step.alternate, null !== nextOldFiber && oldFiber.delete(
+              null === nextOldFiber.key ? newIdx : nextOldFiber.key
+            )), currentFirstChild = placeChild(step, currentFirstChild, newIdx), null === previousNewFiber ? resultingFirstChild = step : previousNewFiber.sibling = step, previousNewFiber = step);
           shouldTrackSideEffects && oldFiber.forEach(function(child) {
             return deleteChild(returnFiber, child);
           });
@@ -3738,7 +3978,7 @@ var FrappeAIPanel = (() => {
           return resultingFirstChild;
         }
         function reconcileChildFibersImpl(returnFiber, currentFirstChild, newChild, lanes) {
-          "object" === typeof newChild && null !== newChild && newChild.type === REACT_FRAGMENT_TYPE && null === newChild.key && (newChild = newChild.props.children);
+          "object" === typeof newChild && null !== newChild && newChild.type === REACT_FRAGMENT_TYPE && null === newChild.key && void 0 === newChild.props.ref && (newChild = newChild.props.children);
           if ("object" === typeof newChild && null !== newChild) {
             switch (newChild.$$typeof) {
               case REACT_ELEMENT_TYPE:
@@ -3756,6 +3996,7 @@ var FrappeAIPanel = (() => {
                             currentFirstChild,
                             newChild.props.children
                           );
+                          coerceRef(lanes, newChild);
                           lanes.return = returnFiber;
                           returnFiber = lanes;
                           break a;
@@ -3781,7 +4022,7 @@ var FrappeAIPanel = (() => {
                     returnFiber.mode,
                     lanes,
                     newChild.key
-                  ), lanes.return = returnFiber, returnFiber = lanes) : (lanes = createFiberFromTypeAndProps(
+                  ), coerceRef(lanes, newChild), lanes.return = returnFiber, returnFiber = lanes) : (lanes = createFiberFromTypeAndProps(
                     newChild.type,
                     newChild.key,
                     newChild.props,
@@ -4095,7 +4336,7 @@ var FrappeAIPanel = (() => {
         null === shellBoundary && (shellBoundary = fiber);
       }
       function pushOffscreenSuspenseHandler(fiber) {
-        22 === fiber.tag ? (push(suspenseStackCursor, suspenseStackCursor.current), push(suspenseHandlerStackCursor, fiber), null === shellBoundary && (shellBoundary = fiber)) : reuseSuspenseHandlerOnStack(fiber);
+        22 === fiber.tag ? (push(suspenseStackCursor, suspenseStackCursor.current), push(suspenseHandlerStackCursor, fiber), null === shellBoundary && (shellBoundary = fiber)) : reuseSuspenseHandlerOnStack();
       }
       function reuseSuspenseHandlerOnStack() {
         push(suspenseStackCursor, suspenseStackCursor.current);
@@ -4107,13 +4348,22 @@ var FrappeAIPanel = (() => {
         pop(suspenseStackCursor);
       }
       var suspenseStackCursor = createCursor(0);
+      function pushSuspenseListContext(fiber, newContext) {
+        push(suspenseHandlerStackCursor, suspenseHandlerStackCursor.current);
+        push(suspenseStackCursor, newContext);
+      }
+      function popSuspenseListContext(fiber) {
+        pop(suspenseStackCursor);
+        pop(suspenseHandlerStackCursor);
+        shellBoundary === fiber && (shellBoundary = null);
+      }
       function findFirstSuspended(row) {
         for (var node = row; null !== node; ) {
           if (13 === node.tag) {
             var state = node.memoizedState;
             if (null !== state && (state = state.dehydrated, null === state || isSuspenseInstancePending(state) || isSuspenseInstanceFallback(state)))
               return node;
-          } else if (19 === node.tag && ("forwards" === node.memoizedProps.revealOrder || "backwards" === node.memoizedProps.revealOrder || "unstable_legacy-backwards" === node.memoizedProps.revealOrder || "together" === node.memoizedProps.revealOrder)) {
+          } else if (19 === node.tag && "independent" !== node.memoizedProps.revealOrder) {
             if (0 !== (node.flags & 128)) return node;
           } else if (null !== node.child) {
             node.child.return = node;
@@ -4286,6 +4536,7 @@ var FrappeAIPanel = (() => {
       function use(usable) {
         if (null !== usable && "object" === typeof usable) {
           if ("function" === typeof usable.then) return useThenable(usable);
+          if (usable.$$typeof === REACT_RECOVERABLE_TYPE) return;
           if (usable.$$typeof === REACT_CONTEXT_TYPE) return readContext(usable);
         }
         throw Error(formatProdErrorMessage(438, String(usable)));
@@ -4337,7 +4588,7 @@ var FrappeAIPanel = (() => {
         if (null === baseQueue) hook.memoizedState = pendingQueue;
         else {
           current = baseQueue.next;
-          var newBaseQueueFirst = baseFirst = null, newBaseQueueLast = null, update = current, didReadFromEntangledAsyncAction$60 = false;
+          var newBaseQueueFirst = baseFirst = null, newBaseQueueLast = null, update = current, didReadFromEntangledAsyncAction$64 = false;
           do {
             var updateLane = update.lane & -536870913;
             if (updateLane !== update.lane ? (workInProgressRootRenderLanes & updateLane) === updateLane : (renderLanes & updateLane) === updateLane) {
@@ -4351,10 +4602,10 @@ var FrappeAIPanel = (() => {
                   hasEagerState: update.hasEagerState,
                   eagerState: update.eagerState,
                   next: null
-                }), updateLane === currentEntangledLane && (didReadFromEntangledAsyncAction$60 = true);
+                }), updateLane === currentEntangledLane && (didReadFromEntangledAsyncAction$64 = true);
               else if ((renderLanes & revertLane) === revertLane) {
                 update = update.next;
-                revertLane === currentEntangledLane && (didReadFromEntangledAsyncAction$60 = true);
+                revertLane === currentEntangledLane && (didReadFromEntangledAsyncAction$64 = true);
                 continue;
               } else
                 updateLane = {
@@ -4382,7 +4633,7 @@ var FrappeAIPanel = (() => {
             update = update.next;
           } while (null !== update && update !== current);
           null === newBaseQueueLast ? baseFirst = pendingQueue : newBaseQueueLast.next = newBaseQueueFirst;
-          if (!objectIs(pendingQueue, hook.memoizedState) && (didReceiveUpdate = true, didReadFromEntangledAsyncAction$60 && (reducer2 = currentEntangledActionThenable, null !== reducer2)))
+          if (!objectIs(pendingQueue, hook.memoizedState) && (didReceiveUpdate = true, didReadFromEntangledAsyncAction$64 && (reducer2 = currentEntangledActionThenable, null !== reducer2)))
             throw reducer2;
           hook.memoizedState = pendingQueue;
           hook.baseState = baseFirst;
@@ -4425,20 +4676,15 @@ var FrappeAIPanel = (() => {
         updateEffect(subscribeToStore.bind(null, fiber, hook, subscribe), [
           subscribe
         ]);
-        if (hook.getSnapshot !== getSnapshot || snapshotChanged || null !== workInProgressHook && workInProgressHook.memoizedState.tag & 1) {
+        subscribe = hook.getSnapshot !== getSnapshot || snapshotChanged || null !== workInProgressHook && 0 !== (workInProgressHook.memoizedState.tag & 1);
+        pushSimpleEffect(
+          subscribe ? 9 : 8,
+          { destroy: void 0 },
+          updateStoreInstance.bind(null, fiber, hook, getServerSnapshot, getSnapshot),
+          null
+        );
+        if (subscribe) {
           fiber.flags |= 2048;
-          pushSimpleEffect(
-            9,
-            { destroy: void 0 },
-            updateStoreInstance.bind(
-              null,
-              fiber,
-              hook,
-              getServerSnapshot,
-              getSnapshot
-            ),
-            null
-          );
           if (null === workInProgressRoot) throw Error(formatProdErrorMessage(349));
           isHydrating$jscomp$0 || 0 !== (renderLanes & 127) || pushStoreConsistencyCheck(fiber, getSnapshot, getServerSnapshot);
         }
@@ -4533,6 +4779,7 @@ var FrappeAIPanel = (() => {
         var action = node.action, payload = node.payload, prevState = actionQueue.state;
         if (node.isTransition) {
           var prevTransition = ReactSharedInternals.T, currentTransition = {};
+          currentTransition.types = null !== prevTransition ? prevTransition.types : null;
           ReactSharedInternals.T = currentTransition;
           try {
             var returnValue = action(prevState, payload), onStartTransitionFinish = ReactSharedInternals.S;
@@ -4546,8 +4793,8 @@ var FrappeAIPanel = (() => {
         } else
           try {
             prevTransition = action(prevState, payload), handleActionReturnValue(actionQueue, node, prevTransition);
-          } catch (error$66) {
-            onActionError(actionQueue, node, error$66);
+          } catch (error$70) {
+            onActionError(actionQueue, node, error$70);
           }
       }
       function handleActionReturnValue(actionQueue, node, returnValue) {
@@ -4833,7 +5080,7 @@ var FrappeAIPanel = (() => {
         if (objectIs(value, prevValue)) return value;
         if (null !== currentTreeHiddenStackCursor.current)
           return hook = mountDeferredValueImpl(hook, value, initialValue), objectIs(hook, prevValue) || (didReceiveUpdate = true), hook;
-        if (0 === (renderLanes & 42) || 0 !== (renderLanes & 1073741824) && 0 === (workInProgressRootRenderLanes & 261930))
+        if (0 === (renderLanes & 106) || 0 !== (renderLanes & 1073741824) && 0 === (workInProgressRootRenderLanes & 261930))
           return didReceiveUpdate = true, hook.memoizedState = value;
         hook = requestDeferredLane();
         currentlyRenderingFiber.lanes |= hook;
@@ -4844,6 +5091,7 @@ var FrappeAIPanel = (() => {
         var previousPriority = ReactDOMSharedInternals.p;
         ReactDOMSharedInternals.p = 0 !== previousPriority && 8 > previousPriority ? previousPriority : 8;
         var prevTransition = ReactSharedInternals.T, currentTransition = {};
+        currentTransition.types = null !== prevTransition ? prevTransition.types : null;
         ReactSharedInternals.T = currentTransition;
         dispatchOptimisticSetState(fiber, false, queue, pendingState);
         try {
@@ -4956,8 +5204,8 @@ var FrappeAIPanel = (() => {
             case 3:
               var lane = requestUpdateLane();
               fiber = createUpdate(lane);
-              var root$69 = enqueueUpdate(provider, fiber, lane);
-              null !== root$69 && (scheduleUpdateOnFiber(root$69, provider, lane), entangleTransitions(root$69, provider, lane));
+              var root$73 = enqueueUpdate(provider, fiber, lane);
+              null !== root$73 && (scheduleUpdateOnFiber(root$73, provider, lane), entangleTransitions(root$73, provider, lane));
               provider = { cache: createCache() };
               fiber.payload = provider;
               return;
@@ -5073,9 +5321,9 @@ var FrappeAIPanel = (() => {
         useActionState: throwInvalidHookError,
         useOptimistic: throwInvalidHookError,
         useMemoCache: throwInvalidHookError,
-        useCacheRefresh: throwInvalidHookError
+        useCacheRefresh: throwInvalidHookError,
+        useEffectEvent: throwInvalidHookError
       };
-      ContextOnlyDispatcher.useEffectEvent = throwInvalidHookError;
       var HooksDispatcherOnMount = {
         readContext,
         use,
@@ -5304,9 +5552,9 @@ var FrappeAIPanel = (() => {
           return updateOptimisticImpl(hook, currentHook, passthrough, reducer2);
         },
         useMemoCache,
-        useCacheRefresh: updateRefresh
+        useCacheRefresh: updateRefresh,
+        useEffectEvent: updateEvent
       };
-      HooksDispatcherOnUpdate.useEffectEvent = updateEvent;
       var HooksDispatcherOnRerender = {
         readContext,
         use,
@@ -5352,9 +5600,9 @@ var FrappeAIPanel = (() => {
           return [passthrough, hook.queue.dispatch];
         },
         useMemoCache,
-        useCacheRefresh: updateRefresh
+        useCacheRefresh: updateRefresh,
+        useEffectEvent: updateEvent
       };
-      HooksDispatcherOnRerender.useEffectEvent = updateEvent;
       function applyDerivedStateFromProps(workInProgress2, ctor, getDerivedStateFromProps, nextProps) {
         ctor = workInProgress2.memoizedState;
         getDerivedStateFromProps = getDerivedStateFromProps(nextProps, ctor);
@@ -5408,8 +5656,8 @@ var FrappeAIPanel = (() => {
         }
         if (Component = Component.defaultProps) {
           newProps === baseProps && (newProps = assign({}, newProps));
-          for (var propName$73 in Component)
-            void 0 === newProps[propName$73] && (newProps[propName$73] = Component[propName$73]);
+          for (var propName$77 in Component)
+            void 0 === newProps[propName$77] && (newProps[propName$77] = Component[propName$77]);
         }
         return newProps;
       }
@@ -5426,9 +5674,9 @@ var FrappeAIPanel = (() => {
         try {
           var onUncaughtError = root2.onUncaughtError;
           onUncaughtError(errorInfo.value, { componentStack: errorInfo.stack });
-        } catch (e$74) {
+        } catch (e$78) {
           setTimeout(function() {
-            throw e$74;
+            throw e$78;
           });
         }
       }
@@ -5439,9 +5687,9 @@ var FrappeAIPanel = (() => {
             componentStack: errorInfo.stack,
             errorBoundary: 1 === boundary.tag ? boundary.stateNode : null
           });
-        } catch (e$75) {
+        } catch (e$79) {
           setTimeout(function() {
-            throw e$75;
+            throw e$79;
           });
         }
       }
@@ -5495,6 +5743,7 @@ var FrappeAIPanel = (() => {
             switch (sourceFiber.tag) {
               case 31:
               case 13:
+              case 19:
                 return null === shellBoundary ? renderDidSuspendDelayIfPossible() : null === sourceFiber.alternate && 0 === workInProgressRootExitStatus && (workInProgressRootExitStatus = 3), sourceFiber.flags &= -257, sourceFiber.flags |= 65536, sourceFiber.lanes = rootRenderLanes, value === noopSuspenseyCommitThenable ? sourceFiber.flags |= 16384 : (returnFiber = sourceFiber.updateQueue, null === returnFiber ? sourceFiber.updateQueue = /* @__PURE__ */ new Set([value]) : returnFiber.add(value), attachPingListener(root2, value, rootRenderLanes)), false;
               case 22:
                 return sourceFiber.flags |= 65536, value === noopSuspenseyCommitThenable ? sourceFiber.flags |= 16384 : (returnFiber = sourceFiber.updateQueue, null === returnFiber ? (returnFiber = {
@@ -5531,13 +5780,19 @@ var FrappeAIPanel = (() => {
             case 3:
               return sourceFiber.flags |= 65536, root2 = rootRenderLanes & -rootRenderLanes, sourceFiber.lanes |= root2, root2 = createRootErrorUpdate(sourceFiber.stateNode, value, root2), enqueueCapturedUpdate(sourceFiber, root2), false;
             case 1:
-              if (returnFiber = sourceFiber.type, wrapperError = sourceFiber.stateNode, 0 === (sourceFiber.flags & 128) && ("function" === typeof returnFiber.getDerivedStateFromError || null !== wrapperError && "function" === typeof wrapperError.componentDidCatch && (null === legacyErrorBoundariesThatAlreadyFailed || !legacyErrorBoundariesThatAlreadyFailed.has(wrapperError))))
+              returnFiber = sourceFiber.type;
+              wrapperError = sourceFiber.stateNode;
+              if (0 === (sourceFiber.flags & 128) && ("function" === typeof returnFiber.getDerivedStateFromError || null !== wrapperError && "function" === typeof wrapperError.componentDidCatch && (null === legacyErrorBoundariesThatAlreadyFailed || !legacyErrorBoundariesThatAlreadyFailed.has(wrapperError))))
                 return sourceFiber.flags |= 65536, rootRenderLanes &= -rootRenderLanes, sourceFiber.lanes |= rootRenderLanes, rootRenderLanes = createClassErrorUpdate(rootRenderLanes), initializeClassErrorUpdate(
                   rootRenderLanes,
                   root2,
                   sourceFiber,
                   value
                 ), enqueueCapturedUpdate(sourceFiber, rootRenderLanes), false;
+              break;
+            case 22:
+              if (null !== sourceFiber.memoizedState)
+                return sourceFiber.flags |= 65536, false;
           }
           sourceFiber = sourceFiber.return;
         } while (null !== sourceFiber);
@@ -5671,7 +5926,7 @@ var FrappeAIPanel = (() => {
               nextProps
             );
         } else
-          null !== prevState ? (pushTransition(workInProgress2, prevState.cachePool), pushHiddenContext(workInProgress2, prevState), reuseSuspenseHandlerOnStack(workInProgress2), workInProgress2.memoizedState = null) : (null !== current && pushTransition(workInProgress2, null), reuseHiddenContextOnStack(), reuseSuspenseHandlerOnStack(workInProgress2));
+          null !== prevState ? (pushTransition(workInProgress2, prevState.cachePool), pushHiddenContext(workInProgress2, prevState), reuseSuspenseHandlerOnStack(), workInProgress2.memoizedState = null) : (null !== current && pushTransition(workInProgress2, null), reuseHiddenContextOnStack(), reuseSuspenseHandlerOnStack());
         reconcileChildren(current, workInProgress2, nextChildren, renderLanes2);
         return workInProgress2.child;
       }
@@ -5722,7 +5977,7 @@ var FrappeAIPanel = (() => {
         if (null === current) {
           if (isHydrating) {
             if ("hidden" === nextProps.mode)
-              return current = mountActivityChildren(workInProgress2, nextProps), workInProgress2.lanes = 536870912, bailoutOffscreenComponent(null, current);
+              return current = mountActivityChildren(workInProgress2, nextProps), workInProgress2.lanes = 536870912, current.memoizedState = { baseLanes: 0, cachePool: null }, bailoutOffscreenComponent(null, current);
             pushDehydratedActivitySuspenseHandler(workInProgress2);
             (current = nextHydratableInstance) ? (current = canHydrateHydrationBoundary(
               current,
@@ -5754,17 +6009,19 @@ var FrappeAIPanel = (() => {
               workInProgress2.child = current.child, workInProgress2.flags |= 128, workInProgress2 = null;
             else throw Error(formatProdErrorMessage(558));
           else if (didReceiveUpdate || propagateParentContextChanges(current, workInProgress2, renderLanes2, false), didSuspend = 0 !== (renderLanes2 & current.childLanes), didReceiveUpdate || didSuspend) {
-            nextProps = workInProgressRoot;
-            if (null !== nextProps && (dehydrated = getBumpedLaneForHydration(nextProps, renderLanes2), 0 !== dehydrated && dehydrated !== prevState.retryLane))
-              throw prevState.retryLane = dehydrated, enqueueConcurrentRenderForLane(current, dehydrated), scheduleUpdateOnFiber(nextProps, current, dehydrated), SelectiveHydrationException;
-            renderDidSuspendDelayIfPossible();
+            if (null === currentTreeHiddenStackCursor.current) {
+              nextProps = workInProgressRoot;
+              if (null !== nextProps && (dehydrated = getBumpedLaneForHydration(nextProps, renderLanes2), 0 !== dehydrated && dehydrated !== prevState.retryLane))
+                throw prevState.retryLane = dehydrated, enqueueConcurrentRenderForLane(current, dehydrated), scheduleUpdateOnFiber(nextProps, current, dehydrated), SelectiveHydrationException;
+              renderDidSuspendDelayIfPossible();
+            }
             workInProgress2 = retryActivityComponentWithoutHydrating(
               current,
               workInProgress2,
               renderLanes2
             );
           } else
-            current = prevState.treeContext, nextHydratableInstance = getNextHydratable(dehydrated.nextSibling), hydrationParentFiber = workInProgress2, isHydrating = true, hydrationErrors = null, rootOrSingletonContext = false, null !== current && restoreSuspendedTreeContext(workInProgress2, current), workInProgress2 = mountActivityChildren(workInProgress2, nextProps), workInProgress2.flags |= 4096;
+            current = prevState.treeContext, nextHydratableInstance = getNextHydratable(dehydrated.nextSibling), hydrationParentFiber = workInProgress2, isHydrating = true, hydrationErrors = null, rootOrSingletonContext = false, null !== current && restoreSuspendedTreeContext(workInProgress2, current), workInProgress2 = mountActivityChildren(workInProgress2, nextProps), workInProgress2.flags |= 134221824;
           return workInProgress2;
         }
         current = createWorkInProgress(current.child, {
@@ -5978,7 +6235,7 @@ var FrappeAIPanel = (() => {
         workInProgress2.flags &= -33;
         if (null === current) {
           if (isHydrating) {
-            showFallback ? pushPrimaryTreeSuspenseHandler(workInProgress2) : reuseSuspenseHandlerOnStack(workInProgress2);
+            showFallback ? pushPrimaryTreeSuspenseHandler(workInProgress2) : reuseSuspenseHandlerOnStack();
             (current = nextHydratableInstance) ? (current = canHydrateHydrationBoundary(
               current,
               rootOrSingletonContext
@@ -5992,98 +6249,53 @@ var FrappeAIPanel = (() => {
             isSuspenseInstanceFallback(current) ? workInProgress2.lanes = 32 : workInProgress2.lanes = 536870912;
             return null;
           }
-          var nextPrimaryChildren = nextProps.children;
+          didSuspend = nextProps.children;
           nextProps = nextProps.fallback;
           if (showFallback)
-            return reuseSuspenseHandlerOnStack(workInProgress2), showFallback = workInProgress2.mode, nextPrimaryChildren = mountWorkInProgressOffscreenFiber(
-              { mode: "hidden", children: nextPrimaryChildren },
+            return reuseSuspenseHandlerOnStack(), showFallback = workInProgress2.mode, didSuspend = mountWorkInProgressOffscreenFiber(
+              { mode: "hidden", children: didSuspend },
               showFallback
             ), nextProps = createFiberFromFragment(
               nextProps,
               showFallback,
               renderLanes2,
               null
-            ), nextPrimaryChildren.return = workInProgress2, nextProps.return = workInProgress2, nextPrimaryChildren.sibling = nextProps, workInProgress2.child = nextPrimaryChildren, nextProps = workInProgress2.child, nextProps.memoizedState = mountSuspenseOffscreenState(renderLanes2), nextProps.childLanes = getRemainingWorkInPrimaryTree(
+            ), didSuspend.return = workInProgress2, nextProps.return = workInProgress2, didSuspend.sibling = nextProps, workInProgress2.child = didSuspend, nextProps = workInProgress2.child, nextProps.memoizedState = mountSuspenseOffscreenState(renderLanes2), nextProps.childLanes = getRemainingWorkInPrimaryTree(
               current,
               JSCompiler_temp,
               renderLanes2
             ), workInProgress2.memoizedState = SUSPENDED_MARKER, bailoutOffscreenComponent(null, nextProps);
           pushPrimaryTreeSuspenseHandler(workInProgress2);
-          return mountSuspensePrimaryChildren(workInProgress2, nextPrimaryChildren);
+          return mountSuspensePrimaryChildren(workInProgress2, didSuspend);
         }
         var prevState = current.memoizedState;
-        if (null !== prevState && (nextPrimaryChildren = prevState.dehydrated, null !== nextPrimaryChildren)) {
-          if (didSuspend)
-            workInProgress2.flags & 256 ? (pushPrimaryTreeSuspenseHandler(workInProgress2), workInProgress2.flags &= -257, workInProgress2 = retrySuspenseComponentWithoutHydrating(
+        if (null !== prevState) {
+          var dehydrated$96 = prevState.dehydrated;
+          if (null !== dehydrated$96)
+            return updateDehydratedSuspenseComponent(
               current,
               workInProgress2,
-              renderLanes2
-            )) : null !== workInProgress2.memoizedState ? (reuseSuspenseHandlerOnStack(workInProgress2), workInProgress2.child = current.child, workInProgress2.flags |= 128, workInProgress2 = null) : (reuseSuspenseHandlerOnStack(workInProgress2), nextPrimaryChildren = nextProps.fallback, showFallback = workInProgress2.mode, nextProps = mountWorkInProgressOffscreenFiber(
-              { mode: "visible", children: nextProps.children },
-              showFallback
-            ), nextPrimaryChildren = createFiberFromFragment(
-              nextPrimaryChildren,
-              showFallback,
-              renderLanes2,
-              null
-            ), nextPrimaryChildren.flags |= 2, nextProps.return = workInProgress2, nextPrimaryChildren.return = workInProgress2, nextProps.sibling = nextPrimaryChildren, workInProgress2.child = nextProps, reconcileChildFibers(
-              workInProgress2,
-              current.child,
-              null,
-              renderLanes2
-            ), nextProps = workInProgress2.child, nextProps.memoizedState = mountSuspenseOffscreenState(renderLanes2), nextProps.childLanes = getRemainingWorkInPrimaryTree(
-              current,
+              didSuspend,
               JSCompiler_temp,
-              renderLanes2
-            ), workInProgress2.memoizedState = SUSPENDED_MARKER, workInProgress2 = bailoutOffscreenComponent(null, nextProps));
-          else if (pushPrimaryTreeSuspenseHandler(workInProgress2), isSuspenseInstanceFallback(nextPrimaryChildren)) {
-            JSCompiler_temp = nextPrimaryChildren.nextSibling && nextPrimaryChildren.nextSibling.dataset;
-            if (JSCompiler_temp) var digest = JSCompiler_temp.dgst;
-            JSCompiler_temp = digest;
-            nextProps = Error(formatProdErrorMessage(419));
-            nextProps.stack = "";
-            nextProps.digest = JSCompiler_temp;
-            queueHydrationError({ value: nextProps, source: null, stack: null });
-            workInProgress2 = retrySuspenseComponentWithoutHydrating(
-              current,
-              workInProgress2,
+              nextProps,
+              dehydrated$96,
+              prevState,
               renderLanes2
             );
-          } else if (didReceiveUpdate || propagateParentContextChanges(current, workInProgress2, renderLanes2, false), JSCompiler_temp = 0 !== (renderLanes2 & current.childLanes), didReceiveUpdate || JSCompiler_temp) {
-            JSCompiler_temp = workInProgressRoot;
-            if (null !== JSCompiler_temp && (nextProps = getBumpedLaneForHydration(JSCompiler_temp, renderLanes2), 0 !== nextProps && nextProps !== prevState.retryLane))
-              throw prevState.retryLane = nextProps, enqueueConcurrentRenderForLane(current, nextProps), scheduleUpdateOnFiber(JSCompiler_temp, current, nextProps), SelectiveHydrationException;
-            isSuspenseInstancePending(nextPrimaryChildren) || renderDidSuspendDelayIfPossible();
-            workInProgress2 = retrySuspenseComponentWithoutHydrating(
-              current,
-              workInProgress2,
-              renderLanes2
-            );
-          } else
-            isSuspenseInstancePending(nextPrimaryChildren) ? (workInProgress2.flags |= 192, workInProgress2.child = current.child, workInProgress2 = null) : (current = prevState.treeContext, nextHydratableInstance = getNextHydratable(
-              nextPrimaryChildren.nextSibling
-            ), hydrationParentFiber = workInProgress2, isHydrating = true, hydrationErrors = null, rootOrSingletonContext = false, null !== current && restoreSuspendedTreeContext(workInProgress2, current), workInProgress2 = mountSuspensePrimaryChildren(
-              workInProgress2,
-              nextProps.children
-            ), workInProgress2.flags |= 4096);
-          return workInProgress2;
         }
         if (showFallback)
-          return reuseSuspenseHandlerOnStack(workInProgress2), nextPrimaryChildren = nextProps.fallback, showFallback = workInProgress2.mode, prevState = current.child, digest = prevState.sibling, nextProps = createWorkInProgress(prevState, {
+          return reuseSuspenseHandlerOnStack(), showFallback = nextProps.fallback, didSuspend = workInProgress2.mode, prevState = current.child, dehydrated$96 = prevState.sibling, nextProps = createWorkInProgress(prevState, {
             mode: "hidden",
             children: nextProps.children
-          }), nextProps.subtreeFlags = prevState.subtreeFlags & 65011712, null !== digest ? nextPrimaryChildren = createWorkInProgress(
-            digest,
-            nextPrimaryChildren
-          ) : (nextPrimaryChildren = createFiberFromFragment(
-            nextPrimaryChildren,
+          }), nextProps.subtreeFlags = prevState.subtreeFlags & 1206910976, null !== dehydrated$96 ? showFallback = createWorkInProgress(dehydrated$96, showFallback) : (showFallback = createFiberFromFragment(
             showFallback,
+            didSuspend,
             renderLanes2,
             null
-          ), nextPrimaryChildren.flags |= 2), nextPrimaryChildren.return = workInProgress2, nextProps.return = workInProgress2, nextProps.sibling = nextPrimaryChildren, workInProgress2.child = nextProps, bailoutOffscreenComponent(null, nextProps), nextProps = workInProgress2.child, nextPrimaryChildren = current.child.memoizedState, null === nextPrimaryChildren ? nextPrimaryChildren = mountSuspenseOffscreenState(renderLanes2) : (showFallback = nextPrimaryChildren.cachePool, null !== showFallback ? (prevState = CacheContext._currentValue, showFallback = showFallback.parent !== prevState ? { parent: prevState, pool: prevState } : showFallback) : showFallback = getSuspendedCache(), nextPrimaryChildren = {
-            baseLanes: nextPrimaryChildren.baseLanes | renderLanes2,
-            cachePool: showFallback
-          }), nextProps.memoizedState = nextPrimaryChildren, nextProps.childLanes = getRemainingWorkInPrimaryTree(
+          ), showFallback.flags |= 2), showFallback.return = workInProgress2, nextProps.return = workInProgress2, nextProps.sibling = showFallback, workInProgress2.child = nextProps, bailoutOffscreenComponent(null, nextProps), nextProps = workInProgress2.child, showFallback = current.child.memoizedState, null === showFallback ? showFallback = mountSuspenseOffscreenState(renderLanes2) : (didSuspend = showFallback.cachePool, null !== didSuspend ? (prevState = CacheContext._currentValue, didSuspend = didSuspend.parent !== prevState ? { parent: prevState, pool: prevState } : didSuspend) : didSuspend = getSuspendedCache(), showFallback = {
+            baseLanes: showFallback.baseLanes | renderLanes2,
+            cachePool: didSuspend
+          }), nextProps.memoizedState = showFallback, nextProps.childLanes = getRemainingWorkInPrimaryTree(
             current,
             JSCompiler_temp,
             renderLanes2
@@ -6125,11 +6337,108 @@ var FrappeAIPanel = (() => {
         workInProgress2.memoizedState = null;
         return current;
       }
+      function updateDehydratedSuspenseComponent(current, workInProgress2, didSuspend, didPrimaryChildrenDefer, nextProps, suspenseInstance, suspenseState, renderLanes2) {
+        if (didSuspend) {
+          if (workInProgress2.flags & 256)
+            return pushPrimaryTreeSuspenseHandler(workInProgress2), workInProgress2.flags &= -257, retrySuspenseComponentWithoutHydrating(
+              current,
+              workInProgress2,
+              renderLanes2
+            );
+          if (null !== workInProgress2.memoizedState)
+            return reuseSuspenseHandlerOnStack(), workInProgress2.child = current.child, workInProgress2.flags |= 128, null;
+          reuseSuspenseHandlerOnStack();
+          suspenseInstance = nextProps.fallback;
+          suspenseState = workInProgress2.mode;
+          nextProps = mountWorkInProgressOffscreenFiber(
+            { mode: "visible", children: nextProps.children },
+            suspenseState
+          );
+          suspenseInstance = createFiberFromFragment(
+            suspenseInstance,
+            suspenseState,
+            renderLanes2,
+            null
+          );
+          suspenseInstance.flags |= 2;
+          nextProps.return = workInProgress2;
+          suspenseInstance.return = workInProgress2;
+          nextProps.sibling = suspenseInstance;
+          workInProgress2.child = nextProps;
+          reconcileChildFibers(workInProgress2, current.child, null, renderLanes2);
+          nextProps = workInProgress2.child;
+          nextProps.memoizedState = mountSuspenseOffscreenState(renderLanes2);
+          nextProps.childLanes = getRemainingWorkInPrimaryTree(
+            current,
+            didPrimaryChildrenDefer,
+            renderLanes2
+          );
+          workInProgress2.memoizedState = SUSPENDED_MARKER;
+          return bailoutOffscreenComponent(null, nextProps);
+        }
+        pushPrimaryTreeSuspenseHandler(workInProgress2);
+        if (isSuspenseInstanceFallback(suspenseInstance)) {
+          didPrimaryChildrenDefer = suspenseInstance.nextSibling && suspenseInstance.nextSibling.dataset;
+          if (didPrimaryChildrenDefer) var digest = didPrimaryChildrenDefer.dgst;
+          didPrimaryChildrenDefer = digest;
+          "" !== didPrimaryChildrenDefer && (nextProps = Error(formatProdErrorMessage(419)), nextProps.stack = "", nextProps.digest = didPrimaryChildrenDefer, queueHydrationError({ value: nextProps, source: null, stack: null }));
+          return retrySuspenseComponentWithoutHydrating(
+            current,
+            workInProgress2,
+            renderLanes2
+          );
+        }
+        didReceiveUpdate || propagateParentContextChanges(current, workInProgress2, renderLanes2, false);
+        didPrimaryChildrenDefer = 0 !== (renderLanes2 & current.childLanes);
+        if (didReceiveUpdate || didPrimaryChildrenDefer) {
+          if (null !== currentTreeHiddenStackCursor.current)
+            return retrySuspenseComponentWithoutHydrating(
+              current,
+              workInProgress2,
+              renderLanes2
+            );
+          didPrimaryChildrenDefer = workInProgressRoot;
+          if (null !== didPrimaryChildrenDefer && (nextProps = getBumpedLaneForHydration(
+            didPrimaryChildrenDefer,
+            renderLanes2
+          ), 0 !== nextProps && nextProps !== suspenseState.retryLane))
+            throw suspenseState.retryLane = nextProps, enqueueConcurrentRenderForLane(current, nextProps), scheduleUpdateOnFiber(didPrimaryChildrenDefer, current, nextProps), SelectiveHydrationException;
+          isSuspenseInstancePending(suspenseInstance) || renderDidSuspendDelayIfPossible();
+          return retrySuspenseComponentWithoutHydrating(
+            current,
+            workInProgress2,
+            renderLanes2
+          );
+        }
+        if (isSuspenseInstancePending(suspenseInstance))
+          return workInProgress2.flags |= 192, workInProgress2.child = current.child, null;
+        current = suspenseState.treeContext;
+        nextHydratableInstance = getNextHydratable(suspenseInstance.nextSibling);
+        hydrationParentFiber = workInProgress2;
+        isHydrating = true;
+        hydrationErrors = null;
+        rootOrSingletonContext = false;
+        null !== current && restoreSuspendedTreeContext(workInProgress2, current);
+        workInProgress2 = mountSuspensePrimaryChildren(
+          workInProgress2,
+          nextProps.children
+        );
+        workInProgress2.flags |= 134221824;
+        return workInProgress2;
+      }
       function scheduleSuspenseWorkOnFiber(fiber, renderLanes2, propagationRoot) {
         fiber.lanes |= renderLanes2;
         var alternate = fiber.alternate;
         null !== alternate && (alternate.lanes |= renderLanes2);
         scheduleContextWorkOnParentPath(fiber.return, renderLanes2, propagationRoot);
+      }
+      function findLastContentRow(firstChild) {
+        for (var lastContentRow = null; null !== firstChild; ) {
+          var currentRow = firstChild.alternate;
+          null !== currentRow && null === findFirstSuspended(currentRow) && (lastContentRow = firstChild);
+          firstChild = firstChild.sibling;
+        }
+        return lastContentRow;
       }
       function initSuspenseListRenderState(workInProgress2, isBackwards, tail, lastContentRow, tailMode, treeForkCount2) {
         var renderState = workInProgress2.memoizedState;
@@ -6143,13 +6452,25 @@ var FrappeAIPanel = (() => {
           treeForkCount: treeForkCount2
         } : (renderState.isBackwards = isBackwards, renderState.rendering = null, renderState.renderingStartTime = 0, renderState.last = lastContentRow, renderState.tail = tail, renderState.tailMode = tailMode, renderState.treeForkCount = treeForkCount2);
       }
+      function reverseChildren(fiber) {
+        var row = fiber.child;
+        for (fiber.child = null; null !== row; ) {
+          var nextRow = row.sibling;
+          row.sibling = fiber.child;
+          fiber.child = row;
+          row = nextRow;
+        }
+      }
       function updateSuspenseListComponent(current, workInProgress2, renderLanes2) {
         var nextProps = workInProgress2.pendingProps, revealOrder = nextProps.revealOrder, tailMode = nextProps.tail;
         nextProps = nextProps.children;
-        var suspenseContext = suspenseStackCursor.current, shouldForceFallback = 0 !== (suspenseContext & 2);
+        var suspenseContext = suspenseStackCursor.current;
+        if (workInProgress2.flags & 128)
+          return pushSuspenseListContext(workInProgress2, suspenseContext), null;
+        var shouldForceFallback = 0 !== (suspenseContext & 2);
         shouldForceFallback ? (suspenseContext = suspenseContext & 1 | 2, workInProgress2.flags |= 128) : suspenseContext &= 1;
-        push(suspenseStackCursor, suspenseContext);
-        reconcileChildren(current, workInProgress2, nextProps, renderLanes2);
+        pushSuspenseListContext(workInProgress2, suspenseContext);
+        "backwards" === revealOrder && null !== current ? (reverseChildren(current), reconcileChildren(current, workInProgress2, nextProps, renderLanes2), reverseChildren(current)) : reconcileChildren(current, workInProgress2, nextProps, renderLanes2);
         nextProps = isHydrating ? treeForkCount : 0;
         if (!shouldForceFallback && null !== current && 0 !== (current.flags & 128))
           a: for (current = workInProgress2.child; null !== current; ) {
@@ -6172,22 +6493,18 @@ var FrappeAIPanel = (() => {
             current = current.sibling;
           }
         switch (revealOrder) {
-          case "forwards":
-            renderLanes2 = workInProgress2.child;
-            for (revealOrder = null; null !== renderLanes2; )
-              current = renderLanes2.alternate, null !== current && null === findFirstSuspended(current) && (revealOrder = renderLanes2), renderLanes2 = renderLanes2.sibling;
-            renderLanes2 = revealOrder;
-            null === renderLanes2 ? (revealOrder = workInProgress2.child, workInProgress2.child = null) : (revealOrder = renderLanes2.sibling, renderLanes2.sibling = null);
+          case "backwards":
+            renderLanes2 = findLastContentRow(workInProgress2.child);
+            null === renderLanes2 ? (revealOrder = workInProgress2.child, workInProgress2.child = null) : (revealOrder = renderLanes2.sibling, renderLanes2.sibling = null, reverseChildren(workInProgress2));
             initSuspenseListRenderState(
               workInProgress2,
-              false,
+              true,
               revealOrder,
-              renderLanes2,
+              null,
               tailMode,
               nextProps
             );
             break;
-          case "backwards":
           case "unstable_legacy-backwards":
             renderLanes2 = null;
             revealOrder = workInProgress2.child;
@@ -6221,9 +6538,25 @@ var FrappeAIPanel = (() => {
               nextProps
             );
             break;
-          default:
+          case "independent":
             workInProgress2.memoizedState = null;
+            break;
+          default:
+            renderLanes2 = findLastContentRow(workInProgress2.child), null === renderLanes2 ? (revealOrder = workInProgress2.child, workInProgress2.child = null) : (revealOrder = renderLanes2.sibling, renderLanes2.sibling = null), initSuspenseListRenderState(
+              workInProgress2,
+              false,
+              revealOrder,
+              renderLanes2,
+              tailMode,
+              nextProps
+            );
         }
+        return workInProgress2.child;
+      }
+      function updateContextProvider(current, workInProgress2, renderLanes2) {
+        var newProps = workInProgress2.pendingProps;
+        pushProvider(workInProgress2, workInProgress2.type, newProps.value);
+        reconcileChildren(current, workInProgress2, newProps.children, renderLanes2);
         return workInProgress2.child;
       }
       function bailoutOnAlreadyFinishedWork(current, workInProgress2, renderLanes2) {
@@ -6282,11 +6615,18 @@ var FrappeAIPanel = (() => {
               return workInProgress2.flags |= 128, pushDehydratedActivitySuspenseHandler(workInProgress2), null;
             break;
           case 13:
-            var state$102 = workInProgress2.memoizedState;
-            if (null !== state$102) {
-              if (null !== state$102.dehydrated)
+            var state$108 = workInProgress2.memoizedState;
+            if (null !== state$108) {
+              if (null !== state$108.dehydrated)
                 return pushPrimaryTreeSuspenseHandler(workInProgress2), workInProgress2.flags |= 128, null;
-              if (0 !== (renderLanes2 & workInProgress2.child.childLanes))
+              state$108 = propagateParentContextChanges(
+                current,
+                workInProgress2,
+                renderLanes2,
+                false
+              );
+              var primaryChildLanes = workInProgress2.child.childLanes;
+              if (state$108 || 0 !== (renderLanes2 & primaryChildLanes))
                 return updateSuspenseComponent(current, workInProgress2, renderLanes2);
               pushPrimaryTreeSuspenseHandler(workInProgress2);
               current = bailoutOnAlreadyFinishedWork(
@@ -6299,16 +6639,22 @@ var FrappeAIPanel = (() => {
             pushPrimaryTreeSuspenseHandler(workInProgress2);
             break;
           case 19:
-            var didSuspendBefore = 0 !== (current.flags & 128);
-            state$102 = 0 !== (renderLanes2 & workInProgress2.childLanes);
-            state$102 || (propagateParentContextChanges(
+            if (workInProgress2.flags & 128)
+              return updateSuspenseListComponent(
+                current,
+                workInProgress2,
+                renderLanes2
+              );
+            primaryChildLanes = 0 !== (current.flags & 128);
+            state$108 = 0 !== (renderLanes2 & workInProgress2.childLanes);
+            state$108 || (propagateParentContextChanges(
               current,
               workInProgress2,
               renderLanes2,
               false
-            ), state$102 = 0 !== (renderLanes2 & workInProgress2.childLanes));
-            if (didSuspendBefore) {
-              if (state$102)
+            ), state$108 = 0 !== (renderLanes2 & workInProgress2.childLanes));
+            if (primaryChildLanes) {
+              if (state$108)
                 return updateSuspenseListComponent(
                   current,
                   workInProgress2,
@@ -6316,10 +6662,10 @@ var FrappeAIPanel = (() => {
                 );
               workInProgress2.flags |= 128;
             }
-            didSuspendBefore = workInProgress2.memoizedState;
-            null !== didSuspendBefore && (didSuspendBefore.rendering = null, didSuspendBefore.tail = null, didSuspendBefore.lastEffect = null);
-            push(suspenseStackCursor, suspenseStackCursor.current);
-            if (state$102) break;
+            primaryChildLanes = workInProgress2.memoizedState;
+            null !== primaryChildLanes && (primaryChildLanes.rendering = null, primaryChildLanes.tail = null, primaryChildLanes.lastEffect = null);
+            pushSuspenseListContext(workInProgress2, suspenseStackCursor.current);
+            if (state$108) break;
             else return null;
           case 22:
             return workInProgress2.lanes = 0, updateOffscreenComponent(
@@ -6389,6 +6735,15 @@ var FrappeAIPanel = (() => {
                       workInProgress2,
                       current,
                       props,
+                      renderLanes2
+                    );
+                    break a;
+                  } else if ($$typeof === REACT_CONTEXT_TYPE) {
+                    workInProgress2.tag = 10;
+                    workInProgress2.type = current;
+                    workInProgress2 = updateContextProvider(
+                      null,
+                      workInProgress2,
                       renderLanes2
                     );
                     break a;
@@ -6488,7 +6843,7 @@ var FrappeAIPanel = (() => {
                     renderLanes2
                   );
                   for (workInProgress2.child = renderLanes2; renderLanes2; )
-                    renderLanes2.flags = renderLanes2.flags & -3 | 4096, renderLanes2 = renderLanes2.sibling;
+                    renderLanes2.flags = renderLanes2.flags & -3 | 134221824, renderLanes2 = renderLanes2.sibling;
                 }
               else {
                 resetHydrationState();
@@ -6511,9 +6866,12 @@ var FrappeAIPanel = (() => {
               null,
               workInProgress2.pendingProps,
               null
-            )) ? workInProgress2.memoizedState = renderLanes2 : isHydrating || (renderLanes2 = workInProgress2.type, current = workInProgress2.pendingProps, props = getOwnerDocumentFromRootContainer(
-              rootInstanceStackCursor.current
-            ).createElement(renderLanes2), props[internalInstanceKey] = workInProgress2, props[internalPropsKey] = current, setInitialProperties(props, renderLanes2, current), markNodeAsHoistable(props), workInProgress2.stateNode = props) : workInProgress2.memoizedState = getResource(
+            )) ? workInProgress2.memoizedState = renderLanes2 : isHydrating || (workInProgress2.stateNode = createHoistableInstance(
+              workInProgress2.type,
+              workInProgress2.pendingProps,
+              rootInstanceStackCursor.current,
+              workInProgress2
+            )) : workInProgress2.memoizedState = getResource(
               workInProgress2.type,
               current.memoizedProps,
               workInProgress2.pendingProps,
@@ -6590,12 +6948,7 @@ var FrappeAIPanel = (() => {
               renderLanes2
             );
           case 7:
-            return reconcileChildren(
-              current,
-              workInProgress2,
-              workInProgress2.pendingProps,
-              renderLanes2
-            ), workInProgress2.child;
+            return props = workInProgress2.pendingProps, markRef(current, workInProgress2), reconcileChildren(current, workInProgress2, props, renderLanes2), workInProgress2.child;
           case 8:
             return reconcileChildren(
               current,
@@ -6611,7 +6964,7 @@ var FrappeAIPanel = (() => {
               renderLanes2
             ), workInProgress2.child;
           case 10:
-            return props = workInProgress2.pendingProps, pushProvider(workInProgress2, workInProgress2.type, props.value), reconcileChildren(current, workInProgress2, props.children, renderLanes2), workInProgress2.child;
+            return updateContextProvider(current, workInProgress2, renderLanes2);
           case 9:
             return $$typeof = workInProgress2.type._context, props = workInProgress2.pendingProps.children, prepareToReadContext(workInProgress2), $$typeof = readContext($$typeof), props = props($$typeof), workInProgress2.flags |= 1, reconcileChildren(current, workInProgress2, props, renderLanes2), workInProgress2.child;
           case 14:
@@ -6653,6 +7006,13 @@ var FrappeAIPanel = (() => {
               workInProgress2.pendingProps.children,
               renderLanes2
             ), workInProgress2.child;
+          case 30:
+            return null === workInProgress2.stateNode && (workInProgress2.stateNode = {
+              autoName: null,
+              paired: null,
+              clones: null,
+              ref: null
+            }), props = workInProgress2.pendingProps, null != props.name && "auto" !== props.name ? workInProgress2.flags |= null === current ? 18882560 : 18874368 : isHydrating && pushMaterializedTreeId(workInProgress2), null !== current && current.memoizedProps.name !== props.name ? workInProgress2.flags |= 4194816 : markRef(current, workInProgress2), reconcileChildren(current, workInProgress2, props.children, renderLanes2), workInProgress2.child;
           case 29:
             throw workInProgress2.pendingProps;
         }
@@ -6662,8 +7022,10 @@ var FrappeAIPanel = (() => {
         workInProgress2.flags |= 4;
       }
       function preloadInstanceAndSuspendIfNeeded(workInProgress2, type, oldProps, newProps, renderLanes2) {
-        if (type = 0 !== (workInProgress2.mode & 32)) type = false;
-        if (type) {
+        var JSCompiler_temp;
+        if (JSCompiler_temp = 0 !== (workInProgress2.mode & 32))
+          JSCompiler_temp = null === oldProps ? maySuspendCommit(type, newProps) : maySuspendCommit(type, newProps) && (newProps.src !== oldProps.src || newProps.srcSet !== oldProps.srcSet);
+        if (JSCompiler_temp) {
           if (workInProgress2.flags |= 16777216, (renderLanes2 & 335544128) === renderLanes2)
             if (workInProgress2.stateNode.complete) workInProgress2.flags |= 8192;
             else if (shouldRemainOnPreviousScreen()) workInProgress2.flags |= 8192;
@@ -6686,27 +7048,28 @@ var FrappeAIPanel = (() => {
       function cutOffTailIfNeeded(renderState, hasRenderedATailFallback) {
         if (!isHydrating)
           switch (renderState.tailMode) {
-            case "hidden":
-              hasRenderedATailFallback = renderState.tail;
-              for (var lastTailNode = null; null !== hasRenderedATailFallback; )
-                null !== hasRenderedATailFallback.alternate && (lastTailNode = hasRenderedATailFallback), hasRenderedATailFallback = hasRenderedATailFallback.sibling;
-              null === lastTailNode ? renderState.tail = null : lastTailNode.sibling = null;
+            case "visible":
               break;
             case "collapsed":
-              lastTailNode = renderState.tail;
-              for (var lastTailNode$106 = null; null !== lastTailNode; )
-                null !== lastTailNode.alternate && (lastTailNode$106 = lastTailNode), lastTailNode = lastTailNode.sibling;
-              null === lastTailNode$106 ? hasRenderedATailFallback || null === renderState.tail ? renderState.tail = null : renderState.tail.sibling = null : lastTailNode$106.sibling = null;
+              for (var tailNode = renderState.tail, lastTailNode = null; null !== tailNode; )
+                null !== tailNode.alternate && (lastTailNode = tailNode), tailNode = tailNode.sibling;
+              null === lastTailNode ? hasRenderedATailFallback || null === renderState.tail ? renderState.tail = null : renderState.tail.sibling = null : lastTailNode.sibling = null;
+              break;
+            default:
+              hasRenderedATailFallback = renderState.tail;
+              for (tailNode = null; null !== hasRenderedATailFallback; )
+                null !== hasRenderedATailFallback.alternate && (tailNode = hasRenderedATailFallback), hasRenderedATailFallback = hasRenderedATailFallback.sibling;
+              null === tailNode ? renderState.tail = null : tailNode.sibling = null;
           }
       }
       function bubbleProperties(completedWork) {
         var didBailout = null !== completedWork.alternate && completedWork.alternate.child === completedWork.child, newChildLanes = 0, subtreeFlags = 0;
         if (didBailout)
-          for (var child$107 = completedWork.child; null !== child$107; )
-            newChildLanes |= child$107.lanes | child$107.childLanes, subtreeFlags |= child$107.subtreeFlags & 65011712, subtreeFlags |= child$107.flags & 65011712, child$107.return = completedWork, child$107 = child$107.sibling;
+          for (var child$113 = completedWork.child; null !== child$113; )
+            newChildLanes |= child$113.lanes | child$113.childLanes, subtreeFlags |= child$113.subtreeFlags & 1206910976, subtreeFlags |= child$113.flags & 1206910976, child$113.return = completedWork, child$113 = child$113.sibling;
         else
-          for (child$107 = completedWork.child; null !== child$107; )
-            newChildLanes |= child$107.lanes | child$107.childLanes, subtreeFlags |= child$107.subtreeFlags, subtreeFlags |= child$107.flags, child$107.return = completedWork, child$107 = child$107.sibling;
+          for (child$113 = completedWork.child; null !== child$113; )
+            newChildLanes |= child$113.lanes | child$113.childLanes, subtreeFlags |= child$113.subtreeFlags, subtreeFlags |= child$113.flags, child$113.return = completedWork, child$113 = child$113.sibling;
         completedWork.subtreeFlags |= subtreeFlags;
         completedWork.childLanes = newChildLanes;
         return didBailout;
@@ -6766,12 +7129,14 @@ var FrappeAIPanel = (() => {
                 if (null === workInProgress2.stateNode)
                   throw Error(formatProdErrorMessage(166));
                 bubbleProperties(workInProgress2);
+                workInProgress2.subtreeFlags &= -33554433;
                 return null;
               }
               current = contextStackCursor.current;
               popHydrationState(workInProgress2) ? prepareToHydrateHostInstance(workInProgress2, current) : (current = resolveSingletonInstance(type, newProps, renderLanes2), workInProgress2.stateNode = current, markUpdate(workInProgress2));
             }
             bubbleProperties(workInProgress2);
+            workInProgress2.subtreeFlags &= -33554433;
             return null;
           case 5:
             popHostContext(workInProgress2);
@@ -6783,6 +7148,7 @@ var FrappeAIPanel = (() => {
                 if (null === workInProgress2.stateNode)
                   throw Error(formatProdErrorMessage(166));
                 bubbleProperties(workInProgress2);
+                workInProgress2.subtreeFlags &= -33554433;
                 return null;
               }
               nextResource = contextStackCursor.current;
@@ -6873,6 +7239,7 @@ var FrappeAIPanel = (() => {
               }
             }
             bubbleProperties(workInProgress2);
+            workInProgress2.subtreeFlags &= -33554433;
             preloadInstanceAndSuspendIfNeeded(
               workInProgress2,
               workInProgress2.type,
@@ -6972,11 +7339,11 @@ var FrappeAIPanel = (() => {
             bubbleProperties(workInProgress2);
             return null;
           case 4:
-            return popHostContainer(), null === current && listenToAllSupportedEvents(workInProgress2.stateNode.containerInfo), bubbleProperties(workInProgress2), null;
+            return popHostContainer(), null === current && listenToAllSupportedEvents(workInProgress2.stateNode.containerInfo), workInProgress2.flags |= 67108864, bubbleProperties(workInProgress2), null;
           case 10:
             return popProvider(workInProgress2.type), bubbleProperties(workInProgress2), null;
           case 19:
-            pop(suspenseStackCursor);
+            popSuspenseListContext(workInProgress2);
             newProps = workInProgress2.memoizedState;
             if (null === newProps) return bubbleProperties(workInProgress2), null;
             type = 0 !== (workInProgress2.flags & 128);
@@ -6997,8 +7364,8 @@ var FrappeAIPanel = (() => {
                       current = renderLanes2;
                       for (renderLanes2 = workInProgress2.child; null !== renderLanes2; )
                         resetWorkInProgress(renderLanes2, current), renderLanes2 = renderLanes2.sibling;
-                      push(
-                        suspenseStackCursor,
+                      pushSuspenseListContext(
+                        workInProgress2,
                         suspenseStackCursor.current & 1 | 2
                       );
                       isHydrating && pushTreeFork(workInProgress2, newProps.treeForkCount);
@@ -7011,17 +7378,34 @@ var FrappeAIPanel = (() => {
             else {
               if (!type)
                 if (current = findFirstSuspended(nextResource), null !== current) {
-                  if (workInProgress2.flags |= 128, type = true, current = current.updateQueue, workInProgress2.updateQueue = current, scheduleRetryEffect(workInProgress2, current), cutOffTailIfNeeded(newProps, true), null === newProps.tail && "hidden" === newProps.tailMode && !nextResource.alternate && !isHydrating)
+                  if (workInProgress2.flags |= 128, type = true, current = current.updateQueue, workInProgress2.updateQueue = current, scheduleRetryEffect(workInProgress2, current), cutOffTailIfNeeded(newProps, true), null === newProps.tail && "collapsed" !== newProps.tailMode && "visible" !== newProps.tailMode && !nextResource.alternate && !isHydrating)
                     return bubbleProperties(workInProgress2), null;
                 } else
                   2 * now() - newProps.renderingStartTime > workInProgressRootRenderTargetTime && 536870912 !== renderLanes2 && (workInProgress2.flags |= 128, type = true, cutOffTailIfNeeded(newProps, false), workInProgress2.lanes = 4194304);
               newProps.isBackwards ? (nextResource.sibling = workInProgress2.child, workInProgress2.child = nextResource) : (current = newProps.last, null !== current ? current.sibling = nextResource : workInProgress2.child = nextResource, newProps.last = nextResource);
             }
-            if (null !== newProps.tail)
-              return current = newProps.tail, newProps.rendering = current, newProps.tail = current.sibling, newProps.renderingStartTime = now(), current.sibling = null, renderLanes2 = suspenseStackCursor.current, push(
-                suspenseStackCursor,
-                type ? renderLanes2 & 1 | 2 : renderLanes2 & 1
-              ), isHydrating && pushTreeFork(workInProgress2, newProps.treeForkCount), current;
+            if (null !== newProps.tail) {
+              current = newProps.tail;
+              a: {
+                for (renderLanes2 = current; null !== renderLanes2; ) {
+                  if (null !== renderLanes2.alternate) {
+                    renderLanes2 = false;
+                    break a;
+                  }
+                  renderLanes2 = renderLanes2.sibling;
+                }
+                renderLanes2 = true;
+              }
+              newProps.rendering = current;
+              newProps.tail = current.sibling;
+              newProps.renderingStartTime = now();
+              current.sibling = null;
+              nextResource = suspenseStackCursor.current;
+              nextResource = type ? nextResource & 1 | 2 : nextResource & 1;
+              "visible" === newProps.tailMode || "collapsed" === newProps.tailMode || !renderLanes2 || isHydrating ? pushSuspenseListContext(workInProgress2, nextResource) : (renderLanes2 = nextResource, push(suspenseHandlerStackCursor, workInProgress2), push(suspenseStackCursor, renderLanes2), null === shellBoundary && (shellBoundary = workInProgress2));
+              isHydrating && pushTreeFork(workInProgress2, newProps.treeForkCount);
+              return current;
+            }
             bubbleProperties(workInProgress2);
             return null;
           case 22:
@@ -7032,7 +7416,7 @@ var FrappeAIPanel = (() => {
           case 25:
             return null;
           case 30:
-            return null;
+            return workInProgress2.flags |= 33554432, bubbleProperties(workInProgress2), null;
         }
         throw Error(formatProdErrorMessage(156, workInProgress2.tag));
       }
@@ -7067,7 +7451,7 @@ var FrappeAIPanel = (() => {
             current = workInProgress2.flags;
             return current & 65536 ? (workInProgress2.flags = current & -65537 | 128, workInProgress2) : null;
           case 19:
-            return pop(suspenseStackCursor), null;
+            return popSuspenseListContext(workInProgress2), current = workInProgress2.flags, current & 65536 ? (workInProgress2.flags = current & -65537 | 128, current = workInProgress2.memoizedState, null !== current && (current.rendering = null, current.tail = null), workInProgress2.flags |= 4, workInProgress2) : null;
           case 4:
             return popHostContainer(), null;
           case 10:
@@ -7105,7 +7489,7 @@ var FrappeAIPanel = (() => {
             popSuspenseHandler(interruptedWork);
             break;
           case 19:
-            pop(suspenseStackCursor);
+            popSuspenseListContext(interruptedWork);
             break;
           case 10:
             popProvider(interruptedWork.type);
@@ -7205,6 +7589,24 @@ var FrappeAIPanel = (() => {
                 var instanceToUse = current.stateNode;
                 break;
               case 30:
+                var instance = current.stateNode, name = getViewTransitionName(current.memoizedProps, instance);
+                if (null === instance.ref || instance.ref.name !== name)
+                  instance.ref = createViewTransitionInstance(name);
+                instanceToUse = instance.ref;
+                break;
+              case 7:
+                if (null === current.stateNode) {
+                  var fragmentInstance = new FragmentInstance(current);
+                  traverseVisibleInstancesAndTextInstances(
+                    current.child,
+                    false,
+                    addFragmentHandleToFiber,
+                    fragmentInstance,
+                    void 0,
+                    void 0
+                  );
+                  current.stateNode = fragmentInstance;
+                }
                 instanceToUse = current.stateNode;
                 break;
               default:
@@ -7230,10 +7632,38 @@ var FrappeAIPanel = (() => {
           else if ("function" === typeof ref)
             try {
               ref(null);
-            } catch (error$140) {
-              captureCommitPhaseError(current, nearestMountedAncestor, error$140);
+            } catch (error$148) {
+              captureCommitPhaseError(current, nearestMountedAncestor, error$148);
             }
           else ref.current = null;
+      }
+      function commitNewChildToFragmentInstances(fiber, parentFragmentInstances) {
+        if ((5 === fiber.tag || 27 === fiber.tag || 6 === fiber.tag) && null === fiber.alternate && null !== parentFragmentInstances)
+          for (var i = 0; i < parentFragmentInstances.length; i++)
+            commitNewChildToFragmentInstance(
+              fiber.stateNode,
+              parentFragmentInstances[i]
+            );
+      }
+      function commitFragmentInstanceInsertionEffects(fiber) {
+        for (var parent = fiber.return; null !== parent; ) {
+          isFragmentInstanceParent(parent) && commitNewChildToFragmentInstance(fiber.stateNode, parent.stateNode);
+          if (isFragmentInstanceHostBoundary(parent)) break;
+          parent = parent.return;
+        }
+      }
+      function commitFragmentInstanceDeletionEffects(fiber) {
+        for (var parent = fiber.return; null !== parent; ) {
+          isFragmentInstanceParent(parent) && deleteChildFromFragmentInstance(fiber.stateNode, parent.stateNode);
+          if (isFragmentInstanceHostBoundary(parent)) break;
+          parent = parent.return;
+        }
+      }
+      function isFragmentInstanceHostBoundary(fiber) {
+        return 5 === fiber.tag || 3 === fiber.tag || 27 === fiber.tag;
+      }
+      function isFragmentInstanceParent(fiber) {
+        return fiber && 7 === fiber.tag && null !== fiber.stateNode;
       }
       function commitHostMount(finishedWork) {
         var type = finishedWork.type, props = finishedWork.memoizedProps, instance = finishedWork.stateNode;
@@ -7280,21 +7710,41 @@ var FrappeAIPanel = (() => {
           if (!(fiber.flags & 2)) return fiber.stateNode;
         }
       }
-      function insertOrAppendPlacementNodeIntoContainer(node, before, parent) {
+      function insertOrAppendPlacementNodeIntoContainer(node, before, parent, parentFragmentInstances) {
         var tag = node.tag;
         if (5 === tag || 6 === tag)
-          node = node.stateNode, before ? (9 === parent.nodeType ? parent.body : "HTML" === parent.nodeName ? parent.ownerDocument.body : parent).insertBefore(node, before) : (before = 9 === parent.nodeType ? parent.body : "HTML" === parent.nodeName ? parent.ownerDocument.body : parent, before.appendChild(node), parent = parent._reactRootContainer, null !== parent && void 0 !== parent || null !== before.onclick || (before.onclick = noop$1));
-        else if (4 !== tag && (27 === tag && isSingletonScope(node.type) && (parent = node.stateNode, before = null), node = node.child, null !== node))
-          for (insertOrAppendPlacementNodeIntoContainer(node, before, parent), node = node.sibling; null !== node; )
-            insertOrAppendPlacementNodeIntoContainer(node, before, parent), node = node.sibling;
+          tag = node.stateNode, before ? (9 === parent.nodeType ? parent.body : "HTML" === parent.nodeName ? parent.ownerDocument.body : parent).insertBefore(tag, before) : (before = 9 === parent.nodeType ? parent.body : "HTML" === parent.nodeName ? parent.ownerDocument.body : parent, before.appendChild(tag), parent = parent._reactRootContainer, null !== parent && void 0 !== parent || null !== before.onclick || (before.onclick = noop$1)), commitNewChildToFragmentInstances(node, parentFragmentInstances), viewTransitionMutationContext = true;
+        else if (4 !== tag && (27 === tag && (commitNewChildToFragmentInstances(node, parentFragmentInstances), parentFragmentInstances = null, isSingletonScope(node.type) && (parent = node.stateNode, before = null)), node = node.child, null !== node))
+          for (insertOrAppendPlacementNodeIntoContainer(
+            node,
+            before,
+            parent,
+            parentFragmentInstances
+          ), node = node.sibling; null !== node; )
+            insertOrAppendPlacementNodeIntoContainer(
+              node,
+              before,
+              parent,
+              parentFragmentInstances
+            ), node = node.sibling;
       }
-      function insertOrAppendPlacementNode(node, before, parent) {
+      function insertOrAppendPlacementNode(node, before, parent, parentFragmentInstances) {
         var tag = node.tag;
         if (5 === tag || 6 === tag)
-          node = node.stateNode, before ? parent.insertBefore(node, before) : parent.appendChild(node);
-        else if (4 !== tag && (27 === tag && isSingletonScope(node.type) && (parent = node.stateNode), node = node.child, null !== node))
-          for (insertOrAppendPlacementNode(node, before, parent), node = node.sibling; null !== node; )
-            insertOrAppendPlacementNode(node, before, parent), node = node.sibling;
+          tag = node.stateNode, before ? parent.insertBefore(tag, before) : parent.appendChild(tag), commitNewChildToFragmentInstances(node, parentFragmentInstances), viewTransitionMutationContext = true;
+        else if (4 !== tag && (27 === tag && (commitNewChildToFragmentInstances(node, parentFragmentInstances), parentFragmentInstances = null, isSingletonScope(node.type) && (parent = node.stateNode)), node = node.child, null !== node))
+          for (insertOrAppendPlacementNode(
+            node,
+            before,
+            parent,
+            parentFragmentInstances
+          ), node = node.sibling; null !== node; )
+            insertOrAppendPlacementNode(
+              node,
+              before,
+              parent,
+              parentFragmentInstances
+            ), node = node.sibling;
       }
       function commitHostSingletonAcquisition(finishedWork) {
         var singleton = finishedWork.stateNode, props = finishedWork.memoizedProps;
@@ -7308,12 +7758,276 @@ var FrappeAIPanel = (() => {
           captureCommitPhaseError(finishedWork, finishedWork.return, error);
         }
       }
+      var shouldStartViewTransition = false;
+      var appearingViewTransitions = null;
+      function trackEnterViewTransitions(placement) {
+        if (30 === placement.tag || 0 !== (placement.subtreeFlags & 33554432))
+          shouldStartViewTransition = true;
+      }
+      var viewTransitionCancelableChildren = null;
+      function pushViewTransitionCancelableScope() {
+        var prevChildren = viewTransitionCancelableChildren;
+        viewTransitionCancelableChildren = null;
+        return prevChildren;
+      }
+      var viewTransitionHostInstanceIdx = 0;
+      function applyViewTransitionToHostInstances(fiber, name, className, collectMeasurements, stopAtNestedViewTransitions) {
+        viewTransitionHostInstanceIdx = 0;
+        return applyViewTransitionToHostInstancesRecursive(
+          fiber.child,
+          name,
+          className,
+          collectMeasurements,
+          stopAtNestedViewTransitions
+        );
+      }
+      function applyViewTransitionToHostInstancesRecursive(child, name, className, collectMeasurements, stopAtNestedViewTransitions) {
+        for (var inViewport = false; null !== child; ) {
+          if (5 === child.tag) {
+            var instance = child.stateNode;
+            if (null !== collectMeasurements) {
+              var measurement = measureInstance(instance);
+              collectMeasurements.push(measurement);
+              measurement.view && (inViewport = true);
+            } else
+              inViewport || measureInstance(instance).view && (inViewport = true);
+            shouldStartViewTransition = true;
+            applyViewTransitionName(
+              instance,
+              0 === viewTransitionHostInstanceIdx ? name : name + "_" + viewTransitionHostInstanceIdx,
+              className
+            );
+            viewTransitionHostInstanceIdx++;
+          } else if (22 !== child.tag || null === child.memoizedState)
+            30 === child.tag && stopAtNestedViewTransitions || applyViewTransitionToHostInstancesRecursive(
+              child.child,
+              name,
+              className,
+              collectMeasurements,
+              stopAtNestedViewTransitions
+            ) && (inViewport = true);
+          child = child.sibling;
+        }
+        return inViewport;
+      }
+      function restoreViewTransitionOnHostInstances(child, stopAtNestedViewTransitions) {
+        for (; null !== child; ) {
+          if (5 === child.tag)
+            restoreViewTransitionName(child.stateNode, child.memoizedProps);
+          else if (22 !== child.tag || null === child.memoizedState)
+            30 === child.tag && stopAtNestedViewTransitions || restoreViewTransitionOnHostInstances(
+              child.child,
+              stopAtNestedViewTransitions
+            );
+          child = child.sibling;
+        }
+      }
+      function commitAppearingPairViewTransitions(placement) {
+        if (0 !== (placement.subtreeFlags & 18874368))
+          for (placement = placement.child; null !== placement; ) {
+            if (22 !== placement.tag || null === placement.memoizedState) {
+              if (commitAppearingPairViewTransitions(placement), 30 === placement.tag && 0 !== (placement.flags & 18874368) && placement.stateNode.paired) {
+                var props = placement.memoizedProps;
+                if (null == props.name || "auto" === props.name)
+                  throw Error(formatProdErrorMessage(544));
+                var name = props.name;
+                props = getViewTransitionClassName(props.default, props.share);
+                "none" !== props && (applyViewTransitionToHostInstances(
+                  placement,
+                  name,
+                  props,
+                  null,
+                  false
+                ) || restoreViewTransitionOnHostInstances(placement.child, false));
+              }
+            }
+            placement = placement.sibling;
+          }
+      }
+      function commitEnterViewTransitions(placement, gesture) {
+        if (30 === placement.tag) {
+          var state = placement.stateNode, props = placement.memoizedProps, name = getViewTransitionName(props, state), className = getViewTransitionClassName(
+            props.default,
+            state.paired ? props.share : props.enter
+          );
+          "none" !== className ? applyViewTransitionToHostInstances(placement, name, className, null, false) ? (commitAppearingPairViewTransitions(placement), state.paired || gesture || scheduleViewTransitionEvent(placement, props.onEnter)) : restoreViewTransitionOnHostInstances(placement.child, false) : commitAppearingPairViewTransitions(placement);
+        } else if (0 !== (placement.subtreeFlags & 33554432))
+          for (placement = placement.child; null !== placement; )
+            commitEnterViewTransitions(placement, gesture), placement = placement.sibling;
+        else commitAppearingPairViewTransitions(placement);
+      }
+      function commitDeletedPairViewTransitions(deletion) {
+        if (null !== appearingViewTransitions && 0 !== appearingViewTransitions.size) {
+          var pairs = appearingViewTransitions;
+          if (0 !== (deletion.subtreeFlags & 18874368))
+            for (deletion = deletion.child; null !== deletion; ) {
+              if (22 !== deletion.tag || null === deletion.memoizedState) {
+                if (30 === deletion.tag && 0 !== (deletion.flags & 18874368)) {
+                  var props = deletion.memoizedProps, name = props.name;
+                  if (null != name && "auto" !== name) {
+                    var pair = pairs.get(name);
+                    if (void 0 !== pair) {
+                      var className = getViewTransitionClassName(
+                        props.default,
+                        props.share
+                      );
+                      "none" !== className && (applyViewTransitionToHostInstances(
+                        deletion,
+                        name,
+                        className,
+                        null,
+                        false
+                      ) ? (className = deletion.stateNode, pair.paired = className, className.paired = pair, scheduleViewTransitionEvent(deletion, props.onShare)) : restoreViewTransitionOnHostInstances(deletion.child, false));
+                      pairs.delete(name);
+                      if (0 === pairs.size) break;
+                    }
+                  }
+                }
+                commitDeletedPairViewTransitions(deletion);
+              }
+              deletion = deletion.sibling;
+            }
+        }
+      }
+      function commitExitViewTransitions(deletion) {
+        if (30 === deletion.tag) {
+          var props = deletion.memoizedProps, name = getViewTransitionName(props, deletion.stateNode), pair = null !== appearingViewTransitions ? appearingViewTransitions.get(name) : void 0, className = getViewTransitionClassName(
+            props.default,
+            void 0 !== pair ? props.share : props.exit
+          );
+          "none" !== className && (applyViewTransitionToHostInstances(deletion, name, className, null, false) ? void 0 !== pair ? (className = deletion.stateNode, pair.paired = className, className.paired = pair, appearingViewTransitions.delete(name), scheduleViewTransitionEvent(deletion, props.onShare)) : scheduleViewTransitionEvent(deletion, props.onExit) : restoreViewTransitionOnHostInstances(deletion.child, false));
+          null !== appearingViewTransitions && commitDeletedPairViewTransitions(deletion);
+        } else if (0 !== (deletion.subtreeFlags & 33554432))
+          for (deletion = deletion.child; null !== deletion; )
+            commitExitViewTransitions(deletion), deletion = deletion.sibling;
+        else
+          null !== appearingViewTransitions && commitDeletedPairViewTransitions(deletion);
+      }
+      function commitNestedViewTransitions(changedParent) {
+        for (changedParent = changedParent.child; null !== changedParent; ) {
+          if (30 === changedParent.tag) {
+            var props = changedParent.memoizedProps, name = getViewTransitionName(props, changedParent.stateNode);
+            props = getViewTransitionClassName(props.default, props.update);
+            changedParent.flags &= -5;
+            "none" !== props && applyViewTransitionToHostInstances(
+              changedParent,
+              name,
+              props,
+              changedParent.memoizedState = [],
+              false
+            );
+          } else
+            0 !== (changedParent.subtreeFlags & 33554432) && commitNestedViewTransitions(changedParent);
+          changedParent = changedParent.sibling;
+        }
+      }
+      function restorePairedViewTransitions(parent) {
+        if (0 !== (parent.subtreeFlags & 18874368))
+          for (parent = parent.child; null !== parent; ) {
+            if (22 !== parent.tag || null === parent.memoizedState) {
+              if (30 === parent.tag && 0 !== (parent.flags & 18874368)) {
+                var instance = parent.stateNode;
+                null !== instance.paired && (instance.paired = null, restoreViewTransitionOnHostInstances(parent.child, false));
+              }
+              restorePairedViewTransitions(parent);
+            }
+            parent = parent.sibling;
+          }
+      }
+      function restoreEnterOrExitViewTransitions(fiber) {
+        if (30 === fiber.tag)
+          fiber.stateNode.paired = null, restoreViewTransitionOnHostInstances(fiber.child, false), restorePairedViewTransitions(fiber);
+        else if (0 !== (fiber.subtreeFlags & 33554432))
+          for (fiber = fiber.child; null !== fiber; )
+            restoreEnterOrExitViewTransitions(fiber), fiber = fiber.sibling;
+        else restorePairedViewTransitions(fiber);
+      }
+      function restoreNestedViewTransitions(changedParent) {
+        for (changedParent = changedParent.child; null !== changedParent; )
+          30 === changedParent.tag ? restoreViewTransitionOnHostInstances(changedParent.child, false) : 0 !== (changedParent.subtreeFlags & 33554432) && restoreNestedViewTransitions(changedParent), changedParent = changedParent.sibling;
+      }
+      function measureViewTransitionHostInstancesRecursive(parentViewTransition, child, newName, oldName, className, previousMeasurements, stopAtNestedViewTransitions) {
+        for (var inViewport = false; null !== child; ) {
+          if (5 === child.tag) {
+            var instance = child.stateNode;
+            if (null !== previousMeasurements && viewTransitionHostInstanceIdx < previousMeasurements.length) {
+              var previousMeasurement = previousMeasurements[viewTransitionHostInstanceIdx], nextMeasurement = measureInstance(instance);
+              if (previousMeasurement.view || nextMeasurement.view) inViewport = true;
+              var JSCompiler_temp;
+              if (JSCompiler_temp = 0 === (parentViewTransition.flags & 4))
+                if (nextMeasurement.clip) JSCompiler_temp = true;
+                else {
+                  JSCompiler_temp = previousMeasurement.rect;
+                  var newRect = nextMeasurement.rect;
+                  JSCompiler_temp = JSCompiler_temp.y !== newRect.y || JSCompiler_temp.x !== newRect.x || JSCompiler_temp.height !== newRect.height || JSCompiler_temp.width !== newRect.width;
+                }
+              JSCompiler_temp && (parentViewTransition.flags |= 4);
+              nextMeasurement.abs ? nextMeasurement = !previousMeasurement.abs : (previousMeasurement = previousMeasurement.rect, nextMeasurement = nextMeasurement.rect, nextMeasurement = previousMeasurement.height !== nextMeasurement.height || previousMeasurement.width !== nextMeasurement.width);
+              nextMeasurement && (parentViewTransition.flags |= 32);
+            } else parentViewTransition.flags |= 32;
+            0 !== (parentViewTransition.flags & 4) && applyViewTransitionName(
+              instance,
+              0 === viewTransitionHostInstanceIdx ? newName : newName + "_" + viewTransitionHostInstanceIdx,
+              className
+            );
+            inViewport && 0 !== (parentViewTransition.flags & 4) || (null === viewTransitionCancelableChildren && (viewTransitionCancelableChildren = []), viewTransitionCancelableChildren.push(
+              instance,
+              0 === viewTransitionHostInstanceIdx ? oldName : oldName + "_" + viewTransitionHostInstanceIdx,
+              child.memoizedProps
+            ));
+            viewTransitionHostInstanceIdx++;
+          } else if (22 !== child.tag || null === child.memoizedState)
+            30 === child.tag && stopAtNestedViewTransitions ? parentViewTransition.flags |= child.flags & 32 : measureViewTransitionHostInstancesRecursive(
+              parentViewTransition,
+              child.child,
+              newName,
+              oldName,
+              className,
+              previousMeasurements,
+              stopAtNestedViewTransitions
+            ) && (inViewport = true);
+          child = child.sibling;
+        }
+        return inViewport;
+      }
+      function measureNestedViewTransitions(changedParent, gesture) {
+        for (changedParent = changedParent.child; null !== changedParent; ) {
+          if (30 === changedParent.tag) {
+            var props = changedParent.memoizedProps, state = changedParent.stateNode, name = getViewTransitionName(props, state), className = getViewTransitionClassName(props.default, props.update);
+            if (gesture) {
+              state = state.clones;
+              var previousMeasurements = null === state ? null : state.map(measureClonedInstance);
+            } else
+              previousMeasurements = changedParent.memoizedState, changedParent.memoizedState = null;
+            state = changedParent;
+            var child = changedParent.child;
+            viewTransitionHostInstanceIdx = 0;
+            name = measureViewTransitionHostInstancesRecursive(
+              state,
+              child,
+              name,
+              name,
+              className,
+              previousMeasurements,
+              false
+            );
+            0 !== (changedParent.flags & 4) && name && (gesture || scheduleViewTransitionEvent(changedParent, props.onUpdate));
+          } else
+            0 !== (changedParent.subtreeFlags & 33554432) && measureNestedViewTransitions(changedParent, gesture);
+          changedParent = changedParent.sibling;
+        }
+      }
       var offscreenSubtreeIsHidden = false;
       var offscreenSubtreeWasHidden = false;
+      var offscreenDirectParentIsHidden = false;
       var needsFormReset = false;
       var PossiblyWeakSet = "function" === typeof WeakSet ? WeakSet : Set;
       var nextEffect = null;
-      function commitBeforeMutationEffects(root2, firstChild) {
+      var viewTransitionContextChanged = false;
+      var inUpdateViewTransition = false;
+      var rootViewTransitionAffected = false;
+      var rootViewTransitionNameCanceled = false;
+      function commitBeforeMutationEffects(root2, firstChild, committedLanes) {
         root2 = root2.containerInfo;
         eventsEnabled = _enabled;
         root2 = getActiveElementDeep(root2);
@@ -7333,7 +8047,7 @@ var FrappeAIPanel = (() => {
                 selection = selection.focusOffset;
                 try {
                   JSCompiler_temp.nodeType, focusNode.nodeType;
-                } catch (e$20) {
+                } catch (e$21) {
                   JSCompiler_temp = null;
                   break a;
                 }
@@ -7364,83 +8078,108 @@ var FrappeAIPanel = (() => {
         } else JSCompiler_temp = null;
         selectionInformation = { focusedElem: root2, selectionRange: JSCompiler_temp };
         _enabled = false;
-        for (nextEffect = firstChild; null !== nextEffect; )
-          if (firstChild = nextEffect, root2 = firstChild.child, 0 !== (firstChild.subtreeFlags & 1028) && null !== root2)
-            root2.return = firstChild, nextEffect = root2;
-          else
-            for (; null !== nextEffect; ) {
-              firstChild = nextEffect;
-              focusNode = firstChild.alternate;
-              root2 = firstChild.flags;
-              switch (firstChild.tag) {
-                case 0:
-                  if (0 !== (root2 & 4) && (root2 = firstChild.updateQueue, root2 = null !== root2 ? root2.events : null, null !== root2))
-                    for (JSCompiler_temp = 0; JSCompiler_temp < root2.length; JSCompiler_temp++)
-                      anchorOffset = root2[JSCompiler_temp], anchorOffset.ref.impl = anchorOffset.nextImpl;
-                  break;
-                case 11:
-                case 15:
-                  break;
-                case 1:
-                  if (0 !== (root2 & 1024) && null !== focusNode) {
-                    root2 = void 0;
-                    JSCompiler_temp = firstChild;
-                    anchorOffset = focusNode.memoizedProps;
-                    focusNode = focusNode.memoizedState;
-                    selection = JSCompiler_temp.stateNode;
-                    try {
-                      var resolvedPrevProps = resolveClassComponentProps(
-                        JSCompiler_temp.type,
-                        anchorOffset
-                      );
-                      root2 = selection.getSnapshotBeforeUpdate(
-                        resolvedPrevProps,
-                        focusNode
-                      );
-                      selection.__reactInternalSnapshotBeforeUpdate = root2;
-                    } catch (error) {
-                      captureCommitPhaseError(
-                        JSCompiler_temp,
-                        JSCompiler_temp.return,
-                        error
-                      );
-                    }
-                  }
-                  break;
-                case 3:
-                  if (0 !== (root2 & 1024)) {
-                    if (root2 = firstChild.stateNode.containerInfo, JSCompiler_temp = root2.nodeType, 9 === JSCompiler_temp)
-                      clearContainerSparingly(root2);
-                    else if (1 === JSCompiler_temp)
-                      switch (root2.nodeName) {
-                        case "HEAD":
-                        case "HTML":
-                        case "BODY":
-                          clearContainerSparingly(root2);
-                          break;
-                        default:
-                          root2.textContent = "";
-                      }
-                  }
-                  break;
-                case 5:
-                case 26:
-                case 27:
-                case 6:
-                case 4:
-                case 17:
-                  break;
-                default:
-                  if (0 !== (root2 & 1024)) throw Error(formatProdErrorMessage(163));
+        committedLanes = (committedLanes & 335544064) === committedLanes;
+        nextEffect = firstChild;
+        for (firstChild = committedLanes ? 9270 : 1024; null !== nextEffect; ) {
+          root2 = nextEffect;
+          if (committedLanes && (JSCompiler_temp = root2.deletions, null !== JSCompiler_temp))
+            for (anchorOffset = 0; anchorOffset < JSCompiler_temp.length; anchorOffset++)
+              committedLanes && commitExitViewTransitions(JSCompiler_temp[anchorOffset]);
+          if (null === root2.alternate && 0 !== (root2.flags & 2))
+            committedLanes && trackEnterViewTransitions(root2), commitBeforeMutationEffects_complete(committedLanes);
+          else {
+            if (22 === root2.tag) {
+              if (JSCompiler_temp = root2.alternate, null !== root2.memoizedState) {
+                null !== JSCompiler_temp && null === JSCompiler_temp.memoizedState && committedLanes && commitExitViewTransitions(JSCompiler_temp);
+                commitBeforeMutationEffects_complete(committedLanes);
+                continue;
+              } else if (null !== JSCompiler_temp && null !== JSCompiler_temp.memoizedState) {
+                committedLanes && trackEnterViewTransitions(root2);
+                commitBeforeMutationEffects_complete(committedLanes);
+                continue;
               }
-              root2 = firstChild.sibling;
-              if (null !== root2) {
-                root2.return = firstChild.return;
-                nextEffect = root2;
-                break;
-              }
-              nextEffect = firstChild.return;
             }
+            JSCompiler_temp = root2.child;
+            0 !== (root2.subtreeFlags & firstChild) && null !== JSCompiler_temp ? (JSCompiler_temp.return = root2, nextEffect = JSCompiler_temp) : (committedLanes && commitNestedViewTransitions(root2), commitBeforeMutationEffects_complete(committedLanes));
+          }
+        }
+        appearingViewTransitions = null;
+      }
+      function commitBeforeMutationEffects_complete(isViewTransitionEligible$jscomp$0) {
+        for (; null !== nextEffect; ) {
+          var fiber = nextEffect, isViewTransitionEligible = isViewTransitionEligible$jscomp$0, current = fiber.alternate, flags = fiber.flags;
+          switch (fiber.tag) {
+            case 0:
+            case 11:
+            case 15:
+              break;
+            case 1:
+              if (0 !== (flags & 1024) && null !== current) {
+                isViewTransitionEligible = void 0;
+                flags = current.memoizedProps;
+                current = current.memoizedState;
+                var instance = fiber.stateNode;
+                try {
+                  var resolvedPrevProps = resolveClassComponentProps(
+                    fiber.type,
+                    flags
+                  );
+                  isViewTransitionEligible = instance.getSnapshotBeforeUpdate(
+                    resolvedPrevProps,
+                    current
+                  );
+                  instance.__reactInternalSnapshotBeforeUpdate = isViewTransitionEligible;
+                } catch (error) {
+                  captureCommitPhaseError(fiber, fiber.return, error);
+                }
+              }
+              break;
+            case 3:
+              if (0 !== (flags & 1024)) {
+                if (current = fiber.stateNode.containerInfo, isViewTransitionEligible = current.nodeType, 9 === isViewTransitionEligible)
+                  clearContainerSparingly(current);
+                else if (1 === isViewTransitionEligible)
+                  switch (current.nodeName) {
+                    case "HEAD":
+                    case "HTML":
+                    case "BODY":
+                      clearContainerSparingly(current);
+                      break;
+                    default:
+                      current.textContent = "";
+                  }
+              }
+              break;
+            case 5:
+            case 26:
+            case 27:
+            case 6:
+            case 4:
+            case 17:
+              break;
+            case 30:
+              isViewTransitionEligible && null !== current && (isViewTransitionEligible = getViewTransitionName(
+                current.memoizedProps,
+                current.stateNode
+              ), flags = fiber.memoizedProps, flags = getViewTransitionClassName(flags.default, flags.update), "none" !== flags && applyViewTransitionToHostInstances(
+                current,
+                isViewTransitionEligible,
+                flags,
+                current.memoizedState = [],
+                true
+              ));
+              break;
+            default:
+              if (0 !== (flags & 1024)) throw Error(formatProdErrorMessage(163));
+          }
+          current = fiber.sibling;
+          if (null !== current) {
+            current.return = fiber.return;
+            nextEffect = current;
+            break;
+          }
+          nextEffect = fiber.return;
+        }
       }
       function commitLayoutEffectOnFiber(finishedRoot, current, finishedWork) {
         var flags = finishedWork.flags;
@@ -7472,11 +8211,11 @@ var FrappeAIPanel = (() => {
                     current,
                     finishedRoot.__reactInternalSnapshotBeforeUpdate
                   );
-                } catch (error$139) {
+                } catch (error$146) {
                   captureCommitPhaseError(
                     finishedWork,
                     finishedWork.return,
-                    error$139
+                    error$146
                   );
                 }
               }
@@ -7529,24 +8268,92 @@ var FrappeAIPanel = (() => {
           case 22:
             flags = null !== finishedWork.memoizedState || offscreenSubtreeIsHidden;
             if (!flags) {
-              current = null !== current && null !== current.memoizedState || offscreenSubtreeWasHidden;
-              prevProps = offscreenSubtreeIsHidden;
-              var prevOffscreenSubtreeWasHidden = offscreenSubtreeWasHidden;
+              var newOffscreenSubtreeWasHidden = null !== current && null !== current.memoizedState || offscreenSubtreeWasHidden;
+              current = offscreenSubtreeIsHidden;
+              prevProps = offscreenSubtreeWasHidden;
               offscreenSubtreeIsHidden = flags;
-              (offscreenSubtreeWasHidden = current) && !prevOffscreenSubtreeWasHidden ? recursivelyTraverseReappearLayoutEffects(
+              (offscreenSubtreeWasHidden = newOffscreenSubtreeWasHidden) && !prevProps ? (flags = 2, 0 !== (finishedWork.subtreeFlags & 8772) && (flags |= 1), recursivelyTraverseReappearLayoutEffects(
                 finishedRoot,
                 finishedWork,
-                0 !== (finishedWork.subtreeFlags & 8772)
-              ) : recursivelyTraverseLayoutEffects(finishedRoot, finishedWork);
-              offscreenSubtreeIsHidden = prevProps;
-              offscreenSubtreeWasHidden = prevOffscreenSubtreeWasHidden;
+                flags
+              )) : recursivelyTraverseLayoutEffects(finishedRoot, finishedWork);
+              offscreenSubtreeIsHidden = current;
+              offscreenSubtreeWasHidden = prevProps;
             }
             break;
           case 30:
+            recursivelyTraverseLayoutEffects(finishedRoot, finishedWork);
+            flags & 512 && safelyAttachRef(finishedWork, finishedWork.return);
             break;
+          case 7:
+            flags & 512 && safelyAttachRef(finishedWork, finishedWork.return);
           default:
             recursivelyTraverseLayoutEffects(finishedRoot, finishedWork);
         }
+      }
+      function hideOrUnhideAllChildren(parentFiber, isHidden) {
+        for (parentFiber = parentFiber.child; null !== parentFiber; )
+          hideOrUnhideAllChildrenOnFiber(parentFiber, isHidden), parentFiber = parentFiber.sibling;
+      }
+      function hideOrUnhideAllChildrenOnFiber(fiber, isHidden) {
+        switch (fiber.tag) {
+          case 5:
+          case 26:
+            try {
+              var instance = fiber.stateNode;
+              if (isHidden) {
+                var style2 = instance.style;
+                "function" === typeof style2.setProperty ? style2.setProperty("display", "none", "important") : style2.display = "none";
+              } else {
+                var instance$jscomp$0 = fiber.stateNode, styleProp = fiber.memoizedProps.style, display = void 0 !== styleProp && null !== styleProp && styleProp.hasOwnProperty("display") ? styleProp.display : null;
+                instance$jscomp$0.style.display = null == display || "boolean" === typeof display ? "" : ("" + display).trim();
+              }
+            } catch (error) {
+              captureCommitPhaseError(fiber, fiber.return, error);
+            }
+            hideOrUnhideNearestPortals(fiber, isHidden);
+            break;
+          case 6:
+            try {
+              fiber.stateNode.nodeValue = isHidden ? "" : fiber.memoizedProps, viewTransitionMutationContext = true;
+            } catch (error) {
+              captureCommitPhaseError(fiber, fiber.return, error);
+            }
+            break;
+          case 18:
+            try {
+              var instance$jscomp$1 = fiber.stateNode;
+              isHidden ? hideOrUnhideDehydratedBoundary(instance$jscomp$1, true) : hideOrUnhideDehydratedBoundary(fiber.stateNode, false);
+            } catch (error) {
+              captureCommitPhaseError(fiber, fiber.return, error);
+            }
+            break;
+          case 22:
+          case 23:
+            null === fiber.memoizedState && hideOrUnhideAllChildren(fiber, isHidden);
+            break;
+          default:
+            hideOrUnhideAllChildren(fiber, isHidden);
+        }
+      }
+      function hideOrUnhideNearestPortals(parentFiber, isHidden$jscomp$0) {
+        if (parentFiber.subtreeFlags & 67108864)
+          for (parentFiber = parentFiber.child; null !== parentFiber; ) {
+            a: {
+              var fiber = parentFiber, isHidden = isHidden$jscomp$0;
+              switch (fiber.tag) {
+                case 4:
+                  hideOrUnhideAllChildrenOnFiber(fiber, isHidden);
+                  break a;
+                case 22:
+                  null === fiber.memoizedState && hideOrUnhideNearestPortals(fiber, isHidden);
+                  break a;
+                default:
+                  hideOrUnhideNearestPortals(fiber, isHidden);
+              }
+            }
+            parentFiber = parentFiber.sibling;
+          }
       }
       function detachFiberAfterEffects(fiber) {
         var alternate = fiber.alternate;
@@ -7584,10 +8391,11 @@ var FrappeAIPanel = (() => {
               nearestMountedAncestor,
               deletedFiber
             );
-            deletedFiber.memoizedState ? deletedFiber.memoizedState.count-- : deletedFiber.stateNode && (deletedFiber = deletedFiber.stateNode, deletedFiber.parentNode.removeChild(deletedFiber));
+            deletedFiber.memoizedState ? deletedFiber.memoizedState.count-- : deletedFiber.stateNode && !offscreenSubtreeWasHidden && (deletedFiber = deletedFiber.stateNode, deletedFiber.parentNode.removeChild(deletedFiber));
             break;
           case 27:
             offscreenSubtreeWasHidden || safelyDetachRef(deletedFiber, nearestMountedAncestor);
+            commitFragmentInstanceDeletionEffects(deletedFiber);
             var prevHostParent = hostParent, prevHostParentIsContainer = hostParentIsContainer;
             isSingletonScope(deletedFiber.type) && (hostParent = deletedFiber.stateNode, hostParentIsContainer = false);
             recursivelyTraverseDeletionEffects(
@@ -7595,13 +8403,18 @@ var FrappeAIPanel = (() => {
               nearestMountedAncestor,
               deletedFiber
             );
-            releaseSingletonInstance(deletedFiber.stateNode);
+            releaseSingletonInstance(
+              deletedFiber.stateNode,
+              deletedFiber.type,
+              deletedFiber.memoizedProps
+            );
             hostParent = prevHostParent;
             hostParentIsContainer = prevHostParentIsContainer;
             break;
           case 5:
-            offscreenSubtreeWasHidden || safelyDetachRef(deletedFiber, nearestMountedAncestor);
+            offscreenSubtreeWasHidden || safelyDetachRef(deletedFiber, nearestMountedAncestor), commitFragmentInstanceDeletionEffects(deletedFiber);
           case 6:
+            6 === deletedFiber.tag && commitFragmentInstanceDeletionEffects(deletedFiber);
             prevHostParent = hostParent;
             prevHostParentIsContainer = hostParentIsContainer;
             hostParent = null;
@@ -7615,7 +8428,7 @@ var FrappeAIPanel = (() => {
             if (null !== hostParent)
               if (hostParentIsContainer)
                 try {
-                  (9 === hostParent.nodeType ? hostParent.body : "HTML" === hostParent.nodeName ? hostParent.ownerDocument.body : hostParent).removeChild(deletedFiber.stateNode);
+                  (9 === hostParent.nodeType ? hostParent.body : "HTML" === hostParent.nodeName ? hostParent.ownerDocument.body : hostParent).removeChild(deletedFiber.stateNode), viewTransitionMutationContext = true;
                 } catch (error) {
                   captureCommitPhaseError(
                     deletedFiber,
@@ -7625,7 +8438,7 @@ var FrappeAIPanel = (() => {
                 }
               else
                 try {
-                  hostParent.removeChild(deletedFiber.stateNode);
+                  hostParent.removeChild(deletedFiber.stateNode), viewTransitionMutationContext = true;
                 } catch (error) {
                   captureCommitPhaseError(
                     deletedFiber,
@@ -7693,6 +8506,22 @@ var FrappeAIPanel = (() => {
             );
             offscreenSubtreeWasHidden = prevHostParent;
             break;
+          case 30:
+            safelyDetachRef(deletedFiber, nearestMountedAncestor);
+            recursivelyTraverseDeletionEffects(
+              finishedRoot,
+              nearestMountedAncestor,
+              deletedFiber
+            );
+            break;
+          case 7:
+            offscreenSubtreeWasHidden || safelyDetachRef(deletedFiber, nearestMountedAncestor);
+            recursivelyTraverseDeletionEffects(
+              finishedRoot,
+              nearestMountedAncestor,
+              deletedFiber
+            );
+            break;
           default:
             recursivelyTraverseDeletionEffects(
               finishedRoot,
@@ -7743,7 +8572,7 @@ var FrappeAIPanel = (() => {
           }
         });
       }
-      function recursivelyTraverseMutationEffects(root$jscomp$0, parentFiber) {
+      function recursivelyTraverseMutationEffects(root$jscomp$0, parentFiber, lanes) {
         var deletions = parentFiber.deletions;
         if (null !== deletions)
           for (var i = 0; i < deletions.length; i++) {
@@ -7779,125 +8608,123 @@ var FrappeAIPanel = (() => {
           }
         if (parentFiber.subtreeFlags & 13886)
           for (parentFiber = parentFiber.child; null !== parentFiber; )
-            commitMutationEffectsOnFiber(parentFiber, root$jscomp$0), parentFiber = parentFiber.sibling;
+            commitMutationEffectsOnFiber(parentFiber, root$jscomp$0, lanes), parentFiber = parentFiber.sibling;
       }
       var currentHoistableRoot = null;
-      function commitMutationEffectsOnFiber(finishedWork, root2) {
+      function commitMutationEffectsOnFiber(finishedWork, root2, lanes) {
         var current = finishedWork.alternate, flags = finishedWork.flags;
         switch (finishedWork.tag) {
           case 0:
           case 11:
           case 14:
           case 15:
-            recursivelyTraverseMutationEffects(root2, finishedWork);
+            if (flags & 4 && (current = finishedWork.updateQueue, current = null !== current ? current.events : null, null !== current))
+              for (var ii = 0; ii < current.length; ii++) {
+                var _eventPayloads$ii2 = current[ii];
+                _eventPayloads$ii2.ref.impl = _eventPayloads$ii2.nextImpl;
+              }
+            recursivelyTraverseMutationEffects(root2, finishedWork, lanes);
             commitReconciliationEffects(finishedWork);
             flags & 4 && (commitHookEffectListUnmount(3, finishedWork, finishedWork.return), commitHookEffectListMount(3, finishedWork), commitHookEffectListUnmount(5, finishedWork, finishedWork.return));
             break;
           case 1:
-            recursivelyTraverseMutationEffects(root2, finishedWork);
+            recursivelyTraverseMutationEffects(root2, finishedWork, lanes);
             commitReconciliationEffects(finishedWork);
             flags & 512 && (offscreenSubtreeWasHidden || null === current || safelyDetachRef(current, current.return));
-            flags & 64 && offscreenSubtreeIsHidden && (finishedWork = finishedWork.updateQueue, null !== finishedWork && (flags = finishedWork.callbacks, null !== flags && (current = finishedWork.shared.hiddenCallbacks, finishedWork.shared.hiddenCallbacks = null === current ? flags : current.concat(flags))));
+            flags & 64 && offscreenSubtreeIsHidden && (finishedWork = finishedWork.updateQueue, null !== finishedWork && (root2 = finishedWork.callbacks, null !== root2 && (lanes = finishedWork.shared.hiddenCallbacks, finishedWork.shared.hiddenCallbacks = null === lanes ? root2 : lanes.concat(root2))));
             break;
           case 26:
-            var hoistableRoot = currentHoistableRoot;
-            recursivelyTraverseMutationEffects(root2, finishedWork);
+            ii = currentHoistableRoot;
+            recursivelyTraverseMutationEffects(root2, finishedWork, lanes);
             commitReconciliationEffects(finishedWork);
             flags & 512 && (offscreenSubtreeWasHidden || null === current || safelyDetachRef(current, current.return));
-            if (flags & 4) {
-              var currentResource = null !== current ? current.memoizedState : null;
-              flags = finishedWork.memoizedState;
-              if (null === current)
-                if (null === flags)
-                  if (null === finishedWork.stateNode) {
-                    a: {
-                      flags = finishedWork.type;
-                      current = finishedWork.memoizedProps;
-                      hoistableRoot = hoistableRoot.ownerDocument || hoistableRoot;
-                      b: switch (flags) {
-                        case "title":
-                          currentResource = hoistableRoot.getElementsByTagName("title")[0];
-                          if (!currentResource || currentResource[internalHoistableMarker] || currentResource[internalInstanceKey] || "http://www.w3.org/2000/svg" === currentResource.namespaceURI || currentResource.hasAttribute("itemprop"))
-                            currentResource = hoistableRoot.createElement(flags), hoistableRoot.head.insertBefore(
-                              currentResource,
-                              hoistableRoot.querySelector("head > title")
-                            );
-                          setInitialProperties(currentResource, flags, current);
-                          currentResource[internalInstanceKey] = finishedWork;
-                          markNodeAsHoistable(currentResource);
-                          flags = currentResource;
-                          break a;
-                        case "link":
-                          var maybeNodes = getHydratableHoistableCache(
-                            "link",
-                            "href",
-                            hoistableRoot
-                          ).get(flags + (current.href || ""));
-                          if (maybeNodes) {
-                            for (var i = 0; i < maybeNodes.length; i++)
-                              if (currentResource = maybeNodes[i], currentResource.getAttribute("href") === (null == current.href || "" === current.href ? null : current.href) && currentResource.getAttribute("rel") === (null == current.rel ? null : current.rel) && currentResource.getAttribute("title") === (null == current.title ? null : current.title) && currentResource.getAttribute("crossorigin") === (null == current.crossOrigin ? null : current.crossOrigin)) {
-                                maybeNodes.splice(i, 1);
-                                break b;
-                              }
-                          }
-                          currentResource = hoistableRoot.createElement(flags);
-                          setInitialProperties(currentResource, flags, current);
-                          hoistableRoot.head.appendChild(currentResource);
-                          break;
-                        case "meta":
-                          if (maybeNodes = getHydratableHoistableCache(
-                            "meta",
-                            "content",
-                            hoistableRoot
-                          ).get(flags + (current.content || ""))) {
-                            for (i = 0; i < maybeNodes.length; i++)
-                              if (currentResource = maybeNodes[i], currentResource.getAttribute("content") === (null == current.content ? null : "" + current.content) && currentResource.getAttribute("name") === (null == current.name ? null : current.name) && currentResource.getAttribute("property") === (null == current.property ? null : current.property) && currentResource.getAttribute("http-equiv") === (null == current.httpEquiv ? null : current.httpEquiv) && currentResource.getAttribute("charset") === (null == current.charSet ? null : current.charSet)) {
-                                maybeNodes.splice(i, 1);
-                                break b;
-                              }
-                          }
-                          currentResource = hoistableRoot.createElement(flags);
-                          setInitialProperties(currentResource, flags, current);
-                          hoistableRoot.head.appendChild(currentResource);
-                          break;
-                        default:
-                          throw Error(formatProdErrorMessage(468, flags));
+            if (flags & 4)
+              if (flags = null !== current ? current.memoizedState : null, lanes = finishedWork.memoizedState, null === current)
+                if (null === lanes)
+                  if (null === finishedWork.stateNode)
+                    if (offscreenSubtreeIsHidden)
+                      finishedWork.stateNode = createHoistableInstance(
+                        finishedWork.type,
+                        finishedWork.memoizedProps,
+                        root2.containerInfo,
+                        finishedWork
+                      );
+                    else {
+                      a: {
+                        root2 = finishedWork.type;
+                        lanes = finishedWork.memoizedProps;
+                        flags = ii.ownerDocument || ii;
+                        b: switch (root2) {
+                          case "title":
+                            current = flags.getElementsByTagName("title")[0];
+                            if (!current || current[internalHoistableMarker] || current[internalInstanceKey] || "http://www.w3.org/2000/svg" === current.namespaceURI || current.hasAttribute("itemprop"))
+                              current = flags.createElement(root2), flags.head.insertBefore(
+                                current,
+                                flags.querySelector("head > title")
+                              );
+                            setInitialProperties(current, root2, lanes);
+                            current[internalInstanceKey] = finishedWork;
+                            markNodeAsHoistable(current);
+                            root2 = current;
+                            break a;
+                          case "link":
+                            if (ii = getHydratableHoistableCache(
+                              "link",
+                              "href",
+                              flags
+                            ).get(root2 + (lanes.href || ""))) {
+                              for (_eventPayloads$ii2 = 0; _eventPayloads$ii2 < ii.length; _eventPayloads$ii2++)
+                                if (current = ii[_eventPayloads$ii2], current.getAttribute("href") === (null == lanes.href || "" === lanes.href ? null : lanes.href) && current.getAttribute("rel") === (null == lanes.rel ? null : lanes.rel) && current.getAttribute("title") === (null == lanes.title ? null : lanes.title) && current.getAttribute("crossorigin") === (null == lanes.crossOrigin ? null : lanes.crossOrigin)) {
+                                  ii.splice(_eventPayloads$ii2, 1);
+                                  break b;
+                                }
+                            }
+                            current = flags.createElement(root2);
+                            setInitialProperties(current, root2, lanes);
+                            flags.head.appendChild(current);
+                            break;
+                          case "meta":
+                            if (ii = getHydratableHoistableCache(
+                              "meta",
+                              "content",
+                              flags
+                            ).get(root2 + (lanes.content || ""))) {
+                              for (_eventPayloads$ii2 = 0; _eventPayloads$ii2 < ii.length; _eventPayloads$ii2++)
+                                if (current = ii[_eventPayloads$ii2], current.getAttribute("content") === (null == lanes.content ? null : "" + lanes.content) && current.getAttribute("name") === (null == lanes.name ? null : lanes.name) && current.getAttribute("property") === (null == lanes.property ? null : lanes.property) && current.getAttribute("http-equiv") === (null == lanes.httpEquiv ? null : lanes.httpEquiv) && current.getAttribute("charset") === (null == lanes.charSet ? null : lanes.charSet)) {
+                                  ii.splice(_eventPayloads$ii2, 1);
+                                  break b;
+                                }
+                            }
+                            current = flags.createElement(root2);
+                            setInitialProperties(current, root2, lanes);
+                            flags.head.appendChild(current);
+                            break;
+                          default:
+                            throw Error(formatProdErrorMessage(468, root2));
+                        }
+                        current[internalInstanceKey] = finishedWork;
+                        markNodeAsHoistable(current);
+                        root2 = current;
                       }
-                      currentResource[internalInstanceKey] = finishedWork;
-                      markNodeAsHoistable(currentResource);
-                      flags = currentResource;
+                      finishedWork.stateNode = root2;
                     }
-                    finishedWork.stateNode = flags;
-                  } else
-                    mountHoistable(
-                      hoistableRoot,
-                      finishedWork.type,
-                      finishedWork.stateNode
-                    );
+                  else
+                    offscreenSubtreeIsHidden || mountHoistable(ii, finishedWork.type, finishedWork.stateNode);
                 else
                   finishedWork.stateNode = acquireResource(
-                    hoistableRoot,
-                    flags,
+                    ii,
+                    lanes,
                     finishedWork.memoizedProps
                   );
               else
-                currentResource !== flags ? (null === currentResource ? null !== current.stateNode && (current = current.stateNode, current.parentNode.removeChild(current)) : currentResource.count--, null === flags ? mountHoistable(
-                  hoistableRoot,
-                  finishedWork.type,
-                  finishedWork.stateNode
-                ) : acquireResource(
-                  hoistableRoot,
-                  flags,
-                  finishedWork.memoizedProps
-                )) : null === flags && null !== finishedWork.stateNode && commitHostUpdate(
+                flags !== lanes ? (null === flags ? (root2 = current.stateNode, null === root2 || offscreenSubtreeWasHidden || root2.parentNode.removeChild(root2)) : flags.count--, null === lanes ? offscreenSubtreeIsHidden || mountHoistable(ii, finishedWork.type, finishedWork.stateNode) : acquireResource(ii, lanes, finishedWork.memoizedProps)) : null === lanes && null !== finishedWork.stateNode && commitHostUpdate(
                   finishedWork,
                   finishedWork.memoizedProps,
                   current.memoizedProps
                 );
-            }
             break;
           case 27:
-            recursivelyTraverseMutationEffects(root2, finishedWork);
+            recursivelyTraverseMutationEffects(root2, finishedWork, lanes);
             commitReconciliationEffects(finishedWork);
             flags & 512 && (offscreenSubtreeWasHidden || null === current || safelyDetachRef(current, current.return));
             null !== current && flags & 4 && commitHostUpdate(
@@ -7907,45 +8734,49 @@ var FrappeAIPanel = (() => {
             );
             break;
           case 5:
-            recursivelyTraverseMutationEffects(root2, finishedWork);
+            ii = offscreenDirectParentIsHidden;
+            offscreenDirectParentIsHidden = false;
+            recursivelyTraverseMutationEffects(root2, finishedWork, lanes);
+            offscreenDirectParentIsHidden = ii;
             commitReconciliationEffects(finishedWork);
             flags & 512 && (offscreenSubtreeWasHidden || null === current || safelyDetachRef(current, current.return));
             if (finishedWork.flags & 32) {
-              hoistableRoot = finishedWork.stateNode;
+              root2 = finishedWork.stateNode;
               try {
-                setTextContent(hoistableRoot, "");
+                setTextContent(root2, ""), viewTransitionMutationContext = true;
               } catch (error) {
                 captureCommitPhaseError(finishedWork, finishedWork.return, error);
               }
             }
-            flags & 4 && null != finishedWork.stateNode && (hoistableRoot = finishedWork.memoizedProps, commitHostUpdate(
+            flags & 4 && null != finishedWork.stateNode && (root2 = finishedWork.memoizedProps, commitHostUpdate(
               finishedWork,
-              hoistableRoot,
-              null !== current ? current.memoizedProps : hoistableRoot
+              root2,
+              null !== current ? current.memoizedProps : root2
             ));
             flags & 1024 && (needsFormReset = true);
             break;
           case 6:
-            recursivelyTraverseMutationEffects(root2, finishedWork);
+            recursivelyTraverseMutationEffects(root2, finishedWork, lanes);
             commitReconciliationEffects(finishedWork);
             if (flags & 4) {
               if (null === finishedWork.stateNode)
                 throw Error(formatProdErrorMessage(162));
-              flags = finishedWork.memoizedProps;
-              current = finishedWork.stateNode;
+              root2 = finishedWork.memoizedProps;
+              lanes = finishedWork.stateNode;
               try {
-                current.nodeValue = flags;
+                lanes.nodeValue = root2, viewTransitionMutationContext = true;
               } catch (error) {
                 captureCommitPhaseError(finishedWork, finishedWork.return, error);
               }
             }
             break;
           case 3:
+            viewTransitionMutationContext = false;
             tagCaches = null;
-            hoistableRoot = currentHoistableRoot;
+            ii = currentHoistableRoot;
             currentHoistableRoot = getHoistableRoot(root2.containerInfo);
-            recursivelyTraverseMutationEffects(root2, finishedWork);
-            currentHoistableRoot = hoistableRoot;
+            recursivelyTraverseMutationEffects(root2, finishedWork, lanes);
+            currentHoistableRoot = ii;
             commitReconciliationEffects(finishedWork);
             if (flags & 4 && null !== current && current.memoizedState.isDehydrated)
               try {
@@ -7954,104 +8785,80 @@ var FrappeAIPanel = (() => {
                 captureCommitPhaseError(finishedWork, finishedWork.return, error);
               }
             needsFormReset && (needsFormReset = false, recursivelyResetForms(finishedWork));
+            viewTransitionMutationContext = false;
             break;
           case 4:
-            flags = currentHoistableRoot;
+            flags = offscreenDirectParentIsHidden;
+            offscreenDirectParentIsHidden = offscreenSubtreeIsHidden;
+            current = pushMutationContext();
+            ii = currentHoistableRoot;
             currentHoistableRoot = getHoistableRoot(
               finishedWork.stateNode.containerInfo
             );
-            recursivelyTraverseMutationEffects(root2, finishedWork);
+            recursivelyTraverseMutationEffects(root2, finishedWork, lanes);
             commitReconciliationEffects(finishedWork);
-            currentHoistableRoot = flags;
+            currentHoistableRoot = ii;
+            viewTransitionMutationContext && inUpdateViewTransition && (rootViewTransitionAffected = true);
+            viewTransitionMutationContext = current;
+            offscreenDirectParentIsHidden = flags;
             break;
           case 12:
-            recursivelyTraverseMutationEffects(root2, finishedWork);
+            recursivelyTraverseMutationEffects(root2, finishedWork, lanes);
             commitReconciliationEffects(finishedWork);
             break;
           case 31:
-            recursivelyTraverseMutationEffects(root2, finishedWork);
+            recursivelyTraverseMutationEffects(root2, finishedWork, lanes);
             commitReconciliationEffects(finishedWork);
-            flags & 4 && (flags = finishedWork.updateQueue, null !== flags && (finishedWork.updateQueue = null, attachSuspenseRetryListeners(finishedWork, flags)));
+            flags & 4 && (root2 = finishedWork.updateQueue, null !== root2 && (finishedWork.updateQueue = null, attachSuspenseRetryListeners(finishedWork, root2)));
             break;
           case 13:
-            recursivelyTraverseMutationEffects(root2, finishedWork);
+            recursivelyTraverseMutationEffects(root2, finishedWork, lanes);
             commitReconciliationEffects(finishedWork);
             finishedWork.child.flags & 8192 && null !== finishedWork.memoizedState !== (null !== current && null !== current.memoizedState) && (globalMostRecentFallbackTime = now());
-            flags & 4 && (flags = finishedWork.updateQueue, null !== flags && (finishedWork.updateQueue = null, attachSuspenseRetryListeners(finishedWork, flags)));
+            flags & 4 && (root2 = finishedWork.updateQueue, null !== root2 && (finishedWork.updateQueue = null, attachSuspenseRetryListeners(finishedWork, root2)));
             break;
           case 22:
-            hoistableRoot = null !== finishedWork.memoizedState;
-            var wasHidden = null !== current && null !== current.memoizedState, prevOffscreenSubtreeIsHidden = offscreenSubtreeIsHidden, prevOffscreenSubtreeWasHidden = offscreenSubtreeWasHidden;
-            offscreenSubtreeIsHidden = prevOffscreenSubtreeIsHidden || hoistableRoot;
-            offscreenSubtreeWasHidden = prevOffscreenSubtreeWasHidden || wasHidden;
-            recursivelyTraverseMutationEffects(root2, finishedWork);
+            ii = null !== finishedWork.memoizedState;
+            _eventPayloads$ii2 = null !== current && null !== current.memoizedState;
+            var prevOffscreenSubtreeIsHidden = offscreenSubtreeIsHidden, prevOffscreenSubtreeWasHidden = offscreenSubtreeWasHidden, prevOffscreenDirectParentIsHidden$166 = offscreenDirectParentIsHidden;
+            offscreenSubtreeIsHidden = prevOffscreenSubtreeIsHidden || ii;
+            offscreenDirectParentIsHidden = prevOffscreenDirectParentIsHidden$166 || ii;
+            offscreenSubtreeWasHidden = prevOffscreenSubtreeWasHidden || _eventPayloads$ii2;
+            recursivelyTraverseMutationEffects(root2, finishedWork, lanes);
             offscreenSubtreeWasHidden = prevOffscreenSubtreeWasHidden;
+            offscreenDirectParentIsHidden = prevOffscreenDirectParentIsHidden$166;
             offscreenSubtreeIsHidden = prevOffscreenSubtreeIsHidden;
             commitReconciliationEffects(finishedWork);
-            if (flags & 8192)
-              a: for (root2 = finishedWork.stateNode, root2._visibility = hoistableRoot ? root2._visibility & -2 : root2._visibility | 1, hoistableRoot && (null === current || wasHidden || offscreenSubtreeIsHidden || offscreenSubtreeWasHidden || recursivelyTraverseDisappearLayoutEffects(finishedWork)), current = null, root2 = finishedWork; ; ) {
-                if (5 === root2.tag || 26 === root2.tag) {
-                  if (null === current) {
-                    wasHidden = current = root2;
-                    try {
-                      if (currentResource = wasHidden.stateNode, hoistableRoot)
-                        maybeNodes = currentResource.style, "function" === typeof maybeNodes.setProperty ? maybeNodes.setProperty("display", "none", "important") : maybeNodes.display = "none";
-                      else {
-                        i = wasHidden.stateNode;
-                        var styleProp = wasHidden.memoizedProps.style, display = void 0 !== styleProp && null !== styleProp && styleProp.hasOwnProperty("display") ? styleProp.display : null;
-                        i.style.display = null == display || "boolean" === typeof display ? "" : ("" + display).trim();
-                      }
-                    } catch (error) {
-                      captureCommitPhaseError(wasHidden, wasHidden.return, error);
-                    }
-                  }
-                } else if (6 === root2.tag) {
-                  if (null === current) {
-                    wasHidden = root2;
-                    try {
-                      wasHidden.stateNode.nodeValue = hoistableRoot ? "" : wasHidden.memoizedProps;
-                    } catch (error) {
-                      captureCommitPhaseError(wasHidden, wasHidden.return, error);
-                    }
-                  }
-                } else if (18 === root2.tag) {
-                  if (null === current) {
-                    wasHidden = root2;
-                    try {
-                      var instance = wasHidden.stateNode;
-                      hoistableRoot ? hideOrUnhideDehydratedBoundary(instance, true) : hideOrUnhideDehydratedBoundary(wasHidden.stateNode, false);
-                    } catch (error) {
-                      captureCommitPhaseError(wasHidden, wasHidden.return, error);
-                    }
-                  }
-                } else if ((22 !== root2.tag && 23 !== root2.tag || null === root2.memoizedState || root2 === finishedWork) && null !== root2.child) {
-                  root2.child.return = root2;
-                  root2 = root2.child;
-                  continue;
-                }
-                if (root2 === finishedWork) break a;
-                for (; null === root2.sibling; ) {
-                  if (null === root2.return || root2.return === finishedWork) break a;
-                  current === root2 && (current = null);
-                  root2 = root2.return;
-                }
-                current === root2 && (current = null);
-                root2.sibling.return = root2.return;
-                root2 = root2.sibling;
-              }
-            flags & 4 && (flags = finishedWork.updateQueue, null !== flags && (current = flags.retryQueue, null !== current && (flags.retryQueue = null, attachSuspenseRetryListeners(finishedWork, current))));
+            flags & 8192 && (root2 = finishedWork.stateNode, root2._visibility = ii ? root2._visibility & -2 : root2._visibility | 1, !ii || null === current || _eventPayloads$ii2 || offscreenSubtreeIsHidden || offscreenSubtreeWasHidden || (root2 = _eventPayloads$ii2 || offscreenSubtreeWasHidden, lanes = offscreenSubtreeIsHidden, current = offscreenSubtreeWasHidden, offscreenSubtreeIsHidden = ii || offscreenSubtreeIsHidden, offscreenSubtreeWasHidden = root2, recursivelyTraverseDisappearLayoutEffects(finishedWork, 2), offscreenSubtreeIsHidden = lanes, offscreenSubtreeWasHidden = current), !ii && offscreenDirectParentIsHidden || hideOrUnhideAllChildren(finishedWork, ii));
+            flags & 4 && (root2 = finishedWork.updateQueue, null !== root2 && (lanes = root2.retryQueue, null !== lanes && (root2.retryQueue = null, attachSuspenseRetryListeners(finishedWork, lanes))));
             break;
           case 19:
-            recursivelyTraverseMutationEffects(root2, finishedWork);
+            recursivelyTraverseMutationEffects(root2, finishedWork, lanes);
             commitReconciliationEffects(finishedWork);
-            flags & 4 && (flags = finishedWork.updateQueue, null !== flags && (finishedWork.updateQueue = null, attachSuspenseRetryListeners(finishedWork, flags)));
+            flags & 4 && (root2 = finishedWork.updateQueue, null !== root2 && (finishedWork.updateQueue = null, attachSuspenseRetryListeners(finishedWork, root2)));
             break;
           case 30:
+            flags & 512 && (offscreenSubtreeWasHidden || null === current || safelyDetachRef(current, current.return));
+            flags = pushMutationContext();
+            ii = inUpdateViewTransition;
+            _eventPayloads$ii2 = (lanes & 335544064) === lanes;
+            prevOffscreenSubtreeIsHidden = finishedWork.memoizedProps;
+            inUpdateViewTransition = _eventPayloads$ii2 && "none" !== getViewTransitionClassName(
+              prevOffscreenSubtreeIsHidden.default,
+              prevOffscreenSubtreeIsHidden.update
+            );
+            recursivelyTraverseMutationEffects(root2, finishedWork, lanes);
+            commitReconciliationEffects(finishedWork);
+            _eventPayloads$ii2 && null !== current && viewTransitionMutationContext && (finishedWork.flags |= 4);
+            inUpdateViewTransition = ii;
+            viewTransitionMutationContext = flags;
             break;
           case 21:
             break;
+          case 7:
+            flags & 512 && (offscreenSubtreeWasHidden || null === current || safelyDetachRef(current, current.return)), current && null !== current.stateNode && (current.stateNode._fragmentFiber = finishedWork);
           default:
-            recursivelyTraverseMutationEffects(root2, finishedWork), commitReconciliationEffects(finishedWork);
+            recursivelyTraverseMutationEffects(root2, finishedWork, lanes), commitReconciliationEffects(finishedWork);
         }
       }
       function commitReconciliationEffects(finishedWork) {
@@ -8065,25 +8872,46 @@ var FrappeAIPanel = (() => {
               }
               parentFiber = parentFiber.return;
             }
+            parentFiber = null;
+            for (var parent = finishedWork.return; null !== parent; ) {
+              if (isFragmentInstanceParent(parent)) {
+                var fragmentInstance = parent.stateNode;
+                null === parentFiber ? parentFiber = [fragmentInstance] : parentFiber.push(fragmentInstance);
+              }
+              if (isFragmentInstanceHostBoundary(parent)) break;
+              parent = parent.return;
+            }
+            var JSCompiler_inline_result = parentFiber;
             if (null == hostParentFiber) throw Error(formatProdErrorMessage(160));
             switch (hostParentFiber.tag) {
               case 27:
-                var parent = hostParentFiber.stateNode, before = getHostSibling(finishedWork);
-                insertOrAppendPlacementNode(finishedWork, before, parent);
+                var parent$jscomp$0 = hostParentFiber.stateNode, before = getHostSibling(finishedWork);
+                insertOrAppendPlacementNode(
+                  finishedWork,
+                  before,
+                  parent$jscomp$0,
+                  JSCompiler_inline_result
+                );
                 break;
               case 5:
-                var parent$141 = hostParentFiber.stateNode;
-                hostParentFiber.flags & 32 && (setTextContent(parent$141, ""), hostParentFiber.flags &= -33);
-                var before$142 = getHostSibling(finishedWork);
-                insertOrAppendPlacementNode(finishedWork, before$142, parent$141);
+                var parent$149 = hostParentFiber.stateNode;
+                hostParentFiber.flags & 32 && (setTextContent(parent$149, ""), hostParentFiber.flags &= -33);
+                var before$150 = getHostSibling(finishedWork);
+                insertOrAppendPlacementNode(
+                  finishedWork,
+                  before$150,
+                  parent$149,
+                  JSCompiler_inline_result
+                );
                 break;
               case 3:
               case 4:
-                var parent$143 = hostParentFiber.stateNode.containerInfo, before$144 = getHostSibling(finishedWork);
+                var parent$151 = hostParentFiber.stateNode.containerInfo, before$152 = getHostSibling(finishedWork);
                 insertOrAppendPlacementNodeIntoContainer(
                   finishedWork,
-                  before$144,
-                  parent$143
+                  before$152,
+                  parent$151,
+                  JSCompiler_inline_result
                 );
                 break;
               default:
@@ -8101,8 +8929,103 @@ var FrappeAIPanel = (() => {
           for (parentFiber = parentFiber.child; null !== parentFiber; ) {
             var fiber = parentFiber;
             recursivelyResetForms(fiber);
-            5 === fiber.tag && fiber.flags & 1024 && fiber.stateNode.reset();
+            5 === fiber.tag && fiber.flags & 1024 && (fiber = fiber.stateNode, _enabled = true, fiber.reset(), _enabled = false);
             parentFiber = parentFiber.sibling;
+          }
+      }
+      function recursivelyTraverseAfterMutationEffects(root2, parentFiber) {
+        if (parentFiber.subtreeFlags & 9270)
+          for (parentFiber = parentFiber.child; null !== parentFiber; )
+            commitAfterMutationEffectsOnFiber(parentFiber, root2), parentFiber = parentFiber.sibling;
+        else measureNestedViewTransitions(parentFiber, false);
+      }
+      function commitAfterMutationEffectsOnFiber(finishedWork, root2) {
+        var current = finishedWork.alternate;
+        if (null === current) commitEnterViewTransitions(finishedWork, false);
+        else
+          switch (finishedWork.tag) {
+            case 3:
+              rootViewTransitionNameCanceled = viewTransitionContextChanged = false;
+              pushViewTransitionCancelableScope();
+              recursivelyTraverseAfterMutationEffects(root2, finishedWork);
+              if (!viewTransitionContextChanged && !rootViewTransitionAffected) {
+                finishedWork = viewTransitionCancelableChildren;
+                if (null !== finishedWork)
+                  for (var i = 0; i < finishedWork.length; i += 3) {
+                    current = finishedWork[i];
+                    var oldName = finishedWork[i + 1];
+                    restoreViewTransitionName(current, finishedWork[i + 2]);
+                    current = current.ownerDocument.documentElement;
+                    null !== current && current.animate(
+                      { opacity: [0, 0], pointerEvents: ["none", "none"] },
+                      {
+                        duration: 0,
+                        fill: "forwards",
+                        pseudoElement: "::view-transition-group(" + oldName + ")"
+                      }
+                    );
+                  }
+                finishedWork = root2.containerInfo;
+                finishedWork = 9 === finishedWork.nodeType ? finishedWork.documentElement : finishedWork.ownerDocument.documentElement;
+                null !== finishedWork && "" === finishedWork.style.viewTransitionName && (finishedWork.style.viewTransitionName = "none", finishedWork.animate(
+                  { opacity: [0, 0], pointerEvents: ["none", "none"] },
+                  {
+                    duration: 0,
+                    fill: "forwards",
+                    pseudoElement: "::view-transition-group(root)"
+                  }
+                ), finishedWork.animate(
+                  { width: [0, 0], height: [0, 0] },
+                  {
+                    duration: 0,
+                    fill: "forwards",
+                    pseudoElement: "::view-transition"
+                  }
+                ));
+                rootViewTransitionNameCanceled = true;
+              }
+              viewTransitionCancelableChildren = null;
+              break;
+            case 5:
+              recursivelyTraverseAfterMutationEffects(root2, finishedWork);
+              break;
+            case 4:
+              i = viewTransitionContextChanged;
+              viewTransitionContextChanged = false;
+              recursivelyTraverseAfterMutationEffects(root2, finishedWork);
+              viewTransitionContextChanged && (rootViewTransitionAffected = true);
+              viewTransitionContextChanged = i;
+              break;
+            case 22:
+              null === finishedWork.memoizedState && (null !== current.memoizedState ? commitEnterViewTransitions(finishedWork, false) : recursivelyTraverseAfterMutationEffects(root2, finishedWork));
+              break;
+            case 30:
+              i = viewTransitionContextChanged;
+              oldName = pushViewTransitionCancelableScope();
+              viewTransitionContextChanged = false;
+              recursivelyTraverseAfterMutationEffects(root2, finishedWork);
+              viewTransitionContextChanged && (finishedWork.flags |= 4);
+              var props = finishedWork.memoizedProps, state = finishedWork.stateNode;
+              root2 = getViewTransitionName(props, state);
+              state = getViewTransitionName(current.memoizedProps, state);
+              var className = getViewTransitionClassName(props.default, props.update);
+              "none" === className ? root2 = false : (props = current.memoizedState, current.memoizedState = null, current = finishedWork.child, viewTransitionHostInstanceIdx = 0, root2 = measureViewTransitionHostInstancesRecursive(
+                finishedWork,
+                current,
+                root2,
+                state,
+                className,
+                props,
+                true
+              ), viewTransitionHostInstanceIdx !== (null === props ? 0 : props.length) && (finishedWork.flags |= 32));
+              0 !== (finishedWork.flags & 4) && root2 ? (scheduleViewTransitionEvent(
+                finishedWork,
+                finishedWork.memoizedProps.onUpdate
+              ), viewTransitionCancelableChildren = oldName) : null !== oldName && (oldName.push.apply(oldName, viewTransitionCancelableChildren), viewTransitionCancelableChildren = oldName);
+              viewTransitionContextChanged = 0 !== (finishedWork.flags & 32) ? true : i;
+              break;
+            default:
+              recursivelyTraverseAfterMutationEffects(root2, finishedWork);
           }
       }
       function recursivelyTraverseLayoutEffects(root2, parentFiber) {
@@ -8110,16 +9033,19 @@ var FrappeAIPanel = (() => {
           for (parentFiber = parentFiber.child; null !== parentFiber; )
             commitLayoutEffectOnFiber(root2, parentFiber.alternate, parentFiber), parentFiber = parentFiber.sibling;
       }
-      function recursivelyTraverseDisappearLayoutEffects(parentFiber) {
+      function recursivelyTraverseDisappearLayoutEffects(parentFiber, layoutEffectTraversalFlags$jscomp$0) {
         for (parentFiber = parentFiber.child; null !== parentFiber; ) {
-          var finishedWork = parentFiber;
+          var finishedWork = parentFiber, layoutEffectTraversalFlags = layoutEffectTraversalFlags$jscomp$0;
           switch (finishedWork.tag) {
             case 0:
             case 11:
             case 14:
             case 15:
               commitHookEffectListUnmount(4, finishedWork, finishedWork.return);
-              recursivelyTraverseDisappearLayoutEffects(finishedWork);
+              recursivelyTraverseDisappearLayoutEffects(
+                finishedWork,
+                layoutEffectTraversalFlags
+              );
               break;
             case 1:
               safelyDetachRef(finishedWork, finishedWork.return);
@@ -8129,31 +9055,65 @@ var FrappeAIPanel = (() => {
                 finishedWork.return,
                 instance
               );
-              recursivelyTraverseDisappearLayoutEffects(finishedWork);
+              recursivelyTraverseDisappearLayoutEffects(
+                finishedWork,
+                layoutEffectTraversalFlags
+              );
               break;
             case 27:
-              releaseSingletonInstance(finishedWork.stateNode);
-            case 26:
+              0 !== (layoutEffectTraversalFlags & 2) && releaseSingletonInstance(
+                finishedWork.stateNode,
+                finishedWork.type,
+                finishedWork.memoizedProps
+              );
             case 5:
               safelyDetachRef(finishedWork, finishedWork.return);
-              recursivelyTraverseDisappearLayoutEffects(finishedWork);
+              5 !== finishedWork.tag && 27 !== finishedWork.tag || commitFragmentInstanceDeletionEffects(finishedWork);
+              recursivelyTraverseDisappearLayoutEffects(
+                finishedWork,
+                layoutEffectTraversalFlags
+              );
+              break;
+            case 6:
+              commitFragmentInstanceDeletionEffects(finishedWork);
+              break;
+            case 26:
+              safelyDetachRef(finishedWork, finishedWork.return);
+              instance = finishedWork.stateNode;
+              null !== finishedWork.memoizedState || null === instance || offscreenSubtreeWasHidden || instance.parentNode.removeChild(instance);
+              recursivelyTraverseDisappearLayoutEffects(
+                finishedWork,
+                layoutEffectTraversalFlags
+              );
               break;
             case 22:
-              null === finishedWork.memoizedState && recursivelyTraverseDisappearLayoutEffects(finishedWork);
+              null === finishedWork.memoizedState && recursivelyTraverseDisappearLayoutEffects(
+                finishedWork,
+                layoutEffectTraversalFlags
+              );
               break;
             case 30:
-              recursivelyTraverseDisappearLayoutEffects(finishedWork);
+              safelyDetachRef(finishedWork, finishedWork.return);
+              recursivelyTraverseDisappearLayoutEffects(
+                finishedWork,
+                layoutEffectTraversalFlags
+              );
               break;
+            case 7:
+              safelyDetachRef(finishedWork, finishedWork.return);
             default:
-              recursivelyTraverseDisappearLayoutEffects(finishedWork);
+              recursivelyTraverseDisappearLayoutEffects(
+                finishedWork,
+                layoutEffectTraversalFlags
+              );
           }
           parentFiber = parentFiber.sibling;
         }
       }
-      function recursivelyTraverseReappearLayoutEffects(finishedRoot$jscomp$0, parentFiber, includeWorkInProgressEffects) {
-        includeWorkInProgressEffects = includeWorkInProgressEffects && 0 !== (parentFiber.subtreeFlags & 8772);
+      function recursivelyTraverseReappearLayoutEffects(finishedRoot$jscomp$0, parentFiber, layoutEffectTraversalFlags) {
+        layoutEffectTraversalFlags = 0 !== (parentFiber.subtreeFlags & 8772) ? layoutEffectTraversalFlags : layoutEffectTraversalFlags & -2;
         for (parentFiber = parentFiber.child; null !== parentFiber; ) {
-          var current = parentFiber.alternate, finishedRoot = finishedRoot$jscomp$0, finishedWork = parentFiber, flags = finishedWork.flags;
+          var current = parentFiber.alternate, finishedRoot = finishedRoot$jscomp$0, finishedWork = parentFiber, flags = finishedWork.flags, includeWorkInProgressEffects = 0 !== (layoutEffectTraversalFlags & 1);
           switch (finishedWork.tag) {
             case 0:
             case 11:
@@ -8161,7 +9121,7 @@ var FrappeAIPanel = (() => {
               recursivelyTraverseReappearLayoutEffects(
                 finishedRoot,
                 finishedWork,
-                includeWorkInProgressEffects
+                layoutEffectTraversalFlags
               );
               commitHookEffectListMount(4, finishedWork);
               break;
@@ -8169,7 +9129,7 @@ var FrappeAIPanel = (() => {
               recursivelyTraverseReappearLayoutEffects(
                 finishedRoot,
                 finishedWork,
-                includeWorkInProgressEffects
+                layoutEffectTraversalFlags
               );
               current = finishedWork;
               finishedRoot = current.stateNode;
@@ -8196,13 +9156,31 @@ var FrappeAIPanel = (() => {
               safelyAttachRef(finishedWork, finishedWork.return);
               break;
             case 27:
-              commitHostSingletonAcquisition(finishedWork);
-            case 26:
+              0 !== (layoutEffectTraversalFlags & 2) && commitHostSingletonAcquisition(finishedWork);
             case 5:
+              5 !== finishedWork.tag && 27 !== finishedWork.tag || commitFragmentInstanceInsertionEffects(finishedWork);
               recursivelyTraverseReappearLayoutEffects(
                 finishedRoot,
                 finishedWork,
-                includeWorkInProgressEffects
+                layoutEffectTraversalFlags
+              );
+              includeWorkInProgressEffects && null === current && flags & 4 && commitHostMount(finishedWork);
+              safelyAttachRef(finishedWork, finishedWork.return);
+              break;
+            case 6:
+              commitFragmentInstanceInsertionEffects(finishedWork);
+              break;
+            case 26:
+              instance = finishedWork.stateNode;
+              null !== finishedWork.memoizedState || null === instance || offscreenSubtreeIsHidden || mountHoistable(
+                getHoistableRoot(instance.ownerDocument),
+                finishedWork.type,
+                instance
+              );
+              recursivelyTraverseReappearLayoutEffects(
+                finishedRoot,
+                finishedWork,
+                layoutEffectTraversalFlags
               );
               includeWorkInProgressEffects && null === current && flags & 4 && commitHostMount(finishedWork);
               safelyAttachRef(finishedWork, finishedWork.return);
@@ -8211,14 +9189,14 @@ var FrappeAIPanel = (() => {
               recursivelyTraverseReappearLayoutEffects(
                 finishedRoot,
                 finishedWork,
-                includeWorkInProgressEffects
+                layoutEffectTraversalFlags
               );
               break;
             case 31:
               recursivelyTraverseReappearLayoutEffects(
                 finishedRoot,
                 finishedWork,
-                includeWorkInProgressEffects
+                layoutEffectTraversalFlags
               );
               includeWorkInProgressEffects && flags & 4 && commitActivityHydrationCallbacks(finishedRoot, finishedWork);
               break;
@@ -8226,7 +9204,7 @@ var FrappeAIPanel = (() => {
               recursivelyTraverseReappearLayoutEffects(
                 finishedRoot,
                 finishedWork,
-                includeWorkInProgressEffects
+                layoutEffectTraversalFlags
               );
               includeWorkInProgressEffects && flags & 4 && commitSuspenseHydrationCallbacks(finishedRoot, finishedWork);
               break;
@@ -8234,17 +9212,25 @@ var FrappeAIPanel = (() => {
               null === finishedWork.memoizedState && recursivelyTraverseReappearLayoutEffects(
                 finishedRoot,
                 finishedWork,
-                includeWorkInProgressEffects
+                layoutEffectTraversalFlags
               );
               safelyAttachRef(finishedWork, finishedWork.return);
               break;
             case 30:
+              recursivelyTraverseReappearLayoutEffects(
+                finishedRoot,
+                finishedWork,
+                layoutEffectTraversalFlags
+              );
+              safelyAttachRef(finishedWork, finishedWork.return);
               break;
+            case 7:
+              safelyAttachRef(finishedWork, finishedWork.return);
             default:
               recursivelyTraverseReappearLayoutEffects(
                 finishedRoot,
                 finishedWork,
-                includeWorkInProgressEffects
+                layoutEffectTraversalFlags
               );
           }
           parentFiber = parentFiber.sibling;
@@ -8264,7 +9250,8 @@ var FrappeAIPanel = (() => {
         finishedWork !== current && (finishedWork.refCount++, null != current && releaseCache(current));
       }
       function recursivelyTraversePassiveMountEffects(root2, parentFiber, committedLanes, committedTransitions) {
-        if (parentFiber.subtreeFlags & 10256)
+        var isViewTransitionEligible = (committedLanes & 335544064) === committedLanes;
+        if (parentFiber.subtreeFlags & (isViewTransitionEligible ? 10262 : 10256))
           for (parentFiber = parentFiber.child; null !== parentFiber; )
             commitPassiveMountOnFiber(
               root2,
@@ -8272,8 +9259,11 @@ var FrappeAIPanel = (() => {
               committedLanes,
               committedTransitions
             ), parentFiber = parentFiber.sibling;
+        else isViewTransitionEligible && restoreNestedViewTransitions(parentFiber);
       }
       function commitPassiveMountOnFiber(finishedRoot, finishedWork, committedLanes, committedTransitions) {
+        var isViewTransitionEligible = (committedLanes & 335544064) === committedLanes;
+        isViewTransitionEligible && null === finishedWork.alternate && null !== finishedWork.return && null !== finishedWork.return.alternate && restoreEnterOrExitViewTransitions(finishedWork);
         var flags = finishedWork.flags;
         switch (finishedWork.tag) {
           case 0:
@@ -8302,7 +9292,8 @@ var FrappeAIPanel = (() => {
               committedLanes,
               committedTransitions
             );
-            flags & 2048 && (finishedRoot = null, null !== finishedWork.alternate && (finishedRoot = finishedWork.alternate.memoizedState.cache), finishedWork = finishedWork.memoizedState.cache, finishedWork !== finishedRoot && (finishedWork.refCount++, null != finishedRoot && releaseCache(finishedRoot)));
+            isViewTransitionEligible && rootViewTransitionNameCanceled && (finishedRoot = finishedRoot.containerInfo, finishedRoot = 9 === finishedRoot.nodeType ? finishedRoot.body : "HTML" === finishedRoot.nodeName ? finishedRoot.ownerDocument.body : finishedRoot, "root" === finishedRoot.style.viewTransitionName && (finishedRoot.style.viewTransitionName = ""), finishedRoot = finishedRoot.ownerDocument.documentElement, null !== finishedRoot && "none" === finishedRoot.style.viewTransitionName && (finishedRoot.style.viewTransitionName = ""));
+            flags & 2048 && (flags = null, null !== finishedWork.alternate && (flags = finishedWork.alternate.memoizedState.cache), finishedWork = finishedWork.memoizedState.cache, finishedWork !== flags && (finishedWork.refCount++, null != flags && releaseCache(flags)));
             break;
           case 12:
             if (flags & 2048) {
@@ -8312,13 +9303,13 @@ var FrappeAIPanel = (() => {
                 committedLanes,
                 committedTransitions
               );
-              finishedRoot = finishedWork.stateNode;
+              flags = finishedWork.stateNode;
               try {
                 var _finishedWork$memoize2 = finishedWork.memoizedProps, id = _finishedWork$memoize2.id, onPostCommit = _finishedWork$memoize2.onPostCommit;
                 "function" === typeof onPostCommit && onPostCommit(
                   id,
                   null === finishedWork.alternate ? "mount" : "update",
-                  finishedRoot.passiveEffectDuration,
+                  flags.passiveEffectDuration,
                   -0
                 );
               } catch (error) {
@@ -8353,12 +9344,15 @@ var FrappeAIPanel = (() => {
           case 22:
             _finishedWork$memoize2 = finishedWork.stateNode;
             id = finishedWork.alternate;
-            null !== finishedWork.memoizedState ? _finishedWork$memoize2._visibility & 2 ? recursivelyTraversePassiveMountEffects(
+            null !== finishedWork.memoizedState ? (isViewTransitionEligible && null !== id && null === id.memoizedState && restoreEnterOrExitViewTransitions(id), _finishedWork$memoize2._visibility & 2 ? recursivelyTraversePassiveMountEffects(
               finishedRoot,
               finishedWork,
               committedLanes,
               committedTransitions
-            ) : recursivelyTraverseAtomicPassiveEffects(finishedRoot, finishedWork) : _finishedWork$memoize2._visibility & 2 ? recursivelyTraversePassiveMountEffects(
+            ) : recursivelyTraverseAtomicPassiveEffects(
+              finishedRoot,
+              finishedWork
+            )) : (isViewTransitionEligible && null !== id && null !== id.memoizedState && restoreEnterOrExitViewTransitions(finishedWork), _finishedWork$memoize2._visibility & 2 ? recursivelyTraversePassiveMountEffects(
               finishedRoot,
               finishedWork,
               committedLanes,
@@ -8369,7 +9363,7 @@ var FrappeAIPanel = (() => {
               committedLanes,
               committedTransitions,
               0 !== (finishedWork.subtreeFlags & 10256) || false
-            ));
+            )));
             flags & 2048 && commitOffscreenPassiveMountEffects(id, finishedWork);
             break;
           case 24:
@@ -8380,6 +9374,15 @@ var FrappeAIPanel = (() => {
               committedTransitions
             );
             flags & 2048 && commitCachePassiveMountEffect(finishedWork.alternate, finishedWork);
+            break;
+          case 30:
+            isViewTransitionEligible && (flags = finishedWork.alternate, null !== flags && (restoreViewTransitionOnHostInstances(flags.child, true), restoreViewTransitionOnHostInstances(finishedWork.child, true)));
+            recursivelyTraversePassiveMountEffects(
+              finishedRoot,
+              finishedWork,
+              committedLanes,
+              committedTransitions
+            );
             break;
           default:
             recursivelyTraversePassiveMountEffects(
@@ -8494,12 +9497,12 @@ var FrappeAIPanel = (() => {
               committedLanes,
               suspendedState
             );
-            fiber.flags & suspenseyCommitFlag && null !== fiber.memoizedState && suspendResource(
+            fiber.flags & suspenseyCommitFlag && (null !== fiber.memoizedState ? suspendResource(
               suspendedState,
               currentHoistableRoot,
               fiber.memoizedState,
               fiber.memoizedProps
-            );
+            ) : (fiber = fiber.stateNode, (committedLanes & 335544128) === committedLanes && suspendInstance(suspendedState, fiber)));
             break;
           case 5:
             recursivelyAccumulateSuspenseyCommit(
@@ -8507,6 +9510,7 @@ var FrappeAIPanel = (() => {
               committedLanes,
               suspendedState
             );
+            fiber.flags & suspenseyCommitFlag && (fiber = fiber.stateNode, (committedLanes & 335544128) === committedLanes && suspendInstance(suspendedState, fiber));
             break;
           case 3:
           case 4:
@@ -8529,6 +9533,19 @@ var FrappeAIPanel = (() => {
               committedLanes,
               suspendedState
             ));
+            break;
+          case 30:
+            if (0 !== (fiber.flags & suspenseyCommitFlag) && (previousHoistableRoot = fiber.memoizedProps.name, null != previousHoistableRoot && "auto" !== previousHoistableRoot)) {
+              var state = fiber.stateNode;
+              state.paired = null;
+              null === appearingViewTransitions && (appearingViewTransitions = /* @__PURE__ */ new Map());
+              appearingViewTransitions.set(previousHoistableRoot, state);
+            }
+            recursivelyAccumulateSuspenseyCommit(
+              fiber,
+              committedLanes,
+              suspendedState
+            );
             break;
           default:
             recursivelyAccumulateSuspenseyCommit(
@@ -8701,6 +9718,9 @@ var FrappeAIPanel = (() => {
       var pendingEffectsRemainingLanes = 0;
       var pendingPassiveTransitions = null;
       var pendingRecoverableErrors = null;
+      var pendingViewTransition = null;
+      var pendingViewTransitionEvents = null;
+      var pendingTransitionTypes = null;
       var nestedUpdateCount = 0;
       var rootWithNestedUpdates = null;
       function requestUpdateLane() {
@@ -8717,6 +9737,16 @@ var FrappeAIPanel = (() => {
         lane = suspenseHandlerStackCursor.current;
         null !== lane && (lane.flags |= 32);
         return workInProgressDeferredLane;
+      }
+      function scheduleViewTransitionEvent(fiber, callback) {
+        if (null != callback) {
+          var state = fiber.stateNode, instance = state.ref;
+          null === instance && (instance = state.ref = createViewTransitionInstance(
+            getViewTransitionName(fiber.memoizedProps, state)
+          ));
+          null === pendingViewTransitionEvents && (pendingViewTransitionEvents = []);
+          pendingViewTransitionEvents.push(callback.bind(null, instance));
+        }
       }
       function scheduleUpdateOnFiber(root2, fiber, lane) {
         if (root2 === workInProgressRoot && (2 === workInProgressSuspendedReason || 9 === workInProgressSuspendedReason) || null !== root2.cancelPendingCommit)
@@ -8767,7 +9797,7 @@ var FrappeAIPanel = (() => {
                     JSCompiler_inline_result,
                     false
                   );
-                  if (2 !== JSCompiler_inline_result) {
+                  if (2 !== JSCompiler_inline_result && 6 !== JSCompiler_inline_result) {
                     if (workInProgressRootDidAttachPingListener && !wasRootDehydrated) {
                       root2.errorRecoveryDisabledLanes |= renderWasConcurrent;
                       workInProgressRootInterleavedUpdatedLanes |= renderWasConcurrent;
@@ -8800,7 +9830,8 @@ var FrappeAIPanel = (() => {
                 case 1:
                   throw Error(formatProdErrorMessage(345));
                 case 4:
-                  if ((lanes & 4194048) !== lanes) break;
+                  if ((lanes & 4194048) !== lanes && (lanes & 62914560) !== lanes)
+                    break;
                 case 6:
                   markRootSuspended(
                     shouldTimeSlice,
@@ -8828,7 +9859,7 @@ var FrappeAIPanel = (() => {
                 if (0 !== getNextLanes(shouldTimeSlice, 0, true)) break a;
                 pendingEffectsLanes = lanes;
                 shouldTimeSlice.timeoutHandle = scheduleTimeout(
-                  commitRootWhenReady.bind(
+                  completeRootWhenReady.bind(
                     null,
                     shouldTimeSlice,
                     forceSync,
@@ -8849,7 +9880,7 @@ var FrappeAIPanel = (() => {
                 );
                 break a;
               }
-              commitRootWhenReady(
+              completeRootWhenReady(
                 shouldTimeSlice,
                 forceSync,
                 workInProgressRootRecoverableErrors,
@@ -8871,11 +9902,12 @@ var FrappeAIPanel = (() => {
         } while (1);
         ensureRootIsScheduled(root$jscomp$0);
       }
-      function commitRootWhenReady(root2, finishedWork, recoverableErrors, transitions, didIncludeRenderPhaseUpdate, lanes, spawnedLane, updatedLanes, suspendedRetryLanes, didSkipSuspendedSiblings, exitStatus, suspendedCommitReason, completedRenderStartTime, completedRenderEndTime) {
+      function completeRootWhenReady(root2, finishedWork, recoverableErrors, transitions, didIncludeRenderPhaseUpdate, lanes, spawnedLane, updatedLanes, suspendedRetryLanes, didSkipSuspendedSiblings, exitStatus, suspendedCommitReason, completedRenderStartTime, completedRenderEndTime) {
         root2.timeoutHandle = -1;
-        suspendedCommitReason = finishedWork.subtreeFlags;
-        if (suspendedCommitReason & 8192 || 16785408 === (suspendedCommitReason & 16785408)) {
-          suspendedCommitReason = {
+        var subtreeFlags = finishedWork.subtreeFlags, isViewTransitionEligible = (lanes & 335544064) === lanes;
+        suspendedCommitReason = null;
+        if (isViewTransitionEligible || subtreeFlags & 8192 || 16785408 === (subtreeFlags & 16785408)) {
+          if (suspendedCommitReason = {
             stylesheets: null,
             count: 0,
             imgCount: 0,
@@ -8884,21 +9916,17 @@ var FrappeAIPanel = (() => {
             waitingForImages: true,
             waitingForViewTransition: false,
             unsuspend: noop$1
-          };
-          accumulateSuspenseyCommitOnFiber(
+          }, appearingViewTransitions = null, accumulateSuspenseyCommitOnFiber(
             finishedWork,
             lanes,
             suspendedCommitReason
-          );
-          var timeoutOffset = (lanes & 62914560) === lanes ? globalMostRecentFallbackTime - now() : (lanes & 4194048) === lanes ? globalMostRecentTransitionTime - now() : 0;
-          timeoutOffset = waitForCommitToBeReady(
+          ), isViewTransitionEligible && (subtreeFlags = suspendedCommitReason, isViewTransitionEligible = root2.containerInfo, isViewTransitionEligible = (9 === isViewTransitionEligible.nodeType ? isViewTransitionEligible : isViewTransitionEligible.ownerDocument).__reactViewTransition, null != isViewTransitionEligible && (subtreeFlags.count++, subtreeFlags.waitingForViewTransition = true, subtreeFlags = onUnsuspend.bind(subtreeFlags), isViewTransitionEligible.finished.then(subtreeFlags, subtreeFlags))), subtreeFlags = (lanes & 62914560) === lanes ? globalMostRecentFallbackTime - now() : (lanes & 4194048) === lanes ? globalMostRecentTransitionTime - now() : 0, subtreeFlags = waitForCommitToBeReady(
             suspendedCommitReason,
-            timeoutOffset
-          );
-          if (null !== timeoutOffset) {
+            subtreeFlags
+          ), null !== subtreeFlags) {
             pendingEffectsLanes = lanes;
-            root2.cancelPendingCommit = timeoutOffset(
-              commitRoot.bind(
+            root2.cancelPendingCommit = subtreeFlags(
+              completeRoot.bind(
                 null,
                 root2,
                 finishedWork,
@@ -8909,6 +9937,7 @@ var FrappeAIPanel = (() => {
                 spawnedLane,
                 updatedLanes,
                 suspendedRetryLanes,
+                didSkipSuspendedSiblings,
                 exitStatus,
                 suspendedCommitReason,
                 null,
@@ -8920,7 +9949,7 @@ var FrappeAIPanel = (() => {
             return;
           }
         }
-        commitRoot(
+        completeRoot(
           root2,
           finishedWork,
           lanes,
@@ -8929,7 +9958,10 @@ var FrappeAIPanel = (() => {
           didIncludeRenderPhaseUpdate,
           spawnedLane,
           updatedLanes,
-          suspendedRetryLanes
+          suspendedRetryLanes,
+          didSkipSuspendedSiblings,
+          exitStatus,
+          suspendedCommitReason
         );
       }
       function isRenderConsistentWithExternalStores(finishedWork) {
@@ -8961,6 +9993,7 @@ var FrappeAIPanel = (() => {
         return true;
       }
       function markRootSuspended(root2, suspendedLanes, spawnedLane, didAttemptEntireTree) {
+        suspendedLanes = getEntangledLanes(root2, suspendedLanes);
         suspendedLanes &= ~workInProgressRootPingedLanes;
         suspendedLanes &= ~workInProgressRootInterleavedUpdatedLanes;
         root2.suspendedLanes |= suspendedLanes;
@@ -9006,15 +10039,7 @@ var FrappeAIPanel = (() => {
         workInProgressSuspendedRetryLanes = workInProgressDeferredLane = workInProgressRootPingedLanes = workInProgressRootInterleavedUpdatedLanes = workInProgressRootSkippedLanes = workInProgressRootExitStatus = 0;
         workInProgressRootRecoverableErrors = workInProgressRootConcurrentErrors = null;
         workInProgressRootDidIncludeRecursiveRenderUpdate = false;
-        0 !== (lanes & 8) && (lanes |= lanes & 32);
-        var allEntangledLanes = root2.entangledLanes;
-        if (0 !== allEntangledLanes)
-          for (root2 = root2.entanglements, allEntangledLanes &= lanes; 0 < allEntangledLanes; ) {
-            var index$4 = 31 - clz32(allEntangledLanes), lane = 1 << index$4;
-            lanes |= root2[index$4];
-            allEntangledLanes &= ~lane;
-          }
-        entangledRenderLanes = lanes;
+        entangledRenderLanes = getEntangledLanes(root2, lanes);
         finishQueueingConcurrentUpdates();
         return timeoutHandle;
       }
@@ -9090,8 +10115,8 @@ var FrappeAIPanel = (() => {
             workLoopSync();
             exitStatus = workInProgressRootExitStatus;
             break;
-          } catch (thrownValue$165) {
-            handleThrow(root2, thrownValue$165);
+          } catch (thrownValue$184) {
+            handleThrow(root2, thrownValue$184);
           }
         while (1);
         lanes && root2.shellSuspendCounter++;
@@ -9186,8 +10211,8 @@ var FrappeAIPanel = (() => {
             }
             workLoopConcurrentByScheduler();
             break;
-          } catch (thrownValue$167) {
-            handleThrow(root2, thrownValue$167);
+          } catch (thrownValue$186) {
+            handleThrow(root2, thrownValue$186);
           }
         while (1);
         lastContextDependency = currentlyRenderingFiber$1 = null;
@@ -9236,6 +10261,8 @@ var FrappeAIPanel = (() => {
             break;
           case 5:
             resetHooksOnUnwind(next);
+            var fiber = next;
+            fiber === hydrationParentFiber && (isHydrating ? (popToNextHostParent(fiber), 5 === fiber.tag && null != fiber.stateNode && (nextHydratableInstance = fiber.stateNode)) : (popToNextHostParent(fiber), isHydrating = true));
           default:
             unwindInterruptedWork(current, next), next = workInProgress = resetWorkInProgress(next, entangledRenderLanes), next = beginWork(current, next, entangledRenderLanes);
         }
@@ -9331,7 +10358,7 @@ var FrappeAIPanel = (() => {
         workInProgressRootExitStatus = 6;
         workInProgress = null;
       }
-      function commitRoot(root2, finishedWork, lanes, recoverableErrors, transitions, didIncludeRenderPhaseUpdate, spawnedLane, updatedLanes, suspendedRetryLanes) {
+      function completeRoot(root2, finishedWork, lanes, recoverableErrors, transitions, didIncludeRenderPhaseUpdate, spawnedLane, updatedLanes, suspendedRetryLanes, didSkipSuspendedSiblings, exitStatus, suspendedState) {
         root2.cancelPendingCommit = null;
         do
           flushPendingEffects();
@@ -9339,51 +10366,84 @@ var FrappeAIPanel = (() => {
         if (0 !== (executionContext & 6)) throw Error(formatProdErrorMessage(327));
         if (null !== finishedWork) {
           if (finishedWork === root2.current) throw Error(formatProdErrorMessage(177));
-          didIncludeRenderPhaseUpdate = finishedWork.lanes | finishedWork.childLanes;
-          didIncludeRenderPhaseUpdate |= concurrentlyUpdatedLanes;
-          markRootFinished(
-            root2,
-            lanes,
-            didIncludeRenderPhaseUpdate,
-            spawnedLane,
-            updatedLanes,
-            suspendedRetryLanes
-          );
           root2 === workInProgressRoot && (workInProgress = workInProgressRoot = null, workInProgressRootRenderLanes = 0);
           pendingFinishedWork = finishedWork;
           pendingEffectsRoot = root2;
           pendingEffectsLanes = lanes;
-          pendingEffectsRemainingLanes = didIncludeRenderPhaseUpdate;
           pendingPassiveTransitions = transitions;
           pendingRecoverableErrors = recoverableErrors;
-          0 !== (finishedWork.subtreeFlags & 10256) || 0 !== (finishedWork.flags & 10256) ? (root2.callbackNode = null, root2.callbackPriority = 0, scheduleCallback$1(NormalPriority$1, function() {
-            flushPassiveEffects();
-            return null;
-          })) : (root2.callbackNode = null, root2.callbackPriority = 0);
-          recoverableErrors = 0 !== (finishedWork.flags & 13878);
-          if (0 !== (finishedWork.subtreeFlags & 13878) || recoverableErrors) {
-            recoverableErrors = ReactSharedInternals.T;
-            ReactSharedInternals.T = null;
-            transitions = ReactDOMSharedInternals.p;
-            ReactDOMSharedInternals.p = 2;
-            spawnedLane = executionContext;
-            executionContext |= 4;
-            try {
-              commitBeforeMutationEffects(root2, finishedWork, lanes);
-            } finally {
-              executionContext = spawnedLane, ReactDOMSharedInternals.p = transitions, ReactSharedInternals.T = recoverableErrors;
-            }
-          }
-          pendingEffectsStatus = 1;
-          flushMutationEffects();
-          flushLayoutEffects();
-          flushSpawnedWork();
+          commitRoot(
+            root2,
+            finishedWork,
+            lanes,
+            spawnedLane,
+            updatedLanes,
+            suspendedRetryLanes,
+            suspendedState
+          );
         }
+      }
+      function commitRoot(root2, finishedWork, lanes, spawnedLane, updatedLanes, suspendedRetryLanes, suspendedState) {
+        var remainingLanes = finishedWork.lanes | finishedWork.childLanes;
+        pendingEffectsRemainingLanes = remainingLanes;
+        remainingLanes |= concurrentlyUpdatedLanes;
+        markRootFinished(
+          root2,
+          lanes,
+          remainingLanes,
+          spawnedLane,
+          updatedLanes,
+          suspendedRetryLanes
+        );
+        pendingViewTransitionEvents = null;
+        (lanes & 335544064) === lanes ? (pendingTransitionTypes = claimQueuedTransitionTypes(root2), spawnedLane = 10262) : (pendingTransitionTypes = null, spawnedLane = 10256);
+        0 !== (finishedWork.subtreeFlags & spawnedLane) || 0 !== (finishedWork.flags & spawnedLane) ? (root2.callbackNode = null, root2.callbackPriority = 0, scheduleCallback$1(NormalPriority$1, function() {
+          flushPassiveEffects();
+          return null;
+        })) : (root2.callbackNode = null, root2.callbackPriority = 0);
+        shouldStartViewTransition = false;
+        spawnedLane = 0 !== (finishedWork.flags & 13878);
+        if (0 !== (finishedWork.subtreeFlags & 13878) || spawnedLane) {
+          spawnedLane = ReactSharedInternals.T;
+          ReactSharedInternals.T = null;
+          updatedLanes = ReactDOMSharedInternals.p;
+          ReactDOMSharedInternals.p = 2;
+          suspendedRetryLanes = executionContext;
+          executionContext |= 4;
+          try {
+            commitBeforeMutationEffects(root2, finishedWork, lanes);
+          } finally {
+            executionContext = suspendedRetryLanes, ReactDOMSharedInternals.p = updatedLanes, ReactSharedInternals.T = spawnedLane;
+          }
+        }
+        pendingEffectsStatus = 1;
+        shouldStartViewTransition ? pendingViewTransition = startViewTransition(
+          suspendedState,
+          root2.containerInfo,
+          pendingTransitionTypes,
+          flushMutationEffects,
+          flushLayoutEffects,
+          flushAfterMutationEffects,
+          flushSpawnedWork,
+          flushPassiveEffects,
+          reportViewTransitionError,
+          null,
+          null
+        ) : (flushMutationEffects(), flushLayoutEffects(), flushSpawnedWork());
+      }
+      function reportViewTransitionError(error) {
+        if (0 !== pendingEffectsStatus) {
+          var onRecoverableError = pendingEffectsRoot.onRecoverableError;
+          onRecoverableError(error, { componentStack: null });
+        }
+      }
+      function flushAfterMutationEffects() {
+        3 === pendingEffectsStatus && (pendingEffectsStatus = 0, commitAfterMutationEffectsOnFiber(pendingFinishedWork, pendingEffectsRoot), pendingEffectsStatus = 4);
       }
       function flushMutationEffects() {
         if (1 === pendingEffectsStatus) {
           pendingEffectsStatus = 0;
-          var root2 = pendingEffectsRoot, finishedWork = pendingFinishedWork, rootMutationHasEffect = 0 !== (finishedWork.flags & 13878);
+          var root2 = pendingEffectsRoot, finishedWork = pendingFinishedWork, lanes = pendingEffectsLanes, rootMutationHasEffect = 0 !== (finishedWork.flags & 13878);
           if (0 !== (finishedWork.subtreeFlags & 13878) || rootMutationHasEffect) {
             rootMutationHasEffect = ReactSharedInternals.T;
             ReactSharedInternals.T = null;
@@ -9392,8 +10452,10 @@ var FrappeAIPanel = (() => {
             var prevExecutionContext = executionContext;
             executionContext |= 4;
             try {
-              commitMutationEffectsOnFiber(finishedWork, root2);
-              var priorSelectionInformation = selectionInformation, curFocusedElem = getActiveElementDeep(root2.containerInfo), priorFocusedElem = priorSelectionInformation.focusedElem, priorSelectionRange = priorSelectionInformation.selectionRange;
+              inUpdateViewTransition = rootViewTransitionAffected = false;
+              commitMutationEffectsOnFiber(finishedWork, root2, lanes);
+              lanes = selectionInformation;
+              var curFocusedElem = getActiveElementDeep(root2.containerInfo), priorFocusedElem = lanes.focusedElem, priorSelectionRange = lanes.selectionRange;
               if (curFocusedElem !== priorFocusedElem && priorFocusedElem && priorFocusedElem.ownerDocument && containsNode(
                 priorFocusedElem.ownerDocument.documentElement,
                 priorFocusedElem
@@ -9474,11 +10536,13 @@ var FrappeAIPanel = (() => {
       function flushSpawnedWork() {
         if (4 === pendingEffectsStatus || 3 === pendingEffectsStatus) {
           pendingEffectsStatus = 0;
+          var committedViewTransition = pendingViewTransition;
+          pendingViewTransition = null;
           requestPaint();
-          var root2 = pendingEffectsRoot, finishedWork = pendingFinishedWork, lanes = pendingEffectsLanes, recoverableErrors = pendingRecoverableErrors;
-          0 !== (finishedWork.subtreeFlags & 10256) || 0 !== (finishedWork.flags & 10256) ? pendingEffectsStatus = 5 : (pendingEffectsStatus = 0, pendingFinishedWork = pendingEffectsRoot = null, releaseRootPooledCache(root2, root2.pendingLanes));
-          var remainingLanes = root2.pendingLanes;
-          0 === remainingLanes && (legacyErrorBoundariesThatAlreadyFailed = null);
+          var root2 = pendingEffectsRoot, finishedWork = pendingFinishedWork, lanes = pendingEffectsLanes, recoverableErrors = pendingRecoverableErrors, passiveSubtreeMask = (lanes & 335544064) === lanes ? 10262 : 10256;
+          0 !== (finishedWork.subtreeFlags & passiveSubtreeMask) || 0 !== (finishedWork.flags & passiveSubtreeMask) ? pendingEffectsStatus = 5 : (pendingEffectsStatus = 0, pendingFinishedWork = pendingEffectsRoot = null, releaseRootPooledCache(root2, root2.pendingLanes));
+          passiveSubtreeMask = root2.pendingLanes;
+          0 === passiveSubtreeMask && (legacyErrorBoundariesThatAlreadyFailed = null);
           lanesToEventPriority(lanes);
           finishedWork = finishedWork.stateNode;
           if (injectedHook && "function" === typeof injectedHook.onCommitFiberRoot)
@@ -9493,7 +10557,7 @@ var FrappeAIPanel = (() => {
             }
           if (null !== recoverableErrors) {
             finishedWork = ReactSharedInternals.T;
-            remainingLanes = ReactDOMSharedInternals.p;
+            passiveSubtreeMask = ReactDOMSharedInternals.p;
             ReactDOMSharedInternals.p = 2;
             ReactSharedInternals.T = null;
             try {
@@ -9504,13 +10568,21 @@ var FrappeAIPanel = (() => {
                 });
               }
             } finally {
-              ReactSharedInternals.T = finishedWork, ReactDOMSharedInternals.p = remainingLanes;
+              ReactSharedInternals.T = finishedWork, ReactDOMSharedInternals.p = passiveSubtreeMask;
             }
           }
+          recoverableErrors = pendingViewTransitionEvents;
+          onRecoverableError = pendingTransitionTypes;
+          pendingTransitionTypes = null;
+          if (null !== recoverableErrors && (pendingViewTransitionEvents = null, null === onRecoverableError && (onRecoverableError = []), null !== committedViewTransition))
+            for (recoverableError = 0; recoverableError < recoverableErrors.length; recoverableError++)
+              finishedWork = (0, recoverableErrors[recoverableError])(
+                onRecoverableError
+              ), void 0 !== finishedWork && committedViewTransition.finished.finally(finishedWork);
           0 !== (pendingEffectsLanes & 3) && flushPendingEffects();
           ensureRootIsScheduled(root2);
-          remainingLanes = root2.pendingLanes;
-          0 !== (lanes & 261930) && 0 !== (remainingLanes & 42) ? root2 === rootWithNestedUpdates ? nestedUpdateCount++ : (nestedUpdateCount = 0, rootWithNestedUpdates = root2) : nestedUpdateCount = 0;
+          passiveSubtreeMask = root2.pendingLanes;
+          0 !== (lanes & 261930) && 0 !== (passiveSubtreeMask & 42) ? root2 === rootWithNestedUpdates ? nestedUpdateCount++ : (nestedUpdateCount = 0, rootWithNestedUpdates = root2) : (nestedUpdateCount = 0, rootWithNestedUpdates = null);
           flushSyncWorkAcrossRoots_impl(0, false);
         }
       }
@@ -9518,6 +10590,7 @@ var FrappeAIPanel = (() => {
         0 === (root2.pooledCacheLanes &= remainingLanes) && (remainingLanes = root2.pooledCache, null != remainingLanes && (root2.pooledCache = null, releaseCache(remainingLanes)));
       }
       function flushPendingEffects() {
+        null !== pendingViewTransition && (pendingViewTransition.skipTransition(), pendingViewTransition = null);
         flushMutationEffects();
         flushLayoutEffects();
         flushSpawnedWork();
@@ -9610,7 +10683,7 @@ var FrappeAIPanel = (() => {
         null !== pingCache && pingCache.delete(wakeable);
         root2.pingedLanes |= root2.suspendedLanes & pingedLanes;
         root2.warmLanes &= ~pingedLanes;
-        workInProgressRoot === root2 && (workInProgressRootRenderLanes & pingedLanes) === pingedLanes && (4 === workInProgressRootExitStatus || 3 === workInProgressRootExitStatus && (workInProgressRootRenderLanes & 62914560) === workInProgressRootRenderLanes && 300 > now() - globalMostRecentFallbackTime ? 0 === (executionContext & 2) && prepareFreshStack(root2, 0) : workInProgressRootPingedLanes |= pingedLanes, workInProgressSuspendedRetryLanes === workInProgressRootRenderLanes && (workInProgressSuspendedRetryLanes = 0));
+        workInProgressRoot === root2 && (workInProgressRootRenderLanes & pingedLanes) === pingedLanes && (4 === workInProgressRootExitStatus || 3 === workInProgressRootExitStatus && (workInProgressRootRenderLanes & 62914560) === workInProgressRootRenderLanes && 300 > now() - globalMostRecentFallbackTime ? 0 === (executionContext & 2) ? prepareFreshStack(root2, 0) : workInProgressRootPingedLanes |= pingedLanes : workInProgressRootPingedLanes |= pingedLanes, workInProgressSuspendedRetryLanes === workInProgressRootRenderLanes && (workInProgressSuspendedRetryLanes = 0));
         ensureRootIsScheduled(root2);
       }
       function retryTimedOutBoundary(boundaryFiber, retryLane) {
@@ -9663,25 +10736,25 @@ var FrappeAIPanel = (() => {
           isFlushingWork = true;
           do {
             var didPerformSomeWork = false;
-            for (var root$170 = firstScheduledRoot; null !== root$170; ) {
+            for (var root$190 = firstScheduledRoot; null !== root$190; ) {
               if (!onlyLegacy)
                 if (0 !== syncTransitionLanes) {
-                  var pendingLanes = root$170.pendingLanes;
+                  var pendingLanes = root$190.pendingLanes;
                   if (0 === pendingLanes) var JSCompiler_inline_result = 0;
                   else {
-                    var suspendedLanes = root$170.suspendedLanes, pingedLanes = root$170.pingedLanes;
+                    var suspendedLanes = root$190.suspendedLanes, pingedLanes = root$190.pingedLanes;
                     JSCompiler_inline_result = (1 << 31 - clz32(42 | syncTransitionLanes) + 1) - 1;
                     JSCompiler_inline_result &= pendingLanes & ~(suspendedLanes & ~pingedLanes);
                     JSCompiler_inline_result = JSCompiler_inline_result & 201326741 ? JSCompiler_inline_result & 201326741 | 1 : JSCompiler_inline_result ? JSCompiler_inline_result | 2 : 0;
                   }
-                  0 !== JSCompiler_inline_result && (didPerformSomeWork = true, performSyncWorkOnRoot(root$170, JSCompiler_inline_result));
+                  0 !== JSCompiler_inline_result && (didPerformSomeWork = true, performSyncWorkOnRoot(root$190, JSCompiler_inline_result));
                 } else
                   JSCompiler_inline_result = workInProgressRootRenderLanes, JSCompiler_inline_result = getNextLanes(
-                    root$170,
-                    root$170 === workInProgressRoot ? JSCompiler_inline_result : 0,
-                    null !== root$170.cancelPendingCommit || -1 !== root$170.timeoutHandle
-                  ), 0 === (JSCompiler_inline_result & 3) || checkIfRootIsPrerendering(root$170, JSCompiler_inline_result) || (didPerformSomeWork = true, performSyncWorkOnRoot(root$170, JSCompiler_inline_result));
-              root$170 = root$170.next;
+                    root$190,
+                    root$190 === workInProgressRoot ? JSCompiler_inline_result : 0,
+                    null !== root$190.cancelPendingCommit || -1 !== root$190.timeoutHandle
+                  ), 0 === (JSCompiler_inline_result & 3) || checkIfRootIsPrerendering(root$190, JSCompiler_inline_result) || (didPerformSomeWork = true, performSyncWorkOnRoot(root$190, JSCompiler_inline_result));
+              root$190 = root$190.next;
             }
           } while (didPerformSomeWork);
           isFlushingWork = false;
@@ -9791,17 +10864,7 @@ var FrappeAIPanel = (() => {
         return currentEventTransitionLane;
       }
       function coerceFormActionProp(actionProp) {
-        return null == actionProp || "symbol" === typeof actionProp || "boolean" === typeof actionProp ? null : "function" === typeof actionProp ? actionProp : sanitizeURL("" + actionProp);
-      }
-      function createFormDataWithSubmitter(form, submitter) {
-        var temp = submitter.ownerDocument.createElement("input");
-        temp.name = submitter.name;
-        temp.value = submitter.value;
-        form.id && temp.setAttribute("form", form.id);
-        submitter.parentNode.insertBefore(temp, submitter);
-        form = new FormData(form);
-        temp.parentNode.removeChild(temp);
-        return form;
+        return null == actionProp || "symbol" === typeof actionProp || "boolean" === typeof actionProp ? null : "function" === typeof actionProp ? actionProp : sanitizeURL(actionProp);
       }
       function extractEvents$1(dispatchQueue, domEventName, maybeTargetInst, nativeEvent, nativeEventTarget) {
         if ("submit" === domEventName && maybeTargetInst && maybeTargetInst.stateNode === nativeEventTarget) {
@@ -9824,7 +10887,7 @@ var FrappeAIPanel = (() => {
                 listener: function() {
                   if (nativeEvent.defaultPrevented) {
                     if (0 !== currentEventTransitionLane) {
-                      var formData = submitter ? createFormDataWithSubmitter(nativeEventTarget, submitter) : new FormData(nativeEventTarget);
+                      var formData = new FormData(nativeEventTarget, submitter);
                       startHostTransition(
                         maybeTargetInst,
                         {
@@ -9838,7 +10901,7 @@ var FrappeAIPanel = (() => {
                       );
                     }
                   } else
-                    "function" === typeof action && (event.preventDefault(), formData = submitter ? createFormDataWithSubmitter(nativeEventTarget, submitter) : new FormData(nativeEventTarget), startHostTransition(
+                    "function" === typeof action && (event.preventDefault(), formData = new FormData(nativeEventTarget, submitter), startHostTransition(
                       maybeTargetInst,
                       {
                         pending: true,
@@ -9856,17 +10919,17 @@ var FrappeAIPanel = (() => {
           });
         }
       }
-      for (i$jscomp$inline_1577 = 0; i$jscomp$inline_1577 < simpleEventPluginEvents.length; i$jscomp$inline_1577++) {
-        eventName$jscomp$inline_1578 = simpleEventPluginEvents[i$jscomp$inline_1577], domEventName$jscomp$inline_1579 = eventName$jscomp$inline_1578.toLowerCase(), capitalizedEvent$jscomp$inline_1580 = eventName$jscomp$inline_1578[0].toUpperCase() + eventName$jscomp$inline_1578.slice(1);
+      for (i$jscomp$inline_1667 = 0; i$jscomp$inline_1667 < simpleEventPluginEvents.length; i$jscomp$inline_1667++) {
+        eventName$jscomp$inline_1668 = simpleEventPluginEvents[i$jscomp$inline_1667], domEventName$jscomp$inline_1669 = eventName$jscomp$inline_1668.toLowerCase(), capitalizedEvent$jscomp$inline_1670 = eventName$jscomp$inline_1668[0].toUpperCase() + eventName$jscomp$inline_1668.slice(1);
         registerSimpleEvent(
-          domEventName$jscomp$inline_1579,
-          "on" + capitalizedEvent$jscomp$inline_1580
+          domEventName$jscomp$inline_1669,
+          "on" + capitalizedEvent$jscomp$inline_1670
         );
       }
-      var eventName$jscomp$inline_1578;
-      var domEventName$jscomp$inline_1579;
-      var capitalizedEvent$jscomp$inline_1580;
-      var i$jscomp$inline_1577;
+      var eventName$jscomp$inline_1668;
+      var domEventName$jscomp$inline_1669;
+      var capitalizedEvent$jscomp$inline_1670;
+      var i$jscomp$inline_1667;
       registerSimpleEvent(ANIMATION_END, "onAnimationEnd");
       registerSimpleEvent(ANIMATION_ITERATION, "onAnimationIteration");
       registerSimpleEvent(ANIMATION_START, "onAnimationStart");
@@ -10124,6 +11187,9 @@ var FrappeAIPanel = (() => {
                 case "pointerup":
                   SyntheticEventCtor = SyntheticPointerEvent;
                   break;
+                case "submit":
+                  SyntheticEventCtor = SyntheticSubmitEvent;
+                  break;
                 case "toggle":
                 case "beforetoggle":
                   SyntheticEventCtor = SyntheticToggleEvent;
@@ -10151,80 +11217,59 @@ var FrappeAIPanel = (() => {
           }
           if (0 === (eventSystemFlags & 7)) {
             a: {
-              reactName = "mouseover" === domEventName || "pointerover" === domEventName;
-              SyntheticEventCtor = "mouseout" === domEventName || "pointerout" === domEventName;
-              if (reactName && nativeEvent !== currentReplayingEvent && (reactEventType = nativeEvent.relatedTarget || nativeEvent.fromElement) && (getClosestInstanceFromNode(reactEventType) || reactEventType[internalContainerInstanceKey]))
+              SyntheticEventCtor = "mouseover" === domEventName || "pointerover" === domEventName;
+              reactName = "mouseout" === domEventName || "pointerout" === domEventName;
+              if (SyntheticEventCtor && nativeEvent !== currentReplayingEvent && (reactEventType = nativeEvent.relatedTarget || nativeEvent.fromElement) && (getClosestInstanceFromNode(reactEventType) || reactEventType[internalContainerInstanceKey]))
                 break a;
-              if (SyntheticEventCtor || reactName) {
-                reactName = nativeEventTarget.window === nativeEventTarget ? nativeEventTarget : (reactName = nativeEventTarget.ownerDocument) ? reactName.defaultView || reactName.parentWindow : window;
-                if (SyntheticEventCtor) {
-                  if (reactEventType = nativeEvent.relatedTarget || nativeEvent.toElement, SyntheticEventCtor = targetInst, reactEventType = reactEventType ? getClosestInstanceFromNode(reactEventType) : null, null !== reactEventType && (accumulateTargetOnly = getNearestMountedFiber(reactEventType), inCapturePhase = reactEventType.tag, reactEventType !== accumulateTargetOnly || 5 !== inCapturePhase && 27 !== inCapturePhase && 6 !== inCapturePhase))
-                    reactEventType = null;
-                } else SyntheticEventCtor = null, reactEventType = targetInst;
-                if (SyntheticEventCtor !== reactEventType) {
+              if (reactName || SyntheticEventCtor) {
+                reactEventType = nativeEventTarget.window === nativeEventTarget ? nativeEventTarget : (SyntheticEventCtor = nativeEventTarget.ownerDocument) ? SyntheticEventCtor.defaultView || SyntheticEventCtor.parentWindow : window;
+                if (reactName) {
+                  if (SyntheticEventCtor = nativeEvent.relatedTarget || nativeEvent.toElement, reactName = targetInst, SyntheticEventCtor = SyntheticEventCtor ? getClosestInstanceFromNode(SyntheticEventCtor) : null, null !== SyntheticEventCtor && (accumulateTargetOnly = getNearestMountedFiber(SyntheticEventCtor), inCapturePhase = SyntheticEventCtor.tag, SyntheticEventCtor !== accumulateTargetOnly || 5 !== inCapturePhase && 27 !== inCapturePhase && 6 !== inCapturePhase))
+                    SyntheticEventCtor = null;
+                } else reactName = null, SyntheticEventCtor = targetInst;
+                if (reactName !== SyntheticEventCtor) {
                   inCapturePhase = SyntheticMouseEvent;
                   _instance = "onMouseLeave";
                   reactEventName = "onMouseEnter";
                   instance = "mouse";
                   if ("pointerout" === domEventName || "pointerover" === domEventName)
                     inCapturePhase = SyntheticPointerEvent, _instance = "onPointerLeave", reactEventName = "onPointerEnter", instance = "pointer";
-                  accumulateTargetOnly = null == SyntheticEventCtor ? reactName : getNodeFromInstance(SyntheticEventCtor);
-                  lastHostComponent = null == reactEventType ? reactName : getNodeFromInstance(reactEventType);
-                  reactName = new inCapturePhase(
+                  accumulateTargetOnly = null == reactName ? reactEventType : getNodeFromInstance(reactName);
+                  lastHostComponent = null == SyntheticEventCtor ? reactEventType : getNodeFromInstance(SyntheticEventCtor);
+                  reactEventType = new inCapturePhase(
                     _instance,
                     instance + "leave",
-                    SyntheticEventCtor,
+                    reactName,
                     nativeEvent,
                     nativeEventTarget
                   );
-                  reactName.target = accumulateTargetOnly;
-                  reactName.relatedTarget = lastHostComponent;
+                  reactEventType.target = accumulateTargetOnly;
+                  reactEventType.relatedTarget = lastHostComponent;
                   _instance = null;
                   getClosestInstanceFromNode(nativeEventTarget) === targetInst && (inCapturePhase = new inCapturePhase(
                     reactEventName,
                     instance + "enter",
-                    reactEventType,
+                    SyntheticEventCtor,
                     nativeEvent,
                     nativeEventTarget
                   ), inCapturePhase.target = lastHostComponent, inCapturePhase.relatedTarget = accumulateTargetOnly, _instance = inCapturePhase);
                   accumulateTargetOnly = _instance;
-                  if (SyntheticEventCtor && reactEventType)
-                    b: {
-                      inCapturePhase = getParent;
-                      reactEventName = SyntheticEventCtor;
-                      instance = reactEventType;
-                      lastHostComponent = 0;
-                      for (_instance = reactEventName; _instance; _instance = inCapturePhase(_instance))
-                        lastHostComponent++;
-                      _instance = 0;
-                      for (var tempB = instance; tempB; tempB = inCapturePhase(tempB))
-                        _instance++;
-                      for (; 0 < lastHostComponent - _instance; )
-                        reactEventName = inCapturePhase(reactEventName), lastHostComponent--;
-                      for (; 0 < _instance - lastHostComponent; )
-                        instance = inCapturePhase(instance), _instance--;
-                      for (; lastHostComponent--; ) {
-                        if (reactEventName === instance || null !== instance && reactEventName === instance.alternate) {
-                          inCapturePhase = reactEventName;
-                          break b;
-                        }
-                        reactEventName = inCapturePhase(reactEventName);
-                        instance = inCapturePhase(instance);
-                      }
-                      inCapturePhase = null;
-                    }
-                  else inCapturePhase = null;
-                  null !== SyntheticEventCtor && accumulateEnterLeaveListenersForEvent(
-                    dispatchQueue,
+                  inCapturePhase = reactName && SyntheticEventCtor ? getLowestCommonAncestor(
                     reactName,
                     SyntheticEventCtor,
+                    getParent
+                  ) : null;
+                  null !== reactName && accumulateEnterLeaveListenersForEvent(
+                    dispatchQueue,
+                    reactEventType,
+                    reactName,
                     inCapturePhase,
                     false
                   );
-                  null !== reactEventType && null !== accumulateTargetOnly && accumulateEnterLeaveListenersForEvent(
+                  null !== SyntheticEventCtor && null !== accumulateTargetOnly && accumulateEnterLeaveListenersForEvent(
                     dispatchQueue,
                     accumulateTargetOnly,
-                    reactEventType,
+                    SyntheticEventCtor,
                     inCapturePhase,
                     true
                   );
@@ -10255,7 +11300,6 @@ var FrappeAIPanel = (() => {
                 break a;
               }
               handleEventFunc && handleEventFunc(domEventName, reactName, targetInst);
-              "focusout" === domEventName && targetInst && "number" === reactName.type && null != targetInst.memoizedProps.value && setDefaultValue(reactName, "number", reactName.value);
             }
             handleEventFunc = targetInst ? getNodeFromInstance(targetInst) : window;
             switch (domEventName) {
@@ -10382,7 +11426,11 @@ var FrappeAIPanel = (() => {
       function setProp(domElement, tag, key, value, props, prevValue) {
         switch (key) {
           case "children":
-            "string" === typeof value ? "body" === tag || "textarea" === tag && "" === value || setTextContent(domElement, value) : ("number" === typeof value || "bigint" === typeof value) && "body" !== tag && setTextContent(domElement, "" + value);
+            if ("string" === typeof value)
+              "body" === tag || "textarea" === tag && "" === value || setTextContent(domElement, value);
+            else if ("number" === typeof value || "bigint" === typeof value)
+              "body" !== tag && setTextContent(domElement, "" + value);
+            else return;
             break;
           case "className":
             setValueForKnownAttribute(domElement, "class", value);
@@ -10399,7 +11447,7 @@ var FrappeAIPanel = (() => {
             break;
           case "style":
             setValueForStyles(domElement, value, prevValue);
-            break;
+            return;
           case "data":
             if ("object" !== tag) {
               setValueForKnownAttribute(domElement, "data", value);
@@ -10415,7 +11463,7 @@ var FrappeAIPanel = (() => {
               domElement.removeAttribute(key);
               break;
             }
-            value = sanitizeURL("" + value);
+            value = sanitizeURL(value);
             domElement.setAttribute(key, value);
             break;
           case "action":
@@ -10453,18 +11501,18 @@ var FrappeAIPanel = (() => {
               domElement.removeAttribute(key);
               break;
             }
-            value = sanitizeURL("" + value);
+            value = sanitizeURL(value);
             domElement.setAttribute(key, value);
             break;
           case "onClick":
             null != value && (domElement.onclick = noop$1);
-            break;
+            return;
           case "onScroll":
             null != value && listenToNonDelegatedEvent("scroll", domElement);
-            break;
+            return;
           case "onScrollEnd":
             null != value && listenToNonDelegatedEvent("scrollend", domElement);
-            break;
+            return;
           case "dangerouslySetInnerHTML":
             if (null != value) {
               if ("object" !== typeof value || !("__html" in value))
@@ -10472,7 +11520,7 @@ var FrappeAIPanel = (() => {
               key = value.__html;
               if (null != key) {
                 if (null != props.children) throw Error(formatProdErrorMessage(60));
-                domElement.innerHTML = key;
+                (null != prevValue ? prevValue.__html : void 0) !== key && (domElement.innerHTML = key);
               }
             }
             break;
@@ -10496,7 +11544,7 @@ var FrappeAIPanel = (() => {
               domElement.removeAttribute("xlink:href");
               break;
             }
-            key = sanitizeURL("" + value);
+            key = sanitizeURL(value);
             domElement.setAttributeNS(
               "http://www.w3.org/1999/xlink",
               "xlink:href",
@@ -10511,13 +11559,14 @@ var FrappeAIPanel = (() => {
           case "externalResourcesRequired":
           case "focusable":
           case "preserveAlpha":
-            null != value && "function" !== typeof value && "symbol" !== typeof value ? domElement.setAttribute(key, "" + value) : domElement.removeAttribute(key);
+            null != value && "function" !== typeof value && "symbol" !== typeof value ? domElement.setAttribute(key, value) : domElement.removeAttribute(key);
             break;
           case "inert":
           case "allowFullScreen":
           case "async":
           case "autoPlay":
           case "controls":
+          case "credentialless":
           case "default":
           case "defer":
           case "disabled":
@@ -10634,17 +11683,19 @@ var FrappeAIPanel = (() => {
             break;
           case "innerText":
           case "textContent":
-            break;
+            return;
           default:
             if (!(2 < key.length) || "o" !== key[0] && "O" !== key[0] || "n" !== key[1] && "N" !== key[1])
               key = aliases.get(key) || key, setValueForAttribute(domElement, key, value);
+            else return;
         }
+        viewTransitionMutationContext = true;
       }
       function setPropOnCustomElement(domElement, tag, key, value, props, prevValue) {
         switch (key) {
           case "style":
             setValueForStyles(domElement, value, prevValue);
-            break;
+            return;
           case "dangerouslySetInnerHTML":
             if (null != value) {
               if ("object" !== typeof value || !("__html" in value))
@@ -10652,41 +11703,47 @@ var FrappeAIPanel = (() => {
               key = value.__html;
               if (null != key) {
                 if (null != props.children) throw Error(formatProdErrorMessage(60));
-                domElement.innerHTML = key;
+                (null != prevValue ? prevValue.__html : void 0) !== key && (domElement.innerHTML = key);
               }
             }
             break;
           case "children":
-            "string" === typeof value ? setTextContent(domElement, value) : ("number" === typeof value || "bigint" === typeof value) && setTextContent(domElement, "" + value);
+            if ("string" === typeof value) setTextContent(domElement, value);
+            else if ("number" === typeof value || "bigint" === typeof value)
+              setTextContent(domElement, "" + value);
+            else return;
             break;
           case "onScroll":
             null != value && listenToNonDelegatedEvent("scroll", domElement);
-            break;
+            return;
           case "onScrollEnd":
             null != value && listenToNonDelegatedEvent("scrollend", domElement);
-            break;
+            return;
           case "onClick":
             null != value && (domElement.onclick = noop$1);
-            break;
+            return;
           case "suppressContentEditableWarning":
           case "suppressHydrationWarning":
           case "innerHTML":
           case "ref":
-            break;
+            return;
           case "innerText":
           case "textContent":
-            break;
+            return;
           default:
             if (!registrationNameDependencies.hasOwnProperty(key))
               a: {
-                if ("o" === key[0] && "n" === key[1] && (props = key.endsWith("Capture"), tag = key.slice(2, props ? key.length - 7 : void 0), prevValue = domElement[internalPropsKey] || null, prevValue = null != prevValue ? prevValue[key] : null, "function" === typeof prevValue && domElement.removeEventListener(tag, prevValue, props), "function" === typeof value)) {
-                  "function" !== typeof prevValue && null !== prevValue && (key in domElement ? domElement[key] = null : domElement.hasAttribute(key) && domElement.removeAttribute(key));
-                  domElement.addEventListener(tag, value, props);
+                if ("o" === key[0] && "n" === key[1] && (props = key.endsWith("Capture"), prevValue = key.slice(2, props ? key.length - 7 : void 0), tag = domElement[internalPropsKey] || null, tag = null != tag ? tag[key] : null, "function" === typeof tag && domElement.removeEventListener(prevValue, tag, props), "function" === typeof value)) {
+                  "function" !== typeof tag && null !== tag && (key in domElement ? domElement[key] = null : domElement.hasAttribute(key) && domElement.removeAttribute(key));
+                  domElement.addEventListener(prevValue, value, props);
                   break a;
                 }
+                viewTransitionMutationContext = true;
                 key in domElement ? domElement[key] = value : true === value ? domElement.setAttribute(key, "") : setValueForAttribute(domElement, key, value);
               }
+            return;
         }
+        viewTransitionMutationContext = true;
       }
       function setInitialProperties(domElement, tag, props) {
         switch (tag) {
@@ -10729,34 +11786,34 @@ var FrappeAIPanel = (() => {
             var defaultValue = propKey = propValue = hasSrcSet = null, checked = null, defaultChecked = null;
             for (hasSrc in props)
               if (props.hasOwnProperty(hasSrc)) {
-                var propValue$184 = props[hasSrc];
-                if (null != propValue$184)
+                var propValue$204 = props[hasSrc];
+                if (null != propValue$204)
                   switch (hasSrc) {
                     case "name":
-                      hasSrcSet = propValue$184;
+                      hasSrcSet = propValue$204;
                       break;
                     case "type":
-                      propValue = propValue$184;
+                      propValue = propValue$204;
                       break;
                     case "checked":
-                      checked = propValue$184;
+                      checked = propValue$204;
                       break;
                     case "defaultChecked":
-                      defaultChecked = propValue$184;
+                      defaultChecked = propValue$204;
                       break;
                     case "value":
-                      propKey = propValue$184;
+                      propKey = propValue$204;
                       break;
                     case "defaultValue":
-                      defaultValue = propValue$184;
+                      defaultValue = propValue$204;
                       break;
                     case "children":
                     case "dangerouslySetInnerHTML":
-                      if (null != propValue$184)
+                      if (null != propValue$204)
                         throw Error(formatProdErrorMessage(137, tag));
                       break;
                     default:
-                      setProp(domElement, tag, hasSrc, propValue$184, props, null);
+                      setProp(domElement, tag, hasSrc, propValue$204, props, null);
                   }
               }
             initInput(
@@ -10875,11 +11932,11 @@ var FrappeAIPanel = (() => {
             return;
           default:
             if (isCustomElement(tag)) {
-              for (propValue$184 in props)
-                props.hasOwnProperty(propValue$184) && (hasSrc = props[propValue$184], void 0 !== hasSrc && setPropOnCustomElement(
+              for (propValue$204 in props)
+                props.hasOwnProperty(propValue$204) && (hasSrc = props[propValue$204], void 0 !== hasSrc && setPropOnCustomElement(
                   domElement,
                   tag,
-                  propValue$184,
+                  propValue$204,
                   hasSrc,
                   props,
                   void 0
@@ -10890,6 +11947,7 @@ var FrappeAIPanel = (() => {
         for (defaultValue in props)
           props.hasOwnProperty(defaultValue) && (hasSrc = props[defaultValue], null != hasSrc && setProp(domElement, tag, defaultValue, hasSrc, props, null));
       }
+      var emptyProps = {};
       function updateProperties(domElement, tag, lastProps, nextProps) {
         switch (tag) {
           case "div":
@@ -10917,27 +11975,33 @@ var FrappeAIPanel = (() => {
                     nextProps.hasOwnProperty(propKey) || setProp(domElement, tag, propKey, null, nextProps, lastProp);
                 }
             }
-            for (var propKey$201 in nextProps) {
-              var propKey = nextProps[propKey$201];
-              lastProp = lastProps[propKey$201];
-              if (nextProps.hasOwnProperty(propKey$201) && (null != propKey || null != lastProp))
-                switch (propKey$201) {
+            for (var propKey$221 in nextProps) {
+              var propKey = nextProps[propKey$221];
+              lastProp = lastProps[propKey$221];
+              if (nextProps.hasOwnProperty(propKey$221) && (null != propKey || null != lastProp))
+                switch (propKey$221) {
                   case "type":
+                    propKey !== lastProp && (viewTransitionMutationContext = true);
                     type = propKey;
                     break;
                   case "name":
+                    propKey !== lastProp && (viewTransitionMutationContext = true);
                     name = propKey;
                     break;
                   case "checked":
+                    propKey !== lastProp && (viewTransitionMutationContext = true);
                     checked = propKey;
                     break;
                   case "defaultChecked":
+                    propKey !== lastProp && (viewTransitionMutationContext = true);
                     defaultChecked = propKey;
                     break;
                   case "value":
+                    propKey !== lastProp && (viewTransitionMutationContext = true);
                     value = propKey;
                     break;
                   case "defaultValue":
+                    propKey !== lastProp && (viewTransitionMutationContext = true);
                     defaultValue = propKey;
                     break;
                   case "children":
@@ -10949,7 +12013,7 @@ var FrappeAIPanel = (() => {
                     propKey !== lastProp && setProp(
                       domElement,
                       tag,
-                      propKey$201,
+                      propKey$221,
                       propKey,
                       nextProps,
                       lastProp
@@ -10968,7 +12032,7 @@ var FrappeAIPanel = (() => {
             );
             return;
           case "select":
-            propKey = value = defaultValue = propKey$201 = null;
+            propKey = value = defaultValue = propKey$221 = null;
             for (type in lastProps)
               if (lastDefaultValue = lastProps[type], lastProps.hasOwnProperty(type) && null != lastDefaultValue)
                 switch (type) {
@@ -10990,13 +12054,15 @@ var FrappeAIPanel = (() => {
               if (type = nextProps[name], lastDefaultValue = lastProps[name], nextProps.hasOwnProperty(name) && (null != type || null != lastDefaultValue))
                 switch (name) {
                   case "value":
-                    propKey$201 = type;
+                    type !== lastDefaultValue && (viewTransitionMutationContext = true);
+                    propKey$221 = type;
                     break;
                   case "defaultValue":
+                    type !== lastDefaultValue && (viewTransitionMutationContext = true);
                     defaultValue = type;
                     break;
                   case "multiple":
-                    value = type;
+                    type !== lastDefaultValue && (viewTransitionMutationContext = true), value = type;
                   default:
                     type !== lastDefaultValue && setProp(
                       domElement,
@@ -11010,10 +12076,10 @@ var FrappeAIPanel = (() => {
             tag = defaultValue;
             lastProps = value;
             nextProps = propKey;
-            null != propKey$201 ? updateOptions(domElement, !!lastProps, propKey$201, false) : !!nextProps !== !!lastProps && (null != tag ? updateOptions(domElement, !!lastProps, tag, true) : updateOptions(domElement, !!lastProps, lastProps ? [] : "", false));
+            null != propKey$221 ? updateOptions(domElement, !!lastProps, propKey$221, false) : !!nextProps !== !!lastProps && (null != tag ? updateOptions(domElement, !!lastProps, tag, true) : updateOptions(domElement, !!lastProps, lastProps ? [] : "", false));
             return;
           case "textarea":
-            propKey = propKey$201 = null;
+            propKey = propKey$221 = null;
             for (defaultValue in lastProps)
               if (name = lastProps[defaultValue], lastProps.hasOwnProperty(defaultValue) && null != name && !nextProps.hasOwnProperty(defaultValue))
                 switch (defaultValue) {
@@ -11028,9 +12094,11 @@ var FrappeAIPanel = (() => {
               if (name = nextProps[value], type = lastProps[value], nextProps.hasOwnProperty(value) && (null != name || null != type))
                 switch (value) {
                   case "value":
-                    propKey$201 = name;
+                    name !== type && (viewTransitionMutationContext = true);
+                    propKey$221 = name;
                     break;
                   case "defaultValue":
+                    name !== type && (viewTransitionMutationContext = true);
                     propKey = name;
                     break;
                   case "children":
@@ -11041,12 +12109,12 @@ var FrappeAIPanel = (() => {
                   default:
                     name !== type && setProp(domElement, tag, value, name, nextProps, type);
                 }
-            updateTextarea(domElement, propKey$201, propKey);
+            updateTextarea(domElement, propKey$221, propKey);
             return;
           case "option":
-            for (var propKey$217 in lastProps)
-              if (propKey$201 = lastProps[propKey$217], lastProps.hasOwnProperty(propKey$217) && null != propKey$201 && !nextProps.hasOwnProperty(propKey$217))
-                switch (propKey$217) {
+            for (var propKey$237 in lastProps)
+              if (propKey$221 = lastProps[propKey$237], lastProps.hasOwnProperty(propKey$237) && null != propKey$221 && !nextProps.hasOwnProperty(propKey$237))
+                switch (propKey$237) {
                   case "selected":
                     domElement.selected = false;
                     break;
@@ -11054,24 +12122,25 @@ var FrappeAIPanel = (() => {
                     setProp(
                       domElement,
                       tag,
-                      propKey$217,
+                      propKey$237,
                       null,
                       nextProps,
-                      propKey$201
+                      propKey$221
                     );
                 }
             for (lastDefaultValue in nextProps)
-              if (propKey$201 = nextProps[lastDefaultValue], propKey = lastProps[lastDefaultValue], nextProps.hasOwnProperty(lastDefaultValue) && propKey$201 !== propKey && (null != propKey$201 || null != propKey))
+              if (propKey$221 = nextProps[lastDefaultValue], propKey = lastProps[lastDefaultValue], nextProps.hasOwnProperty(lastDefaultValue) && propKey$221 !== propKey && (null != propKey$221 || null != propKey))
                 switch (lastDefaultValue) {
                   case "selected":
-                    domElement.selected = propKey$201 && "function" !== typeof propKey$201 && "symbol" !== typeof propKey$201;
+                    propKey$221 !== propKey && (viewTransitionMutationContext = true);
+                    domElement.selected = propKey$221 && "function" !== typeof propKey$221 && "symbol" !== typeof propKey$221;
                     break;
                   default:
                     setProp(
                       domElement,
                       tag,
                       lastDefaultValue,
-                      propKey$201,
+                      propKey$221,
                       nextProps,
                       propKey
                     );
@@ -11092,14 +12161,14 @@ var FrappeAIPanel = (() => {
           case "track":
           case "wbr":
           case "menuitem":
-            for (var propKey$222 in lastProps)
-              propKey$201 = lastProps[propKey$222], lastProps.hasOwnProperty(propKey$222) && null != propKey$201 && !nextProps.hasOwnProperty(propKey$222) && setProp(domElement, tag, propKey$222, null, nextProps, propKey$201);
+            for (var propKey$242 in lastProps)
+              propKey$221 = lastProps[propKey$242], lastProps.hasOwnProperty(propKey$242) && null != propKey$221 && !nextProps.hasOwnProperty(propKey$242) && setProp(domElement, tag, propKey$242, null, nextProps, propKey$221);
             for (checked in nextProps)
-              if (propKey$201 = nextProps[checked], propKey = lastProps[checked], nextProps.hasOwnProperty(checked) && propKey$201 !== propKey && (null != propKey$201 || null != propKey))
+              if (propKey$221 = nextProps[checked], propKey = lastProps[checked], nextProps.hasOwnProperty(checked) && propKey$221 !== propKey && (null != propKey$221 || null != propKey))
                 switch (checked) {
                   case "children":
                   case "dangerouslySetInnerHTML":
-                    if (null != propKey$201)
+                    if (null != propKey$221)
                       throw Error(formatProdErrorMessage(137, tag));
                     break;
                   default:
@@ -11107,7 +12176,7 @@ var FrappeAIPanel = (() => {
                       domElement,
                       tag,
                       checked,
-                      propKey$201,
+                      propKey$221,
                       nextProps,
                       propKey
                     );
@@ -11115,31 +12184,31 @@ var FrappeAIPanel = (() => {
             return;
           default:
             if (isCustomElement(tag)) {
-              for (var propKey$227 in lastProps)
-                propKey$201 = lastProps[propKey$227], lastProps.hasOwnProperty(propKey$227) && void 0 !== propKey$201 && !nextProps.hasOwnProperty(propKey$227) && setPropOnCustomElement(
+              for (var propKey$247 in lastProps)
+                propKey$221 = lastProps[propKey$247], lastProps.hasOwnProperty(propKey$247) && void 0 !== propKey$221 && !nextProps.hasOwnProperty(propKey$247) && setPropOnCustomElement(
                   domElement,
                   tag,
-                  propKey$227,
+                  propKey$247,
                   void 0,
                   nextProps,
-                  propKey$201
+                  propKey$221
                 );
               for (defaultChecked in nextProps)
-                propKey$201 = nextProps[defaultChecked], propKey = lastProps[defaultChecked], !nextProps.hasOwnProperty(defaultChecked) || propKey$201 === propKey || void 0 === propKey$201 && void 0 === propKey || setPropOnCustomElement(
+                propKey$221 = nextProps[defaultChecked], propKey = lastProps[defaultChecked], !nextProps.hasOwnProperty(defaultChecked) || propKey$221 === propKey || void 0 === propKey$221 && void 0 === propKey || setPropOnCustomElement(
                   domElement,
                   tag,
                   defaultChecked,
-                  propKey$201,
+                  propKey$221,
                   nextProps,
                   propKey
                 );
               return;
             }
         }
-        for (var propKey$232 in lastProps)
-          propKey$201 = lastProps[propKey$232], lastProps.hasOwnProperty(propKey$232) && null != propKey$201 && !nextProps.hasOwnProperty(propKey$232) && setProp(domElement, tag, propKey$232, null, nextProps, propKey$201);
+        for (var propKey$252 in lastProps)
+          propKey$221 = lastProps[propKey$252], lastProps.hasOwnProperty(propKey$252) && null != propKey$221 && !nextProps.hasOwnProperty(propKey$252) && setProp(domElement, tag, propKey$252, null, nextProps, propKey$221);
         for (lastProp in nextProps)
-          propKey$201 = nextProps[lastProp], propKey = lastProps[lastProp], !nextProps.hasOwnProperty(lastProp) || propKey$201 === propKey || null == propKey$201 && null == propKey || setProp(domElement, tag, lastProp, propKey$201, nextProps, propKey);
+          propKey$221 = nextProps[lastProp], propKey = lastProps[lastProp], !nextProps.hasOwnProperty(lastProp) || propKey$221 === propKey || null == propKey$221 && null == propKey || setProp(domElement, tag, lastProp, propKey$221, nextProps, propKey);
       }
       function isLikelyStaticResource(initiatorType) {
         switch (initiatorType) {
@@ -11205,6 +12274,16 @@ var FrappeAIPanel = (() => {
           }
         return 1 === parentNamespace && "foreignObject" === type ? 0 : parentNamespace;
       }
+      function createHoistableInstance(type, props, rootContainerInstance, internalInstanceHandle) {
+        rootContainerInstance = getOwnerDocumentFromRootContainer(
+          rootContainerInstance
+        ).createElement(type);
+        rootContainerInstance[internalInstanceKey] = internalInstanceHandle;
+        rootContainerInstance[internalPropsKey] = props;
+        setInitialProperties(rootContainerInstance, type, props);
+        markNodeAsHoistable(rootContainerInstance);
+        return rootContainerInstance;
+      }
       function shouldSetTextContent(type, props) {
         return "textarea" === type || "noscript" === type || "string" === typeof props.children || "number" === typeof props.children || "bigint" === typeof props.children || "object" === typeof props.dangerouslySetInnerHTML && null !== props.dangerouslySetInnerHTML && null != props.dangerouslySetInnerHTML.__html;
       }
@@ -11222,6 +12301,7 @@ var FrappeAIPanel = (() => {
       var scheduleTimeout = "function" === typeof setTimeout ? setTimeout : void 0;
       var cancelTimeout = "function" === typeof clearTimeout ? clearTimeout : void 0;
       var localPromise = "function" === typeof Promise ? Promise : void 0;
+      var localRequestAnimationFrame = "function" === typeof requestAnimationFrame ? requestAnimationFrame : scheduleTimeout;
       var scheduleMicrotask = "function" === typeof queueMicrotask ? queueMicrotask : "undefined" !== typeof localPromise ? function(callback) {
         return localPromise.resolve(null).then(callback).catch(handleErrorInNextTick);
       } : scheduleTimeout;
@@ -11249,17 +12329,19 @@ var FrappeAIPanel = (() => {
             } else if ("$" === node || "$?" === node || "$~" === node || "$!" === node || "&" === node)
               depth++;
             else if ("html" === node)
-              releaseSingletonInstance(parentInstance.ownerDocument.documentElement);
+              clearSingletonPreambleContribution(
+                parentInstance.ownerDocument.documentElement
+              );
             else if ("head" === node) {
               node = parentInstance.ownerDocument.head;
-              releaseSingletonInstance(node);
+              clearSingletonPreambleContribution(node);
               for (var node$jscomp$0 = node.firstChild; node$jscomp$0; ) {
                 var nextNode$jscomp$0 = node$jscomp$0.nextSibling, nodeName = node$jscomp$0.nodeName;
                 node$jscomp$0[internalHoistableMarker] || "SCRIPT" === nodeName || "STYLE" === nodeName || "LINK" === nodeName && "stylesheet" === node$jscomp$0.rel.toLowerCase() || node.removeChild(node$jscomp$0);
                 node$jscomp$0 = nextNode$jscomp$0;
               }
             } else
-              "body" === node && releaseSingletonInstance(parentInstance.ownerDocument.body);
+              "body" === node && clearSingletonPreambleContribution(parentInstance.ownerDocument.body);
           node = nextNode;
         } while (node);
         retryIfBlockedOn(hydrationInstance);
@@ -11278,6 +12360,676 @@ var FrappeAIPanel = (() => {
               "$" !== node && "$?" !== node && "$~" !== node && "$!" !== node || suspenseInstance++;
           node = nextNode;
         } while (node);
+      }
+      function applyViewTransitionName(instance, name, className) {
+        name = CSS.escape(name) !== name ? "r-" + btoa(name).replace(/=/g, "") : name;
+        instance.style.viewTransitionName = name;
+        null != className && (instance.style.viewTransitionClass = className);
+        className = getComputedStyle(instance);
+        if ("inline" === className.display) {
+          name = instance.getClientRects();
+          if (1 === name.length) var JSCompiler_inline_result = 1;
+          else
+            for (var i = JSCompiler_inline_result = 0; i < name.length; i++) {
+              var rect = name[i];
+              0 < rect.width && 0 < rect.height && JSCompiler_inline_result++;
+            }
+          1 === JSCompiler_inline_result && (instance = instance.style, instance.display = 1 === name.length ? "inline-block" : "block", instance.marginTop = "-" + className.paddingTop, instance.marginBottom = "-" + className.paddingBottom);
+        }
+      }
+      function restoreViewTransitionName(instance, props) {
+        instance = instance.style;
+        props = props.style;
+        var viewTransitionName = null != props ? props.hasOwnProperty("viewTransitionName") ? props.viewTransitionName : props.hasOwnProperty("view-transition-name") ? props["view-transition-name"] : null : null;
+        instance.viewTransitionName = null == viewTransitionName || "boolean" === typeof viewTransitionName ? "" : ("" + viewTransitionName).trim();
+        viewTransitionName = null != props ? props.hasOwnProperty("viewTransitionClass") ? props.viewTransitionClass : props.hasOwnProperty("view-transition-class") ? props["view-transition-class"] : null : null;
+        instance.viewTransitionClass = null == viewTransitionName || "boolean" === typeof viewTransitionName ? "" : ("" + viewTransitionName).trim();
+        "inline-block" === instance.display && (null == props ? instance.display = instance.margin = "" : (viewTransitionName = props.display, instance.display = null == viewTransitionName || "boolean" === typeof viewTransitionName ? "" : viewTransitionName, viewTransitionName = props.margin, null != viewTransitionName ? instance.margin = viewTransitionName : (viewTransitionName = props.hasOwnProperty("marginTop") ? props.marginTop : props["margin-top"], instance.marginTop = null == viewTransitionName || "boolean" === typeof viewTransitionName ? "" : viewTransitionName, props = props.hasOwnProperty("marginBottom") ? props.marginBottom : props["margin-bottom"], instance.marginBottom = null == props || "boolean" === typeof props ? "" : props)));
+      }
+      function createMeasurement(rect, computedStyle, element) {
+        element = element.ownerDocument.defaultView;
+        return {
+          rect,
+          abs: "absolute" === computedStyle.position || "fixed" === computedStyle.position,
+          clip: "none" !== computedStyle.clipPath || "visible" !== computedStyle.overflow || "none" !== computedStyle.filter || "none" !== computedStyle.mask || "none" !== computedStyle.mask || "0px" !== computedStyle.borderRadius,
+          view: 0 <= rect.bottom && 0 <= rect.right && rect.top <= element.innerHeight && rect.left <= element.innerWidth
+        };
+      }
+      function measureInstance(instance) {
+        var rect = instance.getBoundingClientRect(), computedStyle = getComputedStyle(instance);
+        return createMeasurement(rect, computedStyle, instance);
+      }
+      function measureClonedInstance(instance) {
+        var measuredRect = instance.getBoundingClientRect();
+        measuredRect = new DOMRect(
+          measuredRect.x + 2e4,
+          measuredRect.y + 2e4,
+          measuredRect.width,
+          measuredRect.height
+        );
+        var computedStyle = getComputedStyle(instance);
+        return createMeasurement(measuredRect, computedStyle, instance);
+      }
+      function forceLayout(ownerDocument) {
+        return ownerDocument.documentElement.clientHeight;
+      }
+      function waitForImageToLoad(resolve) {
+        this.addEventListener("load", resolve);
+        this.addEventListener("error", resolve);
+      }
+      function startViewTransition(suspendedState, rootContainer, transitionTypes, mutationCallback, layoutCallback, afterMutationCallback, spawnedWorkCallback, passiveCallback, errorCallback) {
+        var ownerDocument = 9 === rootContainer.nodeType ? rootContainer : rootContainer.ownerDocument;
+        try {
+          var transition = ownerDocument.startViewTransition({
+            update: function() {
+              var ownerWindow = ownerDocument.defaultView, pendingNavigation = ownerWindow.navigation && ownerWindow.navigation.transition, previousFontLoadingStatus = ownerDocument.fonts.status;
+              mutationCallback();
+              var blockingPromises = [];
+              "loaded" === previousFontLoadingStatus && (forceLayout(ownerDocument), "loading" === ownerDocument.fonts.status && blockingPromises.push(ownerDocument.fonts.ready));
+              previousFontLoadingStatus = blockingPromises.length;
+              if (null !== suspendedState)
+                for (var suspenseyImages = suspendedState.suspenseyImages, imgBytes = 0, i = 0; i < suspenseyImages.length; i++) {
+                  var suspenseyImage = suspenseyImages[i];
+                  if (!suspenseyImage.complete) {
+                    var rect = suspenseyImage.getBoundingClientRect();
+                    if (0 < rect.bottom && 0 < rect.right && rect.top < ownerWindow.innerHeight && rect.left < ownerWindow.innerWidth) {
+                      imgBytes += estimateImageBytes(suspenseyImage);
+                      if (imgBytes > estimatedBytesWithinLimit) {
+                        blockingPromises.length = previousFontLoadingStatus;
+                        break;
+                      }
+                      suspenseyImage = new Promise(
+                        waitForImageToLoad.bind(suspenseyImage)
+                      );
+                      blockingPromises.push(suspenseyImage);
+                    }
+                  }
+                }
+              if (0 < blockingPromises.length)
+                return ownerWindow = Promise.race([
+                  Promise.all(blockingPromises),
+                  new Promise(function(resolve) {
+                    return setTimeout(resolve, 500);
+                  })
+                ]).then(layoutCallback, layoutCallback), (pendingNavigation ? Promise.allSettled([pendingNavigation.finished, ownerWindow]) : ownerWindow).then(afterMutationCallback, afterMutationCallback);
+              layoutCallback();
+              if (pendingNavigation)
+                return pendingNavigation.finished.then(
+                  afterMutationCallback,
+                  afterMutationCallback
+                );
+              afterMutationCallback();
+            },
+            types: transitionTypes
+          });
+          ownerDocument.__reactViewTransition = transition;
+          var viewTransitionAnimations = [];
+          transition.ready.then(
+            function() {
+              for (var animations = ownerDocument.documentElement.getAnimations({
+                subtree: true
+              }), i = 0; i < animations.length; i++) {
+                var animation = animations[i], effect = animation.effect, pseudoElement = effect.pseudoElement;
+                if (null != pseudoElement && pseudoElement.startsWith("::view-transition")) {
+                  viewTransitionAnimations.push(animation);
+                  animation = effect.getKeyframes();
+                  for (var height = pseudoElement = void 0, unchangedDimensions = true, j = 0; j < animation.length; j++) {
+                    var keyframe = animation[j], w = keyframe.width;
+                    if (void 0 === pseudoElement) pseudoElement = w;
+                    else if (pseudoElement !== w) {
+                      unchangedDimensions = false;
+                      break;
+                    }
+                    w = keyframe.height;
+                    if (void 0 === height) height = w;
+                    else if (height !== w) {
+                      unchangedDimensions = false;
+                      break;
+                    }
+                    delete keyframe.width;
+                    delete keyframe.height;
+                    "none" === keyframe.transform && delete keyframe.transform;
+                  }
+                  unchangedDimensions && void 0 !== pseudoElement && void 0 !== height && (effect.setKeyframes(animation), unchangedDimensions = getComputedStyle(
+                    effect.target,
+                    effect.pseudoElement
+                  ), unchangedDimensions.width !== pseudoElement || unchangedDimensions.height !== height) && (unchangedDimensions = animation[0], unchangedDimensions.width = pseudoElement, unchangedDimensions.height = height, unchangedDimensions = animation[animation.length - 1], unchangedDimensions.width = pseudoElement, unchangedDimensions.height = height, effect.setKeyframes(animation));
+                }
+              }
+              spawnedWorkCallback();
+            },
+            function(error) {
+              ownerDocument.__reactViewTransition === transition && (ownerDocument.__reactViewTransition = null);
+              try {
+                if ("object" === typeof error && null !== error)
+                  switch (error.name) {
+                    case "InvalidStateError":
+                      if ("View transition was skipped because document visibility state is hidden." === error.message || "Skipping view transition because document visibility state has become hidden." === error.message || "Skipping view transition because viewport size changed." === error.message || "Transition was aborted because of invalid state" === error.message)
+                        error = null;
+                  }
+                null !== error && errorCallback(error);
+              } finally {
+                mutationCallback(), layoutCallback(), spawnedWorkCallback();
+              }
+            }
+          );
+          transition.finished.finally(function() {
+            for (var i = 0; i < viewTransitionAnimations.length; i++)
+              viewTransitionAnimations[i].cancel();
+            ownerDocument.__reactViewTransition === transition && (ownerDocument.__reactViewTransition = null);
+            passiveCallback();
+          });
+          return transition;
+        } catch (x) {
+          return mutationCallback(), layoutCallback(), spawnedWorkCallback(), null;
+        }
+      }
+      function ViewTransitionPseudoElement(pseudo, name) {
+        this._scope = document.documentElement;
+        this._selector = "::view-transition-" + pseudo + "(" + name + ")";
+      }
+      ViewTransitionPseudoElement.prototype.animate = function(keyframes, options2) {
+        options2 = "number" === typeof options2 ? { duration: options2 } : assign({}, options2);
+        options2.pseudoElement = this._selector;
+        return this._scope.animate(keyframes, options2);
+      };
+      ViewTransitionPseudoElement.prototype.getAnimations = function() {
+        for (var scope = this._scope, selector = this._selector, animations = scope.getAnimations({ subtree: true }), result = [], i = 0; i < animations.length; i++) {
+          var effect = animations[i].effect;
+          null !== effect && effect.target === scope && effect.pseudoElement === selector && result.push(animations[i]);
+        }
+        return result;
+      };
+      ViewTransitionPseudoElement.prototype.getComputedStyle = function() {
+        return getComputedStyle(this._scope, this._selector);
+      };
+      function createViewTransitionInstance(name) {
+        return {
+          name,
+          group: new ViewTransitionPseudoElement("group", name),
+          imagePair: new ViewTransitionPseudoElement("image-pair", name),
+          old: new ViewTransitionPseudoElement("old", name),
+          new: new ViewTransitionPseudoElement("new", name)
+        };
+      }
+      function FragmentInstance(fragmentFiber) {
+        this._fragmentFiber = fragmentFiber;
+        this._observers = this._eventListeners = null;
+      }
+      FragmentInstance.prototype.addEventListener = function(type, listener, optionsOrUseCapture) {
+        var signal = null, cleanup = null;
+        if (null != optionsOrUseCapture && "boolean" !== typeof optionsOrUseCapture && (signal = optionsOrUseCapture.signal || null, null !== signal && signal.aborted))
+          return;
+        null === this._eventListeners && (this._eventListeners = []);
+        var listeners = this._eventListeners;
+        if (-1 === indexOfEventListener(listeners, type, listener, optionsOrUseCapture)) {
+          var fragmentInstance = this, attachedListener = listener;
+          null != optionsOrUseCapture && "boolean" !== typeof optionsOrUseCapture && true === optionsOrUseCapture.once && (attachedListener = function(event) {
+            fragmentInstance.removeEventListener(
+              type,
+              listener,
+              optionsOrUseCapture
+            );
+            "function" === typeof listener ? listener.call(this, event) : listener.handleEvent(event);
+          });
+          null !== signal && (cleanup = fragmentInstance.removeEventListener.bind(
+            fragmentInstance,
+            type,
+            listener,
+            optionsOrUseCapture
+          ), signal.addEventListener("abort", cleanup, { once: true }), cleanup = signal.removeEventListener.bind(signal, "abort", cleanup));
+          signal = getAttachOptions(optionsOrUseCapture);
+          listeners.push({
+            type,
+            listener,
+            optionsOrUseCapture,
+            attachedListener,
+            cleanup
+          });
+          traverseVisibleInstancesAndTextInstances(
+            this._fragmentFiber.child,
+            false,
+            addEventListenerToChild,
+            type,
+            attachedListener,
+            signal
+          );
+        }
+        this._eventListeners = listeners;
+      };
+      function addEventListenerToChild(child, type, listener, optionsOrUseCapture) {
+        getInstanceFromHostFiber(child).addEventListener(
+          type,
+          listener,
+          optionsOrUseCapture
+        );
+        return false;
+      }
+      FragmentInstance.prototype.removeEventListener = function(type, listener, optionsOrUseCapture) {
+        var listeners = this._eventListeners;
+        if (null !== listeners && (listener = indexOfEventListener(
+          listeners,
+          type,
+          listener,
+          optionsOrUseCapture
+        ), -1 !== listener)) {
+          var _listeners$index = listeners[listener];
+          optionsOrUseCapture = _listeners$index.attachedListener;
+          var cleanup = _listeners$index.cleanup;
+          _listeners$index = getAttachOptions(_listeners$index.optionsOrUseCapture);
+          traverseVisibleInstancesAndTextInstances(
+            this._fragmentFiber.child,
+            false,
+            removeEventListenerFromChild,
+            type,
+            optionsOrUseCapture,
+            _listeners$index
+          );
+          listeners.splice(listener, 1);
+          null !== cleanup && cleanup();
+        }
+      };
+      function removeEventListenerFromChild(child, type, listener, optionsOrUseCapture) {
+        getInstanceFromHostFiber(child).removeEventListener(
+          type,
+          listener,
+          optionsOrUseCapture
+        );
+        return false;
+      }
+      function getAttachOptions(opts) {
+        return null != opts && "boolean" !== typeof opts && (true === opts.once || opts.signal instanceof AbortSignal) ? { capture: opts.capture, passive: opts.passive } : opts;
+      }
+      function normalizeListenerOptions(opts) {
+        return null == opts ? "c=0" : "boolean" === typeof opts ? "c=" + (opts ? "1" : "0") : "c=" + (opts.capture ? "1" : "0");
+      }
+      function indexOfEventListener(eventListeners, type, listener, optionsOrUseCapture) {
+        if (0 === eventListeners.length) return -1;
+        optionsOrUseCapture = normalizeListenerOptions(optionsOrUseCapture);
+        for (var i = 0; i < eventListeners.length; i++) {
+          var item = eventListeners[i];
+          if (item.type === type && item.listener === listener && normalizeListenerOptions(item.optionsOrUseCapture) === optionsOrUseCapture)
+            return i;
+        }
+        return -1;
+      }
+      FragmentInstance.prototype.dispatchEvent = function(event) {
+        var parentHostFiber = getFragmentParentInstanceOrContainerFiber(
+          this._fragmentFiber
+        );
+        if (null === parentHostFiber) return true;
+        parentHostFiber = getInstanceFromHostFiber(parentHostFiber);
+        var eventListeners = this._eventListeners;
+        if (null !== eventListeners && 0 < eventListeners.length || !event.bubbles) {
+          var temp = 9 === parentHostFiber.nodeType ? parentHostFiber.createComment("") : document.createTextNode("");
+          if (eventListeners)
+            for (var i = 0; i < eventListeners.length; i++) {
+              var _eventListeners$i = eventListeners[i];
+              temp.addEventListener(
+                _eventListeners$i.type,
+                _eventListeners$i.attachedListener,
+                getAttachOptions(_eventListeners$i.optionsOrUseCapture)
+              );
+            }
+          parentHostFiber.appendChild(temp);
+          event = temp.dispatchEvent(event);
+          if (eventListeners)
+            for (i = 0; i < eventListeners.length; i++)
+              _eventListeners$i = eventListeners[i], temp.removeEventListener(
+                _eventListeners$i.type,
+                _eventListeners$i.attachedListener,
+                getAttachOptions(_eventListeners$i.optionsOrUseCapture)
+              );
+          parentHostFiber.removeChild(temp);
+          return event;
+        }
+        return parentHostFiber.dispatchEvent(event);
+      };
+      FragmentInstance.prototype.focus = function(focusOptions) {
+        traverseVisibleInstancesAndTextInstances(
+          this._fragmentFiber.child,
+          true,
+          setFocusOnFiberIfFocusable,
+          focusOptions,
+          void 0,
+          void 0
+        );
+      };
+      function setFocusOnFiberIfFocusable(fiber, focusOptions) {
+        if (6 === fiber.tag) return false;
+        fiber = getInstanceFromHostFiber(fiber);
+        return setFocusIfFocusable(fiber, focusOptions);
+      }
+      FragmentInstance.prototype.focusLast = function(focusOptions) {
+        var children = [];
+        traverseVisibleInstancesAndTextInstances(
+          this._fragmentFiber.child,
+          true,
+          collectChildren,
+          children,
+          void 0,
+          void 0
+        );
+        for (var i = children.length - 1; 0 <= i && !setFocusOnFiberIfFocusable(children[i], focusOptions); i--) ;
+      };
+      function collectChildren(child, collection) {
+        collection.push(child);
+        return false;
+      }
+      FragmentInstance.prototype.blur = function() {
+        var parentHostFiber = getFragmentParentInstanceOrContainerFiber(
+          this._fragmentFiber
+        );
+        null !== parentHostFiber && (parentHostFiber = getInstanceFromHostFiber(parentHostFiber), parentHostFiber = getOwnerDocumentFromRootContainer(parentHostFiber).activeElement, null !== parentHostFiber && traverseVisibleInstancesAndTextInstances(
+          this._fragmentFiber.child,
+          false,
+          blurActiveElementWithinFragment,
+          parentHostFiber,
+          void 0,
+          void 0
+        ));
+      };
+      function blurActiveElementWithinFragment(child, activeElement2) {
+        if (6 === child.tag) return false;
+        child = getInstanceFromHostFiber(child);
+        return child === activeElement2 || child.contains(activeElement2) ? (activeElement2.blur(), true) : false;
+      }
+      FragmentInstance.prototype.observeUsing = function(observer) {
+        null === this._observers && (this._observers = /* @__PURE__ */ new Set());
+        this._observers.add(observer);
+        traverseVisibleInstancesAndTextInstances(
+          this._fragmentFiber.child,
+          false,
+          observeChild,
+          observer,
+          void 0,
+          void 0
+        );
+      };
+      function observeChild(child, observer) {
+        if (6 === child.tag) return false;
+        child = getInstanceFromHostFiber(child);
+        observer.observe(child);
+        return false;
+      }
+      FragmentInstance.prototype.unobserveUsing = function(observer) {
+        var observers = this._observers;
+        if (null !== observers && observers.has(observer)) {
+          observers.delete(observer);
+          traverseVisibleInstancesAndTextInstances(
+            this._fragmentFiber.child,
+            false,
+            unobserveChild,
+            observer,
+            void 0,
+            void 0
+          );
+          for (var i = observers = 0; i < pendingIntersectionUnobserves.length; i++) {
+            var pending = pendingIntersectionUnobserves[i];
+            pending.fragmentInstance === this && pending.observer === observer ? observer.unobserve(pending.instance) : pendingIntersectionUnobserves[observers++] = pending;
+          }
+          pendingIntersectionUnobserves.length = observers;
+        }
+      };
+      function unobserveChild(child, observer) {
+        if (6 === child.tag) return false;
+        child = getInstanceFromHostFiber(child);
+        observer.unobserve(child);
+        return false;
+      }
+      var pendingIntersectionUnobserves = [];
+      var intersectionUnobserveScheduled = false;
+      function schedulePendingIntersectionUnobserve(fragmentInstance, observer, instance) {
+        pendingIntersectionUnobserves.push({
+          fragmentInstance,
+          observer,
+          instance
+        });
+        intersectionUnobserveScheduled || (intersectionUnobserveScheduled = true, requestPostPaintCallback(function() {
+          intersectionUnobserveScheduled = false;
+          var pending = pendingIntersectionUnobserves;
+          pendingIntersectionUnobserves = [];
+          for (var i = 0; i < pending.length; i++) {
+            var item = pending[i];
+            item.observer.unobserve(item.instance);
+          }
+        }));
+      }
+      FragmentInstance.prototype.getClientRects = function() {
+        var rects = [];
+        traverseVisibleInstancesAndTextInstances(
+          this._fragmentFiber.child,
+          false,
+          collectClientRects,
+          rects,
+          void 0,
+          void 0
+        );
+        return rects;
+      };
+      function collectClientRects(child, rects) {
+        if (6 === child.tag) {
+          child = child.stateNode;
+          var range = child.ownerDocument.createRange();
+          range.selectNodeContents(child);
+          rects.push.apply(rects, range.getClientRects());
+        } else
+          child = getInstanceFromHostFiber(child), rects.push.apply(rects, child.getClientRects());
+        return false;
+      }
+      FragmentInstance.prototype.getRootNode = function(getRootNodeOptions) {
+        var parentHostFiber = getFragmentParentInstanceOrContainerFiber(
+          this._fragmentFiber
+        );
+        return null === parentHostFiber ? this : getInstanceFromHostFiber(parentHostFiber).getRootNode(getRootNodeOptions);
+      };
+      FragmentInstance.prototype.compareDocumentPosition = function(otherNode) {
+        var parentHostFiber = getFragmentParentInstanceOrContainerFiber(
+          this._fragmentFiber
+        );
+        if (null === parentHostFiber) return Node.DOCUMENT_POSITION_DISCONNECTED;
+        var children = [];
+        traverseVisibleInstancesAndTextInstances(
+          this._fragmentFiber.child,
+          false,
+          collectChildren,
+          children,
+          void 0,
+          void 0
+        );
+        var parentHostInstance = getInstanceFromHostFiber(parentHostFiber);
+        if (0 === children.length) {
+          children = parentHostInstance;
+          if (fiberIsPortaledIntoHost(this._fragmentFiber)) {
+            a: {
+              for (parentHostFiber = this._fragmentFiber.return; null !== parentHostFiber; ) {
+                if (4 === parentHostFiber.tag) {
+                  parentHostFiber = parentHostFiber.stateNode.containerInfo;
+                  break a;
+                }
+                if (3 === parentHostFiber.tag || 5 === parentHostFiber.tag || 27 === parentHostFiber.tag)
+                  break;
+                parentHostFiber = parentHostFiber.return;
+              }
+              parentHostFiber = null;
+            }
+            null != parentHostFiber && (children = parentHostFiber);
+          }
+          parentHostFiber = this._fragmentFiber;
+          var result = parentHostInstance = children.compareDocumentPosition(otherNode);
+          children === otherNode ? result = Node.DOCUMENT_POSITION_CONTAINS : parentHostInstance & Node.DOCUMENT_POSITION_CONTAINED_BY && (children = getFragmentInstanceOrTextInstanceSiblings(parentHostFiber)[1], null === children ? result = Node.DOCUMENT_POSITION_PRECEDING : (otherNode = getInstanceFromHostFiber(children).compareDocumentPosition(
+            otherNode
+          ), result = 0 === otherNode || otherNode & Node.DOCUMENT_POSITION_FOLLOWING ? Node.DOCUMENT_POSITION_FOLLOWING : Node.DOCUMENT_POSITION_PRECEDING));
+          return result |= Node.DOCUMENT_POSITION_IMPLEMENTATION_SPECIFIC;
+        }
+        parentHostFiber = getInstanceFromHostFiber(children[0]);
+        result = getInstanceFromHostFiber(children[children.length - 1]);
+        var parentHostInstanceFromDOM = fiberIsPortaledIntoHost(this._fragmentFiber) ? parentHostFiber.parentElement : parentHostInstance;
+        if (null == parentHostInstanceFromDOM)
+          return Node.DOCUMENT_POSITION_DISCONNECTED;
+        parentHostInstance = parentHostInstanceFromDOM.compareDocumentPosition(parentHostFiber) & Node.DOCUMENT_POSITION_CONTAINED_BY;
+        parentHostInstanceFromDOM = parentHostInstanceFromDOM.compareDocumentPosition(result) & Node.DOCUMENT_POSITION_CONTAINED_BY;
+        var firstResult = parentHostFiber.compareDocumentPosition(otherNode), lastResult = result.compareDocumentPosition(otherNode), otherNodeIsWithinFirstOrLastChild = firstResult & Node.DOCUMENT_POSITION_CONTAINED_BY || lastResult & Node.DOCUMENT_POSITION_CONTAINED_BY;
+        lastResult = parentHostInstance && parentHostInstanceFromDOM && firstResult & Node.DOCUMENT_POSITION_FOLLOWING && lastResult & Node.DOCUMENT_POSITION_PRECEDING;
+        parentHostFiber = parentHostInstance && parentHostFiber === otherNode || parentHostInstanceFromDOM && result === otherNode || otherNodeIsWithinFirstOrLastChild || lastResult ? Node.DOCUMENT_POSITION_CONTAINED_BY : !parentHostInstance && parentHostFiber === otherNode || !parentHostInstanceFromDOM && result === otherNode ? Node.DOCUMENT_POSITION_IMPLEMENTATION_SPECIFIC : firstResult;
+        return parentHostFiber & Node.DOCUMENT_POSITION_DISCONNECTED || parentHostFiber & Node.DOCUMENT_POSITION_IMPLEMENTATION_SPECIFIC || validateDocumentPositionWithFiberTree(
+          parentHostFiber,
+          this._fragmentFiber,
+          children[0],
+          children[children.length - 1],
+          otherNode
+        ) ? parentHostFiber : Node.DOCUMENT_POSITION_IMPLEMENTATION_SPECIFIC;
+      };
+      function validateDocumentPositionWithFiberTree(documentPosition, fragmentFiber, precedingBoundaryFiber, followingBoundaryFiber, otherNode) {
+        var otherFiber = getClosestInstanceFromNode(otherNode);
+        if (documentPosition & Node.DOCUMENT_POSITION_CONTAINED_BY) {
+          if (precedingBoundaryFiber = !!otherFiber)
+            a: {
+              for (; null !== otherFiber; ) {
+                if (7 === otherFiber.tag && (otherFiber === fragmentFiber || otherFiber.alternate === fragmentFiber)) {
+                  precedingBoundaryFiber = true;
+                  break a;
+                }
+                otherFiber = otherFiber.return;
+              }
+              precedingBoundaryFiber = false;
+            }
+          return precedingBoundaryFiber;
+        }
+        if (documentPosition & Node.DOCUMENT_POSITION_CONTAINS) {
+          if (null === otherFiber)
+            return otherFiber = otherNode.ownerDocument, otherNode === otherFiber || otherNode === otherFiber.documentElement || otherNode === otherFiber.body;
+          a: {
+            otherFiber = fragmentFiber;
+            for (fragmentFiber = getFragmentParentInstanceOrContainerFiber(fragmentFiber); null !== otherFiber; ) {
+              if (!(5 !== otherFiber.tag && 3 !== otherFiber.tag && 27 !== otherFiber.tag || otherFiber !== fragmentFiber && otherFiber.alternate !== fragmentFiber)) {
+                otherFiber = true;
+                break a;
+              }
+              otherFiber = otherFiber.return;
+            }
+            otherFiber = false;
+          }
+          return otherFiber;
+        }
+        return documentPosition & Node.DOCUMENT_POSITION_PRECEDING ? ((fragmentFiber = !!otherFiber) && !(fragmentFiber = otherFiber === precedingBoundaryFiber) && (fragmentFiber = getLowestCommonAncestor(
+          precedingBoundaryFiber,
+          otherFiber,
+          getParentForFragmentAncestors
+        ), null === fragmentFiber ? fragmentFiber = false : (traverseVisibleInstancesAndTextInstances(
+          fragmentFiber,
+          true,
+          isFiberPrecedingCheck,
+          otherFiber,
+          precedingBoundaryFiber
+        ), otherFiber = searchTarget, searchTarget = null, fragmentFiber = null !== otherFiber)), fragmentFiber) : documentPosition & Node.DOCUMENT_POSITION_FOLLOWING ? ((fragmentFiber = !!otherFiber) && !(fragmentFiber = otherFiber === followingBoundaryFiber) && (fragmentFiber = getLowestCommonAncestor(
+          followingBoundaryFiber,
+          otherFiber,
+          getParentForFragmentAncestors
+        ), null === fragmentFiber ? fragmentFiber = false : (traverseVisibleInstancesAndTextInstances(
+          fragmentFiber,
+          true,
+          isFiberFollowingCheck,
+          otherFiber,
+          followingBoundaryFiber
+        ), otherFiber = searchTarget, searchBoundary = searchTarget = null, fragmentFiber = null !== otherFiber)), fragmentFiber) : false;
+      }
+      function scrollTextNodeIntoView(textNode, resolvedAlignToTop) {
+        var range = textNode.ownerDocument.createRange();
+        range.selectNodeContents(textNode);
+        textNode = range.getBoundingClientRect();
+        window.scrollTo(
+          window.scrollX + textNode.left,
+          resolvedAlignToTop ? window.scrollY + textNode.top : window.scrollY + textNode.bottom - window.innerHeight
+        );
+      }
+      FragmentInstance.prototype.scrollIntoView = function(alignToTop) {
+        if ("object" === typeof alignToTop) throw Error(formatProdErrorMessage(566));
+        var children = [];
+        traverseVisibleInstancesAndTextInstances(
+          this._fragmentFiber.child,
+          false,
+          collectChildren,
+          children,
+          void 0,
+          void 0
+        );
+        var resolvedAlignToTop = false !== alignToTop;
+        if (0 === children.length) {
+          var hostSiblings = getFragmentInstanceOrTextInstanceSiblings(
+            this._fragmentFiber
+          );
+          hostSiblings = resolvedAlignToTop ? hostSiblings[1] || hostSiblings[0] || getFragmentParentInstanceOrContainerFiber(this._fragmentFiber) : hostSiblings[0] || hostSiblings[1];
+          if (null === hostSiblings) return;
+          if (6 === hostSiblings.tag) {
+            alignToTop = getInstanceFromHostFiber(hostSiblings);
+            scrollTextNodeIntoView(alignToTop, resolvedAlignToTop);
+            return;
+          }
+          hostSiblings = getInstanceFromHostFiber(hostSiblings);
+          if (9 !== hostSiblings.nodeType) {
+            if (11 === hostSiblings.nodeType) {
+              resolvedAlignToTop = "host" in hostSiblings ? hostSiblings.host : null;
+              null !== resolvedAlignToTop && resolvedAlignToTop.scrollIntoView(alignToTop);
+              return;
+            }
+            hostSiblings.scrollIntoView(alignToTop);
+          }
+        }
+        for (hostSiblings = resolvedAlignToTop ? children.length - 1 : 0; hostSiblings !== (resolvedAlignToTop ? -1 : children.length); ) {
+          var child = children[hostSiblings];
+          6 === child.tag ? (child = getInstanceFromHostFiber(child), scrollTextNodeIntoView(child, resolvedAlignToTop)) : getInstanceFromHostFiber(child).scrollIntoView(alignToTop);
+          hostSiblings += resolvedAlignToTop ? -1 : 1;
+        }
+      };
+      function addFragmentHandleToFiber(child, fragmentInstance) {
+        child = getInstanceFromHostFiber(child);
+        addFragmentHandleToInstance(child, fragmentInstance);
+        return false;
+      }
+      function addFragmentHandleToInstance(instance, fragmentInstance) {
+        null == instance.reactFragments && (instance.reactFragments = /* @__PURE__ */ new Set());
+        instance.reactFragments.add(fragmentInstance);
+      }
+      function commitNewChildToFragmentInstance(childInstance, fragmentInstance) {
+        var eventListeners = fragmentInstance._eventListeners;
+        if (null !== eventListeners)
+          for (var i$jscomp$0 = 0; i$jscomp$0 < eventListeners.length; i$jscomp$0++) {
+            var _eventListeners$i3 = eventListeners[i$jscomp$0];
+            childInstance.addEventListener(
+              _eventListeners$i3.type,
+              _eventListeners$i3.attachedListener,
+              getAttachOptions(_eventListeners$i3.optionsOrUseCapture)
+            );
+          }
+        3 !== childInstance.nodeType && (eventListeners = fragmentInstance._observers, null !== eventListeners && eventListeners.forEach(function(observer) {
+          for (var writeIdx = 0, i = 0; i < pendingIntersectionUnobserves.length; i++) {
+            var pending = pendingIntersectionUnobserves[i];
+            if (pending.fragmentInstance !== fragmentInstance || pending.observer !== observer || pending.instance !== childInstance)
+              pendingIntersectionUnobserves[writeIdx++] = pending;
+          }
+          pendingIntersectionUnobserves.length = writeIdx;
+          observer.observe(childInstance);
+        }), addFragmentHandleToInstance(childInstance, fragmentInstance));
+      }
+      function deleteChildFromFragmentInstance(childInstance, fragmentInstance) {
+        var eventListeners = fragmentInstance._eventListeners;
+        if (null !== eventListeners)
+          for (var i = 0; i < eventListeners.length; i++) {
+            var _eventListeners$i4 = eventListeners[i];
+            childInstance.removeEventListener(
+              _eventListeners$i4.type,
+              _eventListeners$i4.attachedListener,
+              getAttachOptions(_eventListeners$i4.optionsOrUseCapture)
+            );
+          }
+        3 !== childInstance.nodeType && (eventListeners = fragmentInstance._observers, null !== eventListeners && eventListeners.forEach(function(observer) {
+          "string" === typeof observer.rootMargin ? schedulePendingIntersectionUnobserve(
+            fragmentInstance,
+            observer,
+            childInstance
+          ) : observer.unobserve(childInstance);
+        }), null != childInstance.reactFragments && childInstance.reactFragments.delete(fragmentInstance));
       }
       function clearContainerSparingly(container) {
         var nextNode = container.firstChild;
@@ -11424,6 +13176,26 @@ var FrappeAIPanel = (() => {
         }
         return null;
       }
+      function setFocusIfFocusable(node, focusOptions) {
+        function handleFocus() {
+          didFocus = true;
+        }
+        if (node.ownerDocument.activeElement === node) return true;
+        var didFocus = false;
+        try {
+          node.ownerDocument.addEventListener("focus", handleFocus, true), (node.focus || HTMLElement.prototype.focus).call(node, focusOptions);
+        } finally {
+          node.ownerDocument.removeEventListener("focus", handleFocus, true);
+        }
+        return didFocus;
+      }
+      function requestPostPaintCallback(callback) {
+        localRequestAnimationFrame(function() {
+          localRequestAnimationFrame(function(time) {
+            return callback(time);
+          });
+        });
+      }
       function resolveSingletonInstance(type, props, rootContainerInstance) {
         props = getOwnerDocumentFromRootContainer(rootContainerInstance);
         switch (type) {
@@ -11443,7 +13215,16 @@ var FrappeAIPanel = (() => {
             throw Error(formatProdErrorMessage(451));
         }
       }
-      function releaseSingletonInstance(instance) {
+      function releaseSingletonInstance(instance, type, props) {
+        for (var propKey in props) {
+          var propValue = props[propKey];
+          props.hasOwnProperty(propKey) && null != propValue && setProp(instance, type, propKey, null, emptyProps, propValue);
+        }
+        null != props.dangerouslySetInnerHTML && (instance.textContent = "");
+        instance.onclick === noop$1 && (instance.onclick = null);
+        detachDeletedInstance(instance);
+      }
+      function clearSingletonPreambleContribution(instance) {
         for (var attributes = instance.attributes; attributes.length; )
           instance.removeAttributeNode(attributes[0]);
         detachDeletedInstance(instance);
@@ -11451,7 +13232,11 @@ var FrappeAIPanel = (() => {
       var preloadPropsMap = /* @__PURE__ */ new Map();
       var preconnectsSet = /* @__PURE__ */ new Set();
       function getHoistableRoot(container) {
-        return "function" === typeof container.getRootNode ? container.getRootNode() : 9 === container.nodeType ? container : container.ownerDocument;
+        if ("function" === typeof container.getRootNode) {
+          var rootNode = container.getRootNode();
+          if (9 === rootNode.nodeType || 11 === rootNode.nodeType) return rootNode;
+        }
+        return 9 === container.nodeType ? container : container.ownerDocument;
       }
       var previousDispatcher = ReactDOMSharedInternals.d;
       ReactDOMSharedInternals.d = {
@@ -11509,14 +13294,22 @@ var FrappeAIPanel = (() => {
             case "script":
               key = getScriptKey(href);
           }
-          preloadPropsMap.has(key) || (href = assign(
+          if (!(preloadPropsMap.has(key) || (href = assign(
             {
               rel: "preload",
               href: "image" === as && options2 && options2.imageSrcSet ? void 0 : href,
               as
             },
             options2
-          ), preloadPropsMap.set(key, href), null !== ownerDocument.querySelector(preloadSelector) || "style" === as && ownerDocument.querySelector(getStylesheetSelectorFromKey(key)) || "script" === as && ownerDocument.querySelector(getScriptSelectorFromKey(key)) || (as = ownerDocument.createElement("link"), setInitialProperties(as, "link", href), markNodeAsHoistable(as), ownerDocument.head.appendChild(as)));
+          ), preloadPropsMap.set(key, href), null !== ownerDocument.querySelector(preloadSelector) || "style" === as && ownerDocument.querySelector(getStylesheetSelectorFromKey(key)) || "script" === as && ownerDocument.querySelector(getScriptSelectorFromKey(key))))) {
+            var instance = ownerDocument.createElement("link");
+            setInitialProperties(instance, "link", href);
+            "style" === as && (instance[internalLoadPendingKey] = true, instance.onload = instance.onerror = function() {
+              clearPendingLoadOnNode(instance);
+            });
+            markNodeAsHoistable(instance);
+            ownerDocument.head.appendChild(instance);
+          }
         }
       }
       function preloadModule(href, options2) {
@@ -11630,28 +13423,28 @@ var FrappeAIPanel = (() => {
           case "title":
             return null;
           case "style":
-            return "string" === typeof pendingProps.precedence && "string" === typeof pendingProps.href ? (currentProps = getStyleKey(pendingProps.href), pendingProps = getResourcesFromRoot(
+            return "string" === typeof pendingProps.precedence && "string" === typeof pendingProps.href ? (pendingProps = getStyleKey(pendingProps.href), currentProps = getResourcesFromRoot(
               JSCompiler_inline_result
-            ).hoistableStyles, currentResource = pendingProps.get(currentProps), currentResource || (currentResource = {
+            ).hoistableStyles, currentResource = currentProps.get(pendingProps), currentResource || (currentResource = {
               type: "style",
               instance: null,
               count: 0,
               state: null
-            }, pendingProps.set(currentProps, currentResource)), currentResource) : { type: "void", instance: null, count: 0, state: null };
+            }, currentProps.set(pendingProps, currentResource)), currentResource) : { type: "void", instance: null, count: 0, state: null };
           case "link":
             if ("stylesheet" === pendingProps.rel && "string" === typeof pendingProps.href && "string" === typeof pendingProps.precedence) {
               type = getStyleKey(pendingProps.href);
-              var styles$243 = getResourcesFromRoot(
+              var styles$268 = getResourcesFromRoot(
                 JSCompiler_inline_result
-              ).hoistableStyles, resource$244 = styles$243.get(type);
-              resource$244 || (JSCompiler_inline_result = JSCompiler_inline_result.ownerDocument || JSCompiler_inline_result, resource$244 = {
+              ).hoistableStyles, resource$269 = styles$268.get(type);
+              resource$269 || (JSCompiler_inline_result = JSCompiler_inline_result.ownerDocument || JSCompiler_inline_result, resource$269 = {
                 type: "stylesheet",
                 instance: null,
                 count: 0,
                 state: { loading: 0, preload: null }
-              }, styles$243.set(type, resource$244), (styles$243 = JSCompiler_inline_result.querySelector(
+              }, styles$268.set(type, resource$269), (styles$268 = JSCompiler_inline_result.querySelector(
                 getStylesheetSelectorFromKey(type)
-              )) && !styles$243._p && (resource$244.instance = styles$243, resource$244.state.loading = 5), preloadPropsMap.has(type) || (pendingProps = {
+              )) ? styles$268._p || (resource$269.instance = styles$268, resource$269.state.loading = 5) : (styles$268 = preloadPropsMap.get(type), styles$268 || (styles$268 = {
                 rel: "preload",
                 as: "style",
                 href: pendingProps.href,
@@ -11660,28 +13453,28 @@ var FrappeAIPanel = (() => {
                 media: pendingProps.media,
                 hrefLang: pendingProps.hrefLang,
                 referrerPolicy: pendingProps.referrerPolicy
-              }, preloadPropsMap.set(type, pendingProps), styles$243 || preloadStylesheet(
+              }, preloadPropsMap.set(type, styles$268)), preloadStylesheet(
                 JSCompiler_inline_result,
                 type,
-                pendingProps,
-                resource$244.state
+                styles$268,
+                resource$269.state
               )));
               if (currentProps && null === currentResource)
                 throw Error(formatProdErrorMessage(528, ""));
-              return resource$244;
+              return resource$269;
             }
             if (currentProps && null !== currentResource)
               throw Error(formatProdErrorMessage(529, ""));
             return null;
           case "script":
-            return currentProps = pendingProps.async, pendingProps = pendingProps.src, "string" === typeof pendingProps && currentProps && "function" !== typeof currentProps && "symbol" !== typeof currentProps ? (currentProps = getScriptKey(pendingProps), pendingProps = getResourcesFromRoot(
+            return currentProps = pendingProps.async, pendingProps = pendingProps.src, "string" === typeof pendingProps && currentProps && "function" !== typeof currentProps && "symbol" !== typeof currentProps ? (pendingProps = getScriptKey(pendingProps), currentProps = getResourcesFromRoot(
               JSCompiler_inline_result
-            ).hoistableScripts, currentResource = pendingProps.get(currentProps), currentResource || (currentResource = {
+            ).hoistableScripts, currentResource = currentProps.get(pendingProps), currentResource || (currentResource = {
               type: "script",
               instance: null,
               count: 0,
               state: null
-            }, pendingProps.set(currentProps, currentResource)), currentResource) : { type: "void", instance: null, count: 0, state: null };
+            }, currentProps.set(pendingProps, currentResource)), currentResource) : { type: "void", instance: null, count: 0, state: null };
           default:
             throw Error(formatProdErrorMessage(444, type));
         }
@@ -11699,11 +13492,22 @@ var FrappeAIPanel = (() => {
         });
       }
       function preloadStylesheet(ownerDocument, key, preloadProps, state) {
-        ownerDocument.querySelector('link[rel="preload"][as="style"][' + key + "]") ? state.loading = 1 : (key = ownerDocument.createElement("link"), state.preload = key, key.addEventListener("load", function() {
+        if (key = ownerDocument.querySelector(
+          'link[rel="preload"][as="style"][' + key + "]"
+        )) {
+          if (true !== key[internalLoadPendingKey]) {
+            state.loading = 1;
+            return;
+          }
+        } else
+          key = ownerDocument.createElement("link"), key[internalLoadPendingKey] = true, key.onload = key.onerror = clearPendingLoadOnNode.bind(null, key), setInitialProperties(key, "link", preloadProps), markNodeAsHoistable(key), ownerDocument.head.appendChild(key);
+        state.preload = key;
+        key.addEventListener("load", function() {
           return state.loading |= 1;
-        }), key.addEventListener("error", function() {
+        });
+        key.addEventListener("error", function() {
           return state.loading |= 2;
-        }), setInitialProperties(key, "link", preloadProps), markNodeAsHoistable(key), ownerDocument.head.appendChild(key));
+        });
       }
       function getScriptKey(src) {
         return '[src="' + escapeSelectorAttributeValueInsideDoubleQuotes(src) + '"]';
@@ -11736,32 +13540,32 @@ var FrappeAIPanel = (() => {
               return resource.instance = instance;
             case "stylesheet":
               styleProps = getStyleKey(props.href);
-              var instance$249 = hoistableRoot.querySelector(
+              var instance$274 = hoistableRoot.querySelector(
                 getStylesheetSelectorFromKey(styleProps)
               );
-              if (instance$249)
-                return resource.state.loading |= 4, resource.instance = instance$249, markNodeAsHoistable(instance$249), instance$249;
+              if (instance$274)
+                return resource.state.loading |= 4, resource.instance = instance$274, markNodeAsHoistable(instance$274), instance$274;
               instance = stylesheetPropsFromRawProps(props);
               (styleProps = preloadPropsMap.get(styleProps)) && adoptPreloadPropsForStylesheet(instance, styleProps);
-              instance$249 = (hoistableRoot.ownerDocument || hoistableRoot).createElement("link");
-              markNodeAsHoistable(instance$249);
-              var linkInstance = instance$249;
+              instance$274 = (hoistableRoot.ownerDocument || hoistableRoot).createElement("link");
+              markNodeAsHoistable(instance$274);
+              var linkInstance = instance$274;
               linkInstance._p = new Promise(function(resolve, reject) {
                 linkInstance.onload = resolve;
                 linkInstance.onerror = reject;
               });
-              setInitialProperties(instance$249, "link", instance);
+              setInitialProperties(instance$274, "link", instance);
               resource.state.loading |= 4;
-              insertStylesheet(instance$249, props.precedence, hoistableRoot);
-              return resource.instance = instance$249;
+              insertStylesheet(instance$274, props.precedence, hoistableRoot);
+              return resource.instance = instance$274;
             case "script":
-              instance$249 = getScriptKey(props.src);
+              instance$274 = getScriptKey(props.src);
               if (styleProps = hoistableRoot.querySelector(
-                getScriptSelectorFromKey(instance$249)
+                getScriptSelectorFromKey(instance$274)
               ))
                 return resource.instance = styleProps, markNodeAsHoistable(styleProps), styleProps;
               instance = props;
-              if (styleProps = preloadPropsMap.get(instance$249))
+              if (styleProps = preloadPropsMap.get(instance$274))
                 instance = assign({}, props), adoptPreloadPropsForScript(instance, styleProps);
               hoistableRoot = hoistableRoot.ownerDocument || hoistableRoot;
               styleProps = hoistableRoot.createElement("script");
@@ -11852,8 +13656,17 @@ var FrappeAIPanel = (() => {
         }
         return false;
       }
+      function maySuspendCommit(type, props) {
+        return "img" === type && null != props.src && "" !== props.src && null == props.onLoad && "lazy" !== props.loading;
+      }
       function preloadResource(resource) {
         return "stylesheet" === resource.type && 0 === (resource.state.loading & 3) ? false : true;
+      }
+      function estimateImageBytes(instance) {
+        return (instance.width || 100) * (instance.height || 100) * ("number" === typeof devicePixelRatio ? devicePixelRatio : 1) * 0.25;
+      }
+      function suspendInstance(state, instance) {
+        "function" === typeof instance.decode && (state.imgCount++, instance.complete || (state.imgBytes += estimateImageBytes(instance), state.suspenseyImages.push(instance)), state = onUnsuspendImg.bind(state), instance.decode().then(state, state));
       }
       function suspendResource(state, hoistableRoot, resource, props) {
         if ("stylesheet" === resource.type && ("string" !== typeof props.media || false !== matchMedia(props.media).matches) && 0 === (resource.state.loading & 4)) {
@@ -11919,16 +13732,23 @@ var FrappeAIPanel = (() => {
           };
         } : null;
       }
-      function onUnsuspend() {
-        this.count--;
-        if (0 === this.count && (0 === this.imgCount || !this.waitingForImages)) {
-          if (this.stylesheets) insertSuspendedStylesheets(this, this.stylesheets);
-          else if (this.unsuspend) {
-            var unsuspend = this.unsuspend;
-            this.unsuspend = null;
+      function checkIfFullyUnsuspended(state) {
+        if (0 === state.count && (0 === state.imgCount || !state.waitingForImages)) {
+          if (state.stylesheets) insertSuspendedStylesheets(state, state.stylesheets);
+          else if (state.unsuspend) {
+            var unsuspend = state.unsuspend;
+            state.unsuspend = null;
             unsuspend();
           }
         }
+      }
+      function onUnsuspend() {
+        this.count--;
+        checkIfFullyUnsuspended(this);
+      }
+      function onUnsuspendImg() {
+        this.imgCount--;
+        checkIfFullyUnsuspended(this);
       }
       var precedencesByRoot = null;
       function insertSuspendedStylesheets(state, resources) {
@@ -11990,6 +13810,7 @@ var FrappeAIPanel = (() => {
         this.pooledCache = null;
         this.pooledCacheLanes = 0;
         this.formState = formState;
+        this.transitionTypes = null;
         this.incompleteTransitions = /* @__PURE__ */ new Map();
       }
       function createFiberRoot(containerInfo, tag, hydrate, initialChildren, hydrationCallbacks, isStrictMode, identifierPrefix, formState, onUncaughtError, onCaughtError, onRecoverableError, onDefaultTransitionIndicator) {
@@ -12213,7 +14034,6 @@ var FrappeAIPanel = (() => {
           case "pointerup":
           case "ratechange":
           case "reset":
-          case "resize":
           case "seeked":
           case "submit":
           case "toggle":
@@ -12232,6 +14052,7 @@ var FrappeAIPanel = (() => {
           case "beforeinput":
           case "blur":
           case "fullscreenchange":
+          case "fullscreenerror":
           case "focus":
           case "hashchange":
           case "popstate":
@@ -12249,6 +14070,7 @@ var FrappeAIPanel = (() => {
           case "pointermove":
           case "pointerout":
           case "pointerover":
+          case "resize":
           case "scroll":
           case "touchmove":
           case "wheel":
@@ -12580,13 +14402,13 @@ var FrappeAIPanel = (() => {
           0 === i && attemptExplicitHydrationTarget(target);
         }
       };
-      var isomorphicReactPackageVersion$jscomp$inline_1840 = React11.version;
-      if ("19.2.3" !== isomorphicReactPackageVersion$jscomp$inline_1840)
+      var isomorphicReactPackageVersion$jscomp$inline_2043 = React12.version;
+      if ("19.3.1" !== isomorphicReactPackageVersion$jscomp$inline_2043)
         throw Error(
           formatProdErrorMessage(
             527,
-            isomorphicReactPackageVersion$jscomp$inline_1840,
-            "19.2.3"
+            isomorphicReactPackageVersion$jscomp$inline_2043,
+            "19.3.1"
           )
         );
       ReactDOMSharedInternals.findDOMNode = function(componentOrElement) {
@@ -12602,24 +14424,24 @@ var FrappeAIPanel = (() => {
         componentOrElement = null === componentOrElement ? null : componentOrElement.stateNode;
         return componentOrElement;
       };
-      var internals$jscomp$inline_2347 = {
+      var internals$jscomp$inline_2586 = {
         bundleType: 0,
-        version: "19.2.3",
+        version: "19.3.1",
         rendererPackageName: "react-dom",
         currentDispatcherRef: ReactSharedInternals,
-        reconcilerVersion: "19.2.3"
+        reconcilerVersion: "19.3.1"
       };
       if ("undefined" !== typeof __REACT_DEVTOOLS_GLOBAL_HOOK__) {
-        hook$jscomp$inline_2348 = __REACT_DEVTOOLS_GLOBAL_HOOK__;
-        if (!hook$jscomp$inline_2348.isDisabled && hook$jscomp$inline_2348.supportsFiber)
+        hook$jscomp$inline_2587 = __REACT_DEVTOOLS_GLOBAL_HOOK__;
+        if (!hook$jscomp$inline_2587.isDisabled && hook$jscomp$inline_2587.supportsFiber)
           try {
-            rendererID = hook$jscomp$inline_2348.inject(
-              internals$jscomp$inline_2347
-            ), injectedHook = hook$jscomp$inline_2348;
+            rendererID = hook$jscomp$inline_2587.inject(
+              internals$jscomp$inline_2586
+            ), injectedHook = hook$jscomp$inline_2587;
           } catch (err) {
           }
       }
-      var hook$jscomp$inline_2348;
+      var hook$jscomp$inline_2587;
       exports.createRoot = function(container, options2) {
         if (!isValidContainer(container)) throw Error(formatProdErrorMessage(299));
         var isStrictMode = false, identifierPrefix = "", onUncaughtError = defaultOnUncaughtError, onCaughtError = defaultOnCaughtError, onRecoverableError = defaultOnRecoverableError;
@@ -12675,13 +14497,13 @@ var FrappeAIPanel = (() => {
         listenToAllSupportedEvents(container);
         return new ReactDOMHydrationRoot(initialChildren);
       };
-      exports.version = "19.2.3";
+      exports.version = "19.3.1";
     }
   });
 
-  // ../../factory_automation_api/fact-frontend/node_modules/react-dom/client.js
+  // node_modules/react-dom/client.js
   var require_client = __commonJS({
-    "../../factory_automation_api/fact-frontend/node_modules/react-dom/client.js"(exports, module) {
+    "node_modules/react-dom/client.js"(exports, module) {
       "use strict";
       function checkDCE() {
         if (typeof __REACT_DEVTOOLS_GLOBAL_HOOK__ === "undefined" || typeof __REACT_DEVTOOLS_GLOBAL_HOOK__.checkDCE !== "function") {
@@ -12705,9 +14527,9 @@ var FrappeAIPanel = (() => {
     }
   });
 
-  // ../../factory_automation_api/fact-frontend/node_modules/react/cjs/react-jsx-runtime.production.js
+  // node_modules/react/cjs/react-jsx-runtime.production.js
   var require_react_jsx_runtime_production = __commonJS({
-    "../../factory_automation_api/fact-frontend/node_modules/react/cjs/react-jsx-runtime.production.js"(exports) {
+    "node_modules/react/cjs/react-jsx-runtime.production.js"(exports) {
       "use strict";
       var REACT_ELEMENT_TYPE = /* @__PURE__ */ Symbol.for("react.transitional.element");
       var REACT_FRAGMENT_TYPE = /* @__PURE__ */ Symbol.for("react.fragment");
@@ -12735,9 +14557,9 @@ var FrappeAIPanel = (() => {
     }
   });
 
-  // ../../factory_automation_api/fact-frontend/node_modules/react/jsx-runtime.js
+  // node_modules/react/jsx-runtime.js
   var require_jsx_runtime = __commonJS({
-    "../../factory_automation_api/fact-frontend/node_modules/react/jsx-runtime.js"(exports, module) {
+    "node_modules/react/jsx-runtime.js"(exports, module) {
       "use strict";
       if (true) {
         module.exports = require_react_jsx_runtime_production();
@@ -12748,19 +14570,19 @@ var FrappeAIPanel = (() => {
   });
 
   // src/hosts/deskPanel.tsx
-  var import_react12 = __toESM(require_react(), 1);
+  var import_react15 = __toESM(require_react(), 1);
   var import_client2 = __toESM(require_client(), 1);
 
   // src/components/PageRoot.tsx
-  var import_react10 = __toESM(require_react(), 1);
+  var import_react13 = __toESM(require_react(), 1);
 
   // src/components/WorkspaceShell.tsx
-  var import_react9 = __toESM(require_react(), 1);
+  var import_react12 = __toESM(require_react(), 1);
 
-  // ../../factory_automation_api/fact-frontend/node_modules/lucide-react/dist/esm/createLucideIcon.js
+  // node_modules/lucide-react/dist/esm/createLucideIcon.js
   var import_react2 = __toESM(require_react());
 
-  // ../../factory_automation_api/fact-frontend/node_modules/lucide-react/dist/esm/shared/src/utils.js
+  // node_modules/lucide-react/dist/esm/shared/src/utils.js
   var toKebabCase = (string) => string.replace(/([a-z0-9])([A-Z])/g, "$1-$2").toLowerCase();
   var toCamelCase = (string) => string.replace(
     /^([A-Z])|[\s-_]+(\w)/g,
@@ -12781,10 +14603,10 @@ var FrappeAIPanel = (() => {
     }
   };
 
-  // ../../factory_automation_api/fact-frontend/node_modules/lucide-react/dist/esm/Icon.js
+  // node_modules/lucide-react/dist/esm/Icon.js
   var import_react = __toESM(require_react());
 
-  // ../../factory_automation_api/fact-frontend/node_modules/lucide-react/dist/esm/defaultAttributes.js
+  // node_modules/lucide-react/dist/esm/defaultAttributes.js
   var defaultAttributes = {
     xmlns: "http://www.w3.org/2000/svg",
     width: 24,
@@ -12797,7 +14619,7 @@ var FrappeAIPanel = (() => {
     strokeLinejoin: "round"
   };
 
-  // ../../factory_automation_api/fact-frontend/node_modules/lucide-react/dist/esm/Icon.js
+  // node_modules/lucide-react/dist/esm/Icon.js
   var Icon = (0, import_react.forwardRef)(
     ({
       color = "currentColor",
@@ -12828,7 +14650,7 @@ var FrappeAIPanel = (() => {
     )
   );
 
-  // ../../factory_automation_api/fact-frontend/node_modules/lucide-react/dist/esm/createLucideIcon.js
+  // node_modules/lucide-react/dist/esm/createLucideIcon.js
   var createLucideIcon = (iconName, iconNode) => {
     const Component = (0, import_react2.forwardRef)(
       ({ className, ...props }, ref) => (0, import_react2.createElement)(Icon, {
@@ -12846,14 +14668,14 @@ var FrappeAIPanel = (() => {
     return Component;
   };
 
-  // ../../factory_automation_api/fact-frontend/node_modules/lucide-react/dist/esm/icons/arrow-up.js
+  // node_modules/lucide-react/dist/esm/icons/arrow-up.js
   var __iconNode = [
     ["path", { d: "m5 12 7-7 7 7", key: "hav0vg" }],
     ["path", { d: "M12 19V5", key: "x0mq9r" }]
   ];
   var ArrowUp = createLucideIcon("arrow-up", __iconNode);
 
-  // ../../factory_automation_api/fact-frontend/node_modules/lucide-react/dist/esm/icons/bot.js
+  // node_modules/lucide-react/dist/esm/icons/bot.js
   var __iconNode2 = [
     ["path", { d: "M12 8V4H8", key: "hb8ula" }],
     ["rect", { width: "16", height: "12", x: "4", y: "8", rx: "2", key: "enze0r" }],
@@ -12864,11 +14686,11 @@ var FrappeAIPanel = (() => {
   ];
   var Bot = createLucideIcon("bot", __iconNode2);
 
-  // ../../factory_automation_api/fact-frontend/node_modules/lucide-react/dist/esm/icons/chevron-right.js
+  // node_modules/lucide-react/dist/esm/icons/chevron-right.js
   var __iconNode3 = [["path", { d: "m9 18 6-6-6-6", key: "mthhwq" }]];
   var ChevronRight = createLucideIcon("chevron-right", __iconNode3);
 
-  // ../../factory_automation_api/fact-frontend/node_modules/lucide-react/dist/esm/icons/circle-alert.js
+  // node_modules/lucide-react/dist/esm/icons/circle-alert.js
   var __iconNode4 = [
     ["circle", { cx: "12", cy: "12", r: "10", key: "1mglay" }],
     ["line", { x1: "12", x2: "12", y1: "8", y2: "12", key: "1pkeuh" }],
@@ -12876,14 +14698,14 @@ var FrappeAIPanel = (() => {
   ];
   var CircleAlert = createLucideIcon("circle-alert", __iconNode4);
 
-  // ../../factory_automation_api/fact-frontend/node_modules/lucide-react/dist/esm/icons/circle-check.js
+  // node_modules/lucide-react/dist/esm/icons/circle-check.js
   var __iconNode5 = [
     ["circle", { cx: "12", cy: "12", r: "10", key: "1mglay" }],
     ["path", { d: "m9 12 2 2 4-4", key: "dzmm74" }]
   ];
   var CircleCheck = createLucideIcon("circle-check", __iconNode5);
 
-  // ../../factory_automation_api/fact-frontend/node_modules/lucide-react/dist/esm/icons/circle-dashed.js
+  // node_modules/lucide-react/dist/esm/icons/circle-dashed.js
   var __iconNode6 = [
     ["path", { d: "M10.1 2.182a10 10 0 0 1 3.8 0", key: "5ilxe3" }],
     ["path", { d: "M13.9 21.818a10 10 0 0 1-3.8 0", key: "11zvb9" }],
@@ -12896,7 +14718,7 @@ var FrappeAIPanel = (() => {
   ];
   var CircleDashed = createLucideIcon("circle-dashed", __iconNode6);
 
-  // ../../factory_automation_api/fact-frontend/node_modules/lucide-react/dist/esm/icons/circle-play.js
+  // node_modules/lucide-react/dist/esm/icons/circle-play.js
   var __iconNode7 = [
     [
       "path",
@@ -12909,7 +14731,7 @@ var FrappeAIPanel = (() => {
   ];
   var CirclePlay = createLucideIcon("circle-play", __iconNode7);
 
-  // ../../factory_automation_api/fact-frontend/node_modules/lucide-react/dist/esm/icons/circle-x.js
+  // node_modules/lucide-react/dist/esm/icons/circle-x.js
   var __iconNode8 = [
     ["circle", { cx: "12", cy: "12", r: "10", key: "1mglay" }],
     ["path", { d: "m15 9-6 6", key: "1uzhvr" }],
@@ -12917,7 +14739,7 @@ var FrappeAIPanel = (() => {
   ];
   var CircleX = createLucideIcon("circle-x", __iconNode8);
 
-  // ../../factory_automation_api/fact-frontend/node_modules/lucide-react/dist/esm/icons/compass.js
+  // node_modules/lucide-react/dist/esm/icons/compass.js
   var __iconNode9 = [
     [
       "path",
@@ -12930,7 +14752,7 @@ var FrappeAIPanel = (() => {
   ];
   var Compass = createLucideIcon("compass", __iconNode9);
 
-  // ../../factory_automation_api/fact-frontend/node_modules/lucide-react/dist/esm/icons/database.js
+  // node_modules/lucide-react/dist/esm/icons/database.js
   var __iconNode10 = [
     ["ellipse", { cx: "12", cy: "5", rx: "9", ry: "3", key: "msslwz" }],
     ["path", { d: "M3 5V19A9 3 0 0 0 21 19V5", key: "1wlel7" }],
@@ -12938,7 +14760,7 @@ var FrappeAIPanel = (() => {
   ];
   var Database = createLucideIcon("database", __iconNode10);
 
-  // ../../factory_automation_api/fact-frontend/node_modules/lucide-react/dist/esm/icons/ellipsis.js
+  // node_modules/lucide-react/dist/esm/icons/ellipsis.js
   var __iconNode11 = [
     ["circle", { cx: "12", cy: "12", r: "1", key: "41hilf" }],
     ["circle", { cx: "19", cy: "12", r: "1", key: "1wjl8i" }],
@@ -12946,7 +14768,7 @@ var FrappeAIPanel = (() => {
   ];
   var Ellipsis = createLucideIcon("ellipsis", __iconNode11);
 
-  // ../../factory_automation_api/fact-frontend/node_modules/lucide-react/dist/esm/icons/external-link.js
+  // node_modules/lucide-react/dist/esm/icons/external-link.js
   var __iconNode12 = [
     ["path", { d: "M15 3h6v6", key: "1q9fwt" }],
     ["path", { d: "M10 14 21 3", key: "gplh6r" }],
@@ -12954,7 +14776,7 @@ var FrappeAIPanel = (() => {
   ];
   var ExternalLink = createLucideIcon("external-link", __iconNode12);
 
-  // ../../factory_automation_api/fact-frontend/node_modules/lucide-react/dist/esm/icons/hammer.js
+  // node_modules/lucide-react/dist/esm/icons/hammer.js
   var __iconNode13 = [
     ["path", { d: "m15 12-9.373 9.373a1 1 0 0 1-3.001-3L12 9", key: "1hayfq" }],
     ["path", { d: "m18 15 4-4", key: "16gjal" }],
@@ -12968,11 +14790,11 @@ var FrappeAIPanel = (() => {
   ];
   var Hammer = createLucideIcon("hammer", __iconNode13);
 
-  // ../../factory_automation_api/fact-frontend/node_modules/lucide-react/dist/esm/icons/loader-circle.js
+  // node_modules/lucide-react/dist/esm/icons/loader-circle.js
   var __iconNode14 = [["path", { d: "M21 12a9 9 0 1 1-6.219-8.56", key: "13zald" }]];
   var LoaderCircle = createLucideIcon("loader-circle", __iconNode14);
 
-  // ../../factory_automation_api/fact-frontend/node_modules/lucide-react/dist/esm/icons/maximize-2.js
+  // node_modules/lucide-react/dist/esm/icons/maximize-2.js
   var __iconNode15 = [
     ["path", { d: "M15 3h6v6", key: "1q9fwt" }],
     ["path", { d: "m21 3-7 7", key: "1l2asr" }],
@@ -12981,7 +14803,7 @@ var FrappeAIPanel = (() => {
   ];
   var Maximize2 = createLucideIcon("maximize-2", __iconNode15);
 
-  // ../../factory_automation_api/fact-frontend/node_modules/lucide-react/dist/esm/icons/menu.js
+  // node_modules/lucide-react/dist/esm/icons/menu.js
   var __iconNode16 = [
     ["path", { d: "M4 12h16", key: "1lakjw" }],
     ["path", { d: "M4 18h16", key: "19g7jn" }],
@@ -12989,7 +14811,7 @@ var FrappeAIPanel = (() => {
   ];
   var Menu = createLucideIcon("menu", __iconNode16);
 
-  // ../../factory_automation_api/fact-frontend/node_modules/lucide-react/dist/esm/icons/message-square-plus.js
+  // node_modules/lucide-react/dist/esm/icons/message-square-plus.js
   var __iconNode17 = [
     [
       "path",
@@ -13003,33 +14825,41 @@ var FrappeAIPanel = (() => {
   ];
   var MessageSquarePlus = createLucideIcon("message-square-plus", __iconNode17);
 
-  // ../../factory_automation_api/fact-frontend/node_modules/lucide-react/dist/esm/icons/minimize-2.js
+  // node_modules/lucide-react/dist/esm/icons/mic.js
   var __iconNode18 = [
+    ["path", { d: "M12 19v3", key: "npa21l" }],
+    ["path", { d: "M19 10v2a7 7 0 0 1-14 0v-2", key: "1vc78b" }],
+    ["rect", { x: "9", y: "2", width: "6", height: "13", rx: "3", key: "s6n7sd" }]
+  ];
+  var Mic = createLucideIcon("mic", __iconNode18);
+
+  // node_modules/lucide-react/dist/esm/icons/minimize-2.js
+  var __iconNode19 = [
     ["path", { d: "m14 10 7-7", key: "oa77jy" }],
     ["path", { d: "M20 10h-6V4", key: "mjg0md" }],
     ["path", { d: "m3 21 7-7", key: "tjx5ai" }],
     ["path", { d: "M4 14h6v6", key: "rmj7iw" }]
   ];
-  var Minimize2 = createLucideIcon("minimize-2", __iconNode18);
+  var Minimize2 = createLucideIcon("minimize-2", __iconNode19);
 
-  // ../../factory_automation_api/fact-frontend/node_modules/lucide-react/dist/esm/icons/panel-right-close.js
-  var __iconNode19 = [
+  // node_modules/lucide-react/dist/esm/icons/panel-right-close.js
+  var __iconNode20 = [
     ["rect", { width: "18", height: "18", x: "3", y: "3", rx: "2", key: "afitv7" }],
     ["path", { d: "M15 3v18", key: "14nvp0" }],
     ["path", { d: "m8 9 3 3-3 3", key: "12hl5m" }]
   ];
-  var PanelRightClose = createLucideIcon("panel-right-close", __iconNode19);
+  var PanelRightClose = createLucideIcon("panel-right-close", __iconNode20);
 
-  // ../../factory_automation_api/fact-frontend/node_modules/lucide-react/dist/esm/icons/panels-top-left.js
-  var __iconNode20 = [
+  // node_modules/lucide-react/dist/esm/icons/panels-top-left.js
+  var __iconNode21 = [
     ["rect", { width: "18", height: "18", x: "3", y: "3", rx: "2", key: "afitv7" }],
     ["path", { d: "M3 9h18", key: "1pudct" }],
     ["path", { d: "M9 21V9", key: "1oto5p" }]
   ];
-  var PanelsTopLeft = createLucideIcon("panels-top-left", __iconNode20);
+  var PanelsTopLeft = createLucideIcon("panels-top-left", __iconNode21);
 
-  // ../../factory_automation_api/fact-frontend/node_modules/lucide-react/dist/esm/icons/paperclip.js
-  var __iconNode21 = [
+  // node_modules/lucide-react/dist/esm/icons/paperclip.js
+  var __iconNode22 = [
     [
       "path",
       {
@@ -13038,26 +14868,26 @@ var FrappeAIPanel = (() => {
       }
     ]
   ];
-  var Paperclip = createLucideIcon("paperclip", __iconNode21);
+  var Paperclip = createLucideIcon("paperclip", __iconNode22);
 
-  // ../../factory_automation_api/fact-frontend/node_modules/lucide-react/dist/esm/icons/search.js
-  var __iconNode22 = [
+  // node_modules/lucide-react/dist/esm/icons/search.js
+  var __iconNode23 = [
     ["path", { d: "m21 21-4.34-4.34", key: "14j7rj" }],
     ["circle", { cx: "11", cy: "11", r: "8", key: "4ej97u" }]
   ];
-  var Search = createLucideIcon("search", __iconNode22);
+  var Search = createLucideIcon("search", __iconNode23);
 
-  // ../../factory_automation_api/fact-frontend/node_modules/lucide-react/dist/esm/icons/server.js
-  var __iconNode23 = [
+  // node_modules/lucide-react/dist/esm/icons/server.js
+  var __iconNode24 = [
     ["rect", { width: "20", height: "8", x: "2", y: "2", rx: "2", ry: "2", key: "ngkwjq" }],
     ["rect", { width: "20", height: "8", x: "2", y: "14", rx: "2", ry: "2", key: "iecqi9" }],
     ["line", { x1: "6", x2: "6.01", y1: "6", y2: "6", key: "16zg32" }],
     ["line", { x1: "6", x2: "6.01", y1: "18", y2: "18", key: "nzw8ys" }]
   ];
-  var Server = createLucideIcon("server", __iconNode23);
+  var Server = createLucideIcon("server", __iconNode24);
 
-  // ../../factory_automation_api/fact-frontend/node_modules/lucide-react/dist/esm/icons/shield-alert.js
-  var __iconNode24 = [
+  // node_modules/lucide-react/dist/esm/icons/shield-alert.js
+  var __iconNode25 = [
     [
       "path",
       {
@@ -13068,10 +14898,10 @@ var FrappeAIPanel = (() => {
     ["path", { d: "M12 8v4", key: "1got3b" }],
     ["path", { d: "M12 16h.01", key: "1drbdi" }]
   ];
-  var ShieldAlert = createLucideIcon("shield-alert", __iconNode24);
+  var ShieldAlert = createLucideIcon("shield-alert", __iconNode25);
 
-  // ../../factory_automation_api/fact-frontend/node_modules/lucide-react/dist/esm/icons/sparkles.js
-  var __iconNode25 = [
+  // node_modules/lucide-react/dist/esm/icons/sparkles.js
+  var __iconNode26 = [
     [
       "path",
       {
@@ -13083,16 +14913,16 @@ var FrappeAIPanel = (() => {
     ["path", { d: "M22 4h-4", key: "gwowj6" }],
     ["circle", { cx: "4", cy: "20", r: "2", key: "6kqj1y" }]
   ];
-  var Sparkles = createLucideIcon("sparkles", __iconNode25);
+  var Sparkles = createLucideIcon("sparkles", __iconNode26);
 
-  // ../../factory_automation_api/fact-frontend/node_modules/lucide-react/dist/esm/icons/square.js
-  var __iconNode26 = [
+  // node_modules/lucide-react/dist/esm/icons/square.js
+  var __iconNode27 = [
     ["rect", { width: "18", height: "18", x: "3", y: "3", rx: "2", key: "afitv7" }]
   ];
-  var Square = createLucideIcon("square", __iconNode26);
+  var Square = createLucideIcon("square", __iconNode27);
 
-  // ../../factory_automation_api/fact-frontend/node_modules/lucide-react/dist/esm/icons/thumbs-down.js
-  var __iconNode27 = [
+  // node_modules/lucide-react/dist/esm/icons/thumbs-down.js
+  var __iconNode28 = [
     ["path", { d: "M17 14V2", key: "8ymqnk" }],
     [
       "path",
@@ -13102,10 +14932,10 @@ var FrappeAIPanel = (() => {
       }
     ]
   ];
-  var ThumbsDown = createLucideIcon("thumbs-down", __iconNode27);
+  var ThumbsDown = createLucideIcon("thumbs-down", __iconNode28);
 
-  // ../../factory_automation_api/fact-frontend/node_modules/lucide-react/dist/esm/icons/thumbs-up.js
-  var __iconNode28 = [
+  // node_modules/lucide-react/dist/esm/icons/thumbs-up.js
+  var __iconNode29 = [
     ["path", { d: "M7 10v12", key: "1qc93n" }],
     [
       "path",
@@ -13115,10 +14945,24 @@ var FrappeAIPanel = (() => {
       }
     ]
   ];
-  var ThumbsUp = createLucideIcon("thumbs-up", __iconNode28);
+  var ThumbsUp = createLucideIcon("thumbs-up", __iconNode29);
 
-  // ../../factory_automation_api/fact-frontend/node_modules/lucide-react/dist/esm/icons/wrench.js
-  var __iconNode29 = [
+  // node_modules/lucide-react/dist/esm/icons/volume-2.js
+  var __iconNode30 = [
+    [
+      "path",
+      {
+        d: "M11 4.702a.705.705 0 0 0-1.203-.498L6.413 7.587A1.4 1.4 0 0 1 5.416 8H3a1 1 0 0 0-1 1v6a1 1 0 0 0 1 1h2.416a1.4 1.4 0 0 1 .997.413l3.383 3.384A.705.705 0 0 0 11 19.298z",
+        key: "uqj9uw"
+      }
+    ],
+    ["path", { d: "M16 9a5 5 0 0 1 0 6", key: "1q6k2b" }],
+    ["path", { d: "M19.364 18.364a9 9 0 0 0 0-12.728", key: "ijwkga" }]
+  ];
+  var Volume2 = createLucideIcon("volume-2", __iconNode30);
+
+  // node_modules/lucide-react/dist/esm/icons/wrench.js
+  var __iconNode31 = [
     [
       "path",
       {
@@ -13127,17 +14971,17 @@ var FrappeAIPanel = (() => {
       }
     ]
   ];
-  var Wrench = createLucideIcon("wrench", __iconNode29);
+  var Wrench = createLucideIcon("wrench", __iconNode31);
 
-  // ../../factory_automation_api/fact-frontend/node_modules/lucide-react/dist/esm/icons/x.js
-  var __iconNode30 = [
+  // node_modules/lucide-react/dist/esm/icons/x.js
+  var __iconNode32 = [
     ["path", { d: "M18 6 6 18", key: "1bl5f8" }],
     ["path", { d: "m6 6 12 12", key: "d8bk6v" }]
   ];
-  var X = createLucideIcon("x", __iconNode30);
+  var X = createLucideIcon("x", __iconNode32);
 
   // src/components/Composer.tsx
-  var import_react4 = __toESM(require_react(), 1);
+  var import_react7 = __toESM(require_react(), 1);
 
   // src/components/AttachmentChip.tsx
   var import_jsx_runtime = __toESM(require_jsx_runtime(), 1);
@@ -13164,8 +15008,131 @@ var FrappeAIPanel = (() => {
     ] });
   }
 
-  // src/state/store.tsx
-  var import_react3 = __toESM(require_react(), 1);
+  // src/components/VoiceButton.tsx
+  var import_react6 = __toESM(require_react(), 1);
+
+  // src/lib/wav.ts
+  var WAV_HEADER_BYTES = 44;
+  var BYTES_PER_SAMPLE = 2;
+  var PCM_FORMAT = 1;
+  var INT16_MAX = 32767;
+  var INT16_MIN_MAGNITUDE = 32768;
+  function floatToInt16(samples) {
+    const out = new Int16Array(samples.length);
+    for (let i = 0; i < samples.length; i++) {
+      const clipped = Math.max(-1, Math.min(1, samples[i]));
+      out[i] = clipped < 0 ? clipped * INT16_MIN_MAGNITUDE : clipped * INT16_MAX;
+    }
+    return out;
+  }
+  function downsample(samples, inputRate, outputRate) {
+    if (outputRate >= inputRate) return samples;
+    const ratio = inputRate / outputRate;
+    const out = new Float32Array(Math.floor(samples.length / ratio));
+    for (let i = 0; i < out.length; i++) {
+      const start = Math.floor(i * ratio);
+      const end = Math.min(samples.length, Math.floor((i + 1) * ratio));
+      let sum = 0;
+      for (let j = start; j < end; j++) sum += samples[j];
+      out[i] = sum / Math.max(1, end - start);
+    }
+    return out;
+  }
+  function encodeWav(samples, sampleRate) {
+    const pcm = floatToInt16(samples);
+    const dataBytes = pcm.length * BYTES_PER_SAMPLE;
+    const buffer = new ArrayBuffer(WAV_HEADER_BYTES + dataBytes);
+    const view = new DataView(buffer);
+    writeHeader(view, sampleRate, dataBytes);
+    pcm.forEach((value, i) => view.setInt16(WAV_HEADER_BYTES + i * BYTES_PER_SAMPLE, value, true));
+    return new Uint8Array(buffer);
+  }
+  function writeHeader(view, sampleRate, dataBytes) {
+    writeText(view, 0, "RIFF");
+    view.setUint32(4, WAV_HEADER_BYTES - 8 + dataBytes, true);
+    writeText(view, 8, "WAVE");
+    writeText(view, 12, "fmt ");
+    view.setUint32(16, 16, true);
+    view.setUint16(20, PCM_FORMAT, true);
+    view.setUint16(22, 1, true);
+    view.setUint32(24, sampleRate, true);
+    view.setUint32(28, sampleRate * BYTES_PER_SAMPLE, true);
+    view.setUint16(32, BYTES_PER_SAMPLE, true);
+    view.setUint16(34, BYTES_PER_SAMPLE * 8, true);
+    writeText(view, 36, "data");
+    view.setUint32(40, dataBytes, true);
+  }
+  function writeText(view, offset, text) {
+    for (let i = 0; i < text.length; i++) view.setUint8(offset + i, text.charCodeAt(i));
+  }
+
+  // src/lib/voiceCapture.ts
+  var TARGET_SAMPLE_RATE = 16e3;
+  var MIN_RECORDING_MS = 300;
+  var MAX_RECORDING_SECONDS = 60;
+  var PROCESSOR_BUFFER_SAMPLES = 4096;
+  var VoiceRecorder = class {
+    constructor() {
+      this.stream = null;
+      this.context = null;
+      this.processor = null;
+      this.chunks = [];
+      this.startedAt = 0;
+    }
+    static supported() {
+      var _a;
+      return typeof navigator !== "undefined" && !!((_a = navigator.mediaDevices) == null ? void 0 : _a.getUserMedia) && typeof AudioContext !== "undefined";
+    }
+    /** Ask for the microphone and start collecting audio. Rejects if the user refuses. */
+    async start() {
+      this.stream = await navigator.mediaDevices.getUserMedia({
+        audio: { echoCancellation: true, noiseSuppression: true, channelCount: 1 }
+      });
+      this.context = new AudioContext();
+      const source = this.context.createMediaStreamSource(this.stream);
+      this.processor = this.context.createScriptProcessor(PROCESSOR_BUFFER_SAMPLES, 1, 1);
+      this.processor.onaudioprocess = (event) => this.chunks.push(new Float32Array(event.inputBuffer.getChannelData(0)));
+      source.connect(this.processor);
+      this.processor.connect(this.context.destination);
+      this.chunks = [];
+      this.startedAt = Date.now();
+    }
+    /** Stop recording and return the phrase as WAV, or null if it was too short to be speech. */
+    async stop() {
+      var _a, _b;
+      const durationMs = Date.now() - this.startedAt;
+      const sampleRate = (_b = (_a = this.context) == null ? void 0 : _a.sampleRate) != null ? _b : TARGET_SAMPLE_RATE;
+      this.release();
+      if (durationMs < MIN_RECORDING_MS) return null;
+      const samples = downsample(concatenate(this.chunks), sampleRate, TARGET_SAMPLE_RATE);
+      this.chunks = [];
+      const wav = encodeWav(samples, Math.min(sampleRate, TARGET_SAMPLE_RATE));
+      return new Blob([wav], { type: "audio/wav" });
+    }
+    /** Stop and throw the recording away. */
+    cancel() {
+      this.release();
+      this.chunks = [];
+    }
+    release() {
+      var _a, _b, _c;
+      (_a = this.processor) == null ? void 0 : _a.disconnect();
+      (_b = this.stream) == null ? void 0 : _b.getTracks().forEach((track) => track.stop());
+      void ((_c = this.context) == null ? void 0 : _c.close());
+      this.processor = null;
+      this.stream = null;
+      this.context = null;
+    }
+  };
+  function concatenate(chunks) {
+    const out = new Float32Array(chunks.reduce((total, chunk) => total + chunk.length, 0));
+    let offset = 0;
+    for (const chunk of chunks) {
+      out.set(chunk, offset);
+      offset += chunk.length;
+    }
+    return out;
+  }
 
   // src/lib/translate.ts
   function __(message, args) {
@@ -13174,6 +15141,9 @@ var FrappeAIPanel = (() => {
     }
     return message;
   }
+
+  // src/state/store.tsx
+  var import_react4 = __toESM(require_react(), 1);
 
   // src/api/client.ts
   function buildUrl(methodPath, params) {
@@ -13248,6 +15218,13 @@ var FrappeAIPanel = (() => {
       body: form
     }).then((data) => data.attachment);
   }
+  async function transcribeVoice(wav) {
+    const form = new FormData();
+    form.append("file", wav, "utterance.wav");
+    const data = await request("frappe_ai.api.frontend.transcribe_voice", { method: "POST", body: form });
+    return String(data.text || "").trim();
+  }
+  var speakText = (text) => request("frappe_ai.api.frontend.speak_text", { method: "POST", body: { text } });
   function serverMessage(data) {
     try {
       const messages = JSON.parse(data._server_messages || "[]");
@@ -13444,6 +15421,296 @@ var FrappeAIPanel = (() => {
     return { title: title || toolLabel(name), danger: name === "delete" };
   }
 
+  // src/state/useVoiceReplies.ts
+  var import_react3 = __toESM(require_react(), 1);
+
+  // src/lib/sentences.ts
+  var MIN_SENTENCE_CHARS = 24;
+  var MAX_SENTENCE_CHARS = 400;
+  var CODE_FENCE = "```";
+  var ABBREVIATIONS = /\b(?:e\.g|i\.e|etc|vs|Dr|Mr|Mrs|Ms|St|No)\.$/i;
+  var SENTENCE_END = /[.!?…]+["'”’)\]]*\s+|\n+/g;
+  function cleanForSpeech(text) {
+    return text.replace(/!?\[([^\]]*)\]\([^)]*\)/g, "$1").replace(/https?:\/\/\S+/g, "link").replace(/`([^`]*)`/g, "$1").replace(/^\s{0,3}#{1,6}\s+/gm, "").replace(/^\s*(?:[-*+]|\d+[.)])\s+/gm, "").replace(/(\*\*|__|\*|_|~~)/g, "").replace(/\|/g, " ").replace(/\s+/g, " ").trim();
+  }
+  var SentenceSplitter = class {
+    constructor() {
+      this.buffer = "";
+      this.carry = "";
+    }
+    /** Add streamed text; returns the sentences that are now complete, ready to speak. */
+    push(delta) {
+      this.buffer += delta;
+      return this.take(false);
+    }
+    /** The stream ended: return whatever is left, even if it has no final full stop. */
+    flush() {
+      return this.take(true);
+    }
+    reset() {
+      this.buffer = "";
+      this.carry = "";
+    }
+    take(final) {
+      const sentences = [];
+      const { speakable, held } = splitAtOpenFence(this.buffer, final);
+      const { complete, rest } = cutSentences(speakable, final);
+      this.buffer = rest + held;
+      for (const raw of complete) {
+        const sentence = this.join(cleanForSpeech(raw), final);
+        if (sentence) sentences.push(sentence);
+      }
+      if (final && this.carry) {
+        sentences.push(this.carry);
+        this.carry = "";
+      }
+      return sentences;
+    }
+    /** Join a short sentence to the next one; returns the sentence to speak now, or "" to keep waiting. */
+    join(sentence, final) {
+      if (!/[\p{L}\p{N}]/u.test(sentence)) return "";
+      const combined = this.carry ? `${this.carry} ${sentence}` : sentence;
+      if (combined.length < MIN_SENTENCE_CHARS && !final) {
+        this.carry = combined;
+        return "";
+      }
+      this.carry = "";
+      return combined;
+    }
+  };
+  function splitAtOpenFence(buffer, final) {
+    var _a, _b;
+    let text = buffer;
+    for (let open = text.indexOf(CODE_FENCE); open !== -1; open = text.indexOf(CODE_FENCE)) {
+      const close = text.indexOf(CODE_FENCE, open + CODE_FENCE.length);
+      if (close === -1) {
+        return final ? { speakable: text.slice(0, open), held: "" } : { speakable: text.slice(0, open), held: text.slice(open) };
+      }
+      text = `${text.slice(0, open)} ${text.slice(close + CODE_FENCE.length)}`;
+    }
+    const trailingTicks = final ? 0 : (_b = (_a = /`{1,2}$/.exec(text)) == null ? void 0 : _a[0].length) != null ? _b : 0;
+    return { speakable: text.slice(0, text.length - trailingTicks), held: text.slice(text.length - trailingTicks) };
+  }
+  function cutSentences(text, final) {
+    var _a;
+    const complete = [];
+    let start = 0;
+    for (const match of text.matchAll(SENTENCE_END)) {
+      const end = ((_a = match.index) != null ? _a : 0) + match[0].length;
+      const sentence = text.slice(start, end);
+      if (ABBREVIATIONS.test(sentence.trimEnd())) continue;
+      complete.push(sentence);
+      start = end;
+    }
+    let rest = text.slice(start);
+    while (rest.length > MAX_SENTENCE_CHARS) {
+      const cut = breakPoint(rest);
+      complete.push(rest.slice(0, cut));
+      rest = rest.slice(cut);
+    }
+    if (final && rest.trim()) {
+      complete.push(rest);
+      rest = "";
+    }
+    return { complete, rest };
+  }
+  function breakPoint(text) {
+    const window2 = text.slice(0, MAX_SENTENCE_CHARS);
+    const comma = Math.max(window2.lastIndexOf(", "), window2.lastIndexOf("; "));
+    const space = window2.lastIndexOf(" ");
+    return (comma > 0 ? comma + 1 : space > 0 ? space : MAX_SENTENCE_CHARS) + 1;
+  }
+
+  // src/lib/speechPlayer.ts
+  var PREFETCH_AHEAD = 1;
+  var SILENT_CLIP = "data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQAAAAA=";
+  var SpeechPlayer = class {
+    constructor(options) {
+      this.queue = [];
+      this.playing = false;
+      /** Bumped by `stop()`; a sentence that finishes after that must not carry on with the queue. */
+      this.generation = 0;
+      this.current = null;
+      this.options = options;
+    }
+    get speaking() {
+      return this.playing || this.queue.length > 0;
+    }
+    /** Call inside a click: browsers only allow audio that was started, or unlocked, by a user gesture. */
+    unlock() {
+      var _a;
+      try {
+        void this.makeAudio(SILENT_CLIP).play().catch(() => void 0);
+        (_a = this.synth()) == null ? void 0 : _a.speak(this.makeUtterance(""));
+      } catch {
+      }
+    }
+    enqueue(text) {
+      this.queue.push({ text });
+      this.prefetch();
+      if (!this.playing) void this.run(this.generation);
+    }
+    /** Stop speaking now and forget everything still waiting. */
+    stop() {
+      var _a, _b;
+      this.generation += 1;
+      this.queue = [];
+      (_a = this.current) == null ? void 0 : _a.stop();
+      this.current = null;
+      (_b = this.synth()) == null ? void 0 : _b.cancel();
+      this.setPlaying(false);
+    }
+    async run(generation) {
+      this.setPlaying(true);
+      while (generation === this.generation && this.queue.length > 0) {
+        const item = this.queue[0];
+        await this.speak(item);
+        if (generation !== this.generation) return;
+        this.queue.shift();
+        this.prefetch();
+      }
+      if (generation === this.generation) this.setPlaying(false);
+    }
+    async speak(item) {
+      const clip = this.options.tts === "server" ? await this.clipFor(item) : null;
+      if (clip) {
+        await this.playClip(clip);
+      } else {
+        await this.speakInBrowser(item.text);
+      }
+    }
+    /** Server audio for a sentence; null when the request failed, so the browser voice covers for it. */
+    clipFor(item) {
+      var _a;
+      (_a = item.clip) != null ? _a : item.clip = this.options.fetchSpeech(item.text).catch(() => null);
+      return item.clip;
+    }
+    prefetch() {
+      if (this.options.tts !== "server") return;
+      this.queue.slice(0, PREFETCH_AHEAD + 1).forEach((item) => void this.clipFor(item));
+    }
+    playClip(clip) {
+      return new Promise((resolve) => {
+        const audio = this.makeAudio(`data:audio/${clip.format === "mp3" ? "mpeg" : clip.format};base64,${clip.audio}`);
+        const finish = () => {
+          this.current = null;
+          resolve();
+        };
+        audio.onended = finish;
+        audio.onerror = finish;
+        this.current = { stop: () => {
+          audio.pause();
+          finish();
+        } };
+        audio.play().catch(finish);
+      });
+    }
+    speakInBrowser(text) {
+      const synth = this.synth();
+      if (!synth) return Promise.resolve();
+      return new Promise((resolve) => {
+        const utterance = this.makeUtterance(text);
+        const finish = () => {
+          this.current = null;
+          resolve();
+        };
+        utterance.onend = finish;
+        utterance.onerror = finish;
+        this.current = { stop: finish };
+        synth.speak(utterance);
+      });
+    }
+    setPlaying(playing) {
+      var _a, _b;
+      if (this.playing === playing) return;
+      this.playing = playing;
+      (_b = (_a = this.options).onSpeakingChange) == null ? void 0 : _b.call(_a, playing);
+    }
+    makeAudio(src) {
+      return this.options.createAudio ? this.options.createAudio(src) : new Audio(src);
+    }
+    makeUtterance(text) {
+      return this.options.createUtterance ? this.options.createUtterance(text) : new SpeechSynthesisUtterance(text);
+    }
+    synth() {
+      if (this.options.synth !== void 0) return this.options.synth;
+      return typeof window !== "undefined" && "speechSynthesis" in window ? window.speechSynthesis : null;
+    }
+  };
+
+  // src/lib/voiceReplies.ts
+  var VoiceReplies = class {
+    constructor(options) {
+      this.splitter = new SentenceSplitter();
+      this.active = false;
+      this.player = new SpeechPlayer(options);
+    }
+    get speaking() {
+      return this.player.speaking;
+    }
+    unlock() {
+      this.player.unlock();
+    }
+    /** The next run was started by voice: speak its reply as it arrives. */
+    begin() {
+      this.stop();
+      this.active = true;
+    }
+    /** Stop speaking and stop listening to the current run. */
+    stop() {
+      this.active = false;
+      this.splitter.reset();
+      this.player.stop();
+    }
+    /** Feed every run event here; only the assistant's text is spoken, never tool activity. */
+    onEvent(event) {
+      if (!this.active) return;
+      if (event.type === "text") {
+        this.speakAll(this.splitter.push(event.delta || event.content || ""));
+      } else if (event.type === "done") {
+        this.speakAll(this.splitter.flush());
+        this.active = false;
+      } else if (event.type === "error") {
+        this.stop();
+      }
+    }
+    speakAll(sentences) {
+      sentences.forEach((sentence) => this.player.enqueue(sentence));
+    }
+  };
+
+  // src/state/useVoiceReplies.ts
+  function useVoiceReplies(tts) {
+    const [speaking, setSpeaking] = (0, import_react3.useState)(false);
+    const replies = (0, import_react3.useRef)(null);
+    (0, import_react3.useEffect)(() => {
+      var _a;
+      (_a = replies.current) == null ? void 0 : _a.stop();
+      replies.current = new VoiceReplies({ tts, fetchSpeech: speakText, onSpeakingChange: setSpeaking });
+      return () => {
+        var _a2;
+        return (_a2 = replies.current) == null ? void 0 : _a2.stop();
+      };
+    }, [tts]);
+    const begin = (0, import_react3.useCallback)(() => {
+      var _a;
+      return (_a = replies.current) == null ? void 0 : _a.begin();
+    }, []);
+    const stop = (0, import_react3.useCallback)(() => {
+      var _a;
+      return (_a = replies.current) == null ? void 0 : _a.stop();
+    }, []);
+    const unlock = (0, import_react3.useCallback)(() => {
+      var _a;
+      return (_a = replies.current) == null ? void 0 : _a.unlock();
+    }, []);
+    const onEvent = (0, import_react3.useCallback)((event) => {
+      var _a;
+      return (_a = replies.current) == null ? void 0 : _a.onEvent(event);
+    }, []);
+    return { speaking, begin, stop, unlock, onEvent };
+  }
+
   // src/state/runEvents.ts
   function prepareQuestions(questions) {
     return (questions || []).map((question) => ({ ...question, _answer: void 0 }));
@@ -13570,6 +15837,7 @@ var FrappeAIPanel = (() => {
     transcript: [],
     attachments: [],
     supportedFileTypes: [],
+    voice: { available: false, tts: "browser" },
     sending: false,
     loaded: false,
     scrollTick: 0,
@@ -13577,7 +15845,7 @@ var FrappeAIPanel = (() => {
     focusTick: 0,
     inspector: { open: false, mode: "agent", title: "", payload: null }
   };
-  var StoreContext = (0, import_react3.createContext)(null);
+  var StoreContext = (0, import_react4.createContext)(null);
   function reducer(_state, nextState) {
     return nextState;
   }
@@ -13603,37 +15871,38 @@ var FrappeAIPanel = (() => {
   }
   function StoreProvider({ children, host }) {
     var _a;
-    const [state, dispatch] = (0, import_react3.useReducer)(reducer, initialState);
-    const stateRef = (0, import_react3.useRef)(state);
-    const sessionRestored = (0, import_react3.useRef)(false);
-    const switchSeq = (0, import_react3.useRef)(0);
-    const abortController = (0, import_react3.useRef)(null);
-    const commit = (0, import_react3.useCallback)((next) => {
+    const [state, dispatch] = (0, import_react4.useReducer)(reducer, initialState);
+    const stateRef = (0, import_react4.useRef)(state);
+    const sessionRestored = (0, import_react4.useRef)(false);
+    const switchSeq = (0, import_react4.useRef)(0);
+    const abortController = (0, import_react4.useRef)(null);
+    const voiceReplies = useVoiceReplies(state.voice.tts);
+    const commit = (0, import_react4.useCallback)((next) => {
       stateRef.current = next;
       dispatch(next);
     }, []);
-    const update = (0, import_react3.useCallback)(
+    const update = (0, import_react4.useCallback)(
       (fn) => {
         commit(fn(stateRef.current));
       },
       [commit]
     );
-    const selectedAgentRecord = (0, import_react3.useCallback)(
+    const selectedAgentRecord = (0, import_react4.useCallback)(
       (name, items = stateRef.current.agents) => items.find((item) => item.name === name) || null,
       []
     );
-    const openInspector = (0, import_react3.useCallback)(
+    const openInspector = (0, import_react4.useCallback)(
       (mode, title, payload) => {
         update((current) => ({ ...current, inspector: { open: true, mode, title, payload } }));
       },
       [update]
     );
-    const hydrateFromBootstrap = (0, import_react3.useCallback)(
+    const hydrateFromBootstrap = (0, import_react4.useCallback)(
       (data) => {
         var _a2;
         const selectedSession = ((_a2 = data.session) == null ? void 0 : _a2.current) || null;
         update((current) => {
-          var _a3, _b, _c, _d, _e, _f, _g;
+          var _a3, _b, _c, _d, _e, _f, _g, _h;
           return {
             ...current,
             agents: ((_a3 = data.agent) == null ? void 0 : _a3.items) || [],
@@ -13645,6 +15914,7 @@ var FrappeAIPanel = (() => {
             currentRun: ((_e = data.execution) == null ? void 0 : _e.current_run) || null,
             transcript: ((_f = data.execution) == null ? void 0 : _f.transcript) || [],
             supportedFileTypes: ((_g = data.composer) == null ? void 0 : _g.supported_file_types) || [],
+            voice: ((_h = data.composer) == null ? void 0 : _h.voice) || { available: false, tts: "browser" },
             loaded: true,
             focusTick: current.focusTick + 1
           };
@@ -13652,7 +15922,7 @@ var FrappeAIPanel = (() => {
       },
       [update]
     );
-    const loadInitial = (0, import_react3.useCallback)(async () => {
+    const loadInitial = (0, import_react4.useCallback)(async () => {
       try {
         const data = await bootstrap();
         hydrateFromBootstrap(data);
@@ -13663,13 +15933,14 @@ var FrappeAIPanel = (() => {
         });
       }
     }, [hydrateFromBootstrap]);
-    const refreshHistory = (0, import_react3.useCallback)(async () => {
+    const refreshHistory = (0, import_react4.useCallback)(async () => {
       const rows = await loadHistory().catch(() => []);
       update((current) => ({ ...current, history: rows }));
     }, [update]);
-    const switchSession = (0, import_react3.useCallback)(
+    const switchSession = (0, import_react4.useCallback)(
       async (name) => {
         if (stateRef.current.sending) return;
+        voiceReplies.stop();
         const seq = ++switchSeq.current;
         update((current) => ({
           ...current,
@@ -13700,9 +15971,9 @@ var FrappeAIPanel = (() => {
         });
         update((current) => requestScrollState(current));
       },
-      [update]
+      [update, voiceReplies.stop]
     );
-    const restoreSession = (0, import_react3.useCallback)(async () => {
+    const restoreSession = (0, import_react4.useCallback)(async () => {
       var _a2;
       if (sessionRestored.current) return;
       sessionRestored.current = true;
@@ -13714,21 +15985,22 @@ var FrappeAIPanel = (() => {
         update((current) => ({ ...current, currentSession: null, currentRun: null, transcript: [] }));
       }
     }, [host, switchSession, update]);
-    const setAgent = (0, import_react3.useCallback)(
+    const setAgent = (0, import_react4.useCallback)(
       (name) => {
         if (stateRef.current.transcript.length > 0) return;
         update((current) => ({ ...current, selectedAgent: name }));
       },
       [update]
     );
-    const setModel = (0, import_react3.useCallback)(
+    const setModel = (0, import_react4.useCallback)(
       (name) => {
         update((current) => ({ ...current, selectedModel: name || null }));
       },
       [update]
     );
-    const newChat = (0, import_react3.useCallback)(() => {
+    const newChat = (0, import_react4.useCallback)(() => {
       if (stateRef.current.sending) return;
+      voiceReplies.stop();
       update((current) => ({
         ...current,
         currentSession: null,
@@ -13738,24 +16010,25 @@ var FrappeAIPanel = (() => {
         selectedModel: null,
         focusTick: current.focusTick + 1
       }));
-    }, [update]);
-    const searchSessions2 = (0, import_react3.useCallback)(async (query) => {
+    }, [update, voiceReplies.stop]);
+    const searchSessions2 = (0, import_react4.useCallback)(async (query) => {
       if (!query.trim()) return stateRef.current.history;
       return searchSessions(query).catch(() => []);
     }, []);
-    const clearForceScroll = (0, import_react3.useCallback)(() => {
+    const clearForceScroll = (0, import_react4.useCallback)(() => {
       update((current) => current.forceScroll ? { ...current, forceScroll: false } : current);
     }, [update]);
-    const findToolSummary = (0, import_react3.useCallback)(
+    const findToolSummary = (0, import_react4.useCallback)(
       (toolName) => {
         const agent = selectedAgentRecord(stateRef.current.selectedAgent);
         return (agent == null ? void 0 : agent.tools.summaries.find((item) => item.name === toolName)) || null;
       },
       [selectedAgentRecord]
     );
-    const handleEvent = (0, import_react3.useCallback)(
+    const handleEvent = (0, import_react4.useCallback)(
       (event, messageId) => {
         update((current) => applyRunEvent(current, event, messageId));
+        voiceReplies.onEvent(event);
         if (["text", "tool_started", "tool_ended"].includes(event.type)) {
           update((current) => requestScrollState(current));
         }
@@ -13764,10 +16037,10 @@ var FrappeAIPanel = (() => {
         }
         if (event.type === "done") void refreshHistory();
       },
-      [refreshHistory, update]
+      [refreshHistory, update, voiceReplies.onEvent]
     );
-    const send = (0, import_react3.useCallback)(
-      async (rawText) => {
+    const send = (0, import_react4.useCallback)(
+      async (rawText, options = {}) => {
         const text = rawText.trim();
         const current = stateRef.current;
         const paused = current.transcript.some(
@@ -13775,6 +16048,8 @@ var FrappeAIPanel = (() => {
         );
         const uploading = current.attachments.some((item) => item.status === "uploading");
         if (!text || current.sending || paused || uploading) return;
+        if (options.spoken) voiceReplies.begin();
+        else voiceReplies.stop();
         const ready = current.attachments.filter((item) => item.status === "ready");
         const files = ready.map((item) => item.file).filter(Boolean);
         const chips = ready.map((item) => ({ file_name: item.file_name, file_size: item.file_size }));
@@ -13834,9 +16109,9 @@ var FrappeAIPanel = (() => {
           }));
         }
       },
-      [findAssistant, handleEvent, update]
+      [findAssistant, handleEvent, update, voiceReplies.begin, voiceReplies.stop]
     );
-    const resume = (0, import_react3.useCallback)(
+    const resume = (0, import_react4.useCallback)(
       async (answers, messageId) => {
         var _a2;
         const current = stateRef.current;
@@ -13882,8 +16157,9 @@ var FrappeAIPanel = (() => {
       },
       [findAssistant, handleEvent, update]
     );
-    const stopRun2 = (0, import_react3.useCallback)(() => {
+    const stopRun2 = (0, import_react4.useCallback)(() => {
       var _a2, _b;
+      voiceReplies.stop();
       if (!stateRef.current.sending) return;
       (_a2 = abortController.current) == null ? void 0 : _a2.abort();
       const runName = (_b = stateRef.current.currentRun) == null ? void 0 : _b.run;
@@ -13894,8 +16170,8 @@ var FrappeAIPanel = (() => {
         void recoverSession(stateRef.current.currentSession.name).catch(() => {
         });
       }
-    }, []);
-    const submitFeedback2 = (0, import_react3.useCallback)(
+    }, [voiceReplies.stop]);
+    const submitFeedback2 = (0, import_react4.useCallback)(
       async (runName, rating, comment = "") => {
         await submitFeedback({ run_name: runName, rating, comment: comment || null });
         update((current) => {
@@ -13910,7 +16186,7 @@ var FrappeAIPanel = (() => {
       },
       [update]
     );
-    const answerQuestion = (0, import_react3.useCallback)(
+    const answerQuestion = (0, import_react4.useCallback)(
       async (messageId, questionKey, answer) => {
         const trimmed = answer.trim();
         if (!trimmed) return;
@@ -13937,7 +16213,7 @@ var FrappeAIPanel = (() => {
       },
       [findAssistant, resume, update]
     );
-    const attachFiles = (0, import_react3.useCallback)(
+    const attachFiles = (0, import_react4.useCallback)(
       (files) => {
         for (const file of Array.from(files || [])) {
           const uid2 = nextAttachmentId();
@@ -13984,7 +16260,7 @@ var FrappeAIPanel = (() => {
       },
       [update]
     );
-    const removeAttachment = (0, import_react3.useCallback)(
+    const removeAttachment = (0, import_react4.useCallback)(
       (uidToRemove) => {
         update((current) => ({
           ...current,
@@ -13993,14 +16269,14 @@ var FrappeAIPanel = (() => {
       },
       [update]
     );
-    const closeInspector = (0, import_react3.useCallback)(() => {
+    const closeInspector = (0, import_react4.useCallback)(() => {
       update((current) => ({ ...current, inspector: { ...current.inspector, open: false } }));
     }, [update]);
-    const openAgentInspector = (0, import_react3.useCallback)(() => {
+    const openAgentInspector = (0, import_react4.useCallback)(() => {
       const agent = selectedAgentRecord(stateRef.current.selectedAgent);
       if (agent) openInspector("agent", agent.title, agent);
     }, [openInspector, selectedAgentRecord]);
-    const openModelInspector = (0, import_react3.useCallback)(() => {
+    const openModelInspector = (0, import_react4.useCallback)(() => {
       const agent = selectedAgentRecord(stateRef.current.selectedAgent);
       if (!agent) return;
       openInspector("model", agent.model.title || agent.model.name || __("Model"), {
@@ -14008,13 +16284,13 @@ var FrappeAIPanel = (() => {
         model: agent.model
       });
     }, [openInspector, selectedAgentRecord]);
-    const openMcpInspector = (0, import_react3.useCallback)(
+    const openMcpInspector = (0, import_react4.useCallback)(
       (connection) => {
         openInspector("mcp", connection.display_name, connection);
       },
       [openInspector]
     );
-    const openToolInspector = (0, import_react3.useCallback)(
+    const openToolInspector = (0, import_react4.useCallback)(
       (tool) => {
         openInspector("tool", tool.display_name || tool.name, {
           ...tool,
@@ -14023,7 +16299,7 @@ var FrappeAIPanel = (() => {
       },
       [openInspector]
     );
-    const openExecutionInspector = (0, import_react3.useCallback)(
+    const openExecutionInspector = (0, import_react4.useCallback)(
       (execution, message) => {
         openInspector("execution", execution.display_title, {
           execution,
@@ -14033,11 +16309,11 @@ var FrappeAIPanel = (() => {
       },
       [findToolSummary, openInspector]
     );
-    const openActivityInspector = (0, import_react3.useCallback)(() => {
+    const openActivityInspector = (0, import_react4.useCallback)(() => {
       const activity = stateRef.current.transcript.filter((item) => item.role === "assistant").flatMap((item) => item.executions.map((execution) => ({ execution, message: item })));
       openInspector("activity", __("Activity"), activity);
     }, [openInspector]);
-    const testMcpConnection = (0, import_react3.useCallback)(
+    const testMcpConnection = (0, import_react4.useCallback)(
       async (name) => {
         const result = await checkMcpConnection(name);
         update((current) => ({
@@ -14058,14 +16334,14 @@ var FrappeAIPanel = (() => {
       },
       [update]
     );
-    (0, import_react3.useEffect)(() => {
+    (0, import_react4.useEffect)(() => {
       stateRef.current = state;
     }, [state]);
-    (0, import_react3.useEffect)(() => {
+    (0, import_react4.useEffect)(() => {
       var _a2, _b;
       (_b = host == null ? void 0 : host.onSessionChange) == null ? void 0 : _b.call(host, ((_a2 = state.currentSession) == null ? void 0 : _a2.name) || null);
     }, [host, (_a = state.currentSession) == null ? void 0 : _a.name]);
-    const value = (0, import_react3.useMemo)(() => {
+    const value = (0, import_react4.useMemo)(() => {
       const locked = state.transcript.length > 0;
       const needsSetup = state.loaded && (!state.agents.length || !state.models.length);
       const uploading = state.attachments.some((item) => item.status === "uploading");
@@ -14087,6 +16363,9 @@ var FrappeAIPanel = (() => {
         setModel,
         send,
         stopRun: stopRun2,
+        speaking: voiceReplies.speaking,
+        stopSpeaking: voiceReplies.stop,
+        unlockAudio: voiceReplies.unlock,
         answerQuestion,
         submitFeedback: submitFeedback2,
         attachFiles,
@@ -14126,18 +16405,114 @@ var FrappeAIPanel = (() => {
       stopRun2,
       submitFeedback2,
       switchSession,
-      testMcpConnection
+      testMcpConnection,
+      voiceReplies.speaking,
+      voiceReplies.stop,
+      voiceReplies.unlock
     ]);
     return /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(StoreContext.Provider, { value, children });
   }
   function useStore() {
-    const context = (0, import_react3.useContext)(StoreContext);
+    const context = (0, import_react4.useContext)(StoreContext);
     if (!context) throw new Error("useStore must be used within StoreProvider");
     return context;
   }
 
-  // src/components/Composer.tsx
+  // src/state/useVoiceRecorder.ts
+  var import_react5 = __toESM(require_react(), 1);
+  function useVoiceRecorder({ send, canSend, prepareAudio, stopSpeaking }) {
+    const [status, setStatus] = (0, import_react5.useState)("idle");
+    const [error, setError] = (0, import_react5.useState)("");
+    const recorder = (0, import_react5.useRef)(null);
+    const limitTimer = (0, import_react5.useRef)(void 0);
+    const finish = (0, import_react5.useCallback)(async () => {
+      var _a;
+      window.clearTimeout(limitTimer.current);
+      setStatus("transcribing");
+      try {
+        const wav = await ((_a = recorder.current) == null ? void 0 : _a.stop());
+        recorder.current = null;
+        const text = wav ? await transcribeVoice(wav) : "";
+        setStatus("idle");
+        if (!wav) return setError(__("That was too short. Speak a little longer."));
+        if (!text) return setError(__("I didn't catch that. Try again."));
+        if (canSend()) void send(text, { spoken: true });
+      } catch (failure) {
+        setStatus("idle");
+        setError((failure == null ? void 0 : failure.message) || __("Could not understand the recording."));
+      }
+    }, [canSend, send]);
+    const toggle = (0, import_react5.useCallback)(async () => {
+      if (status === "recording") return finish();
+      if (status !== "idle") return;
+      setError("");
+      stopSpeaking();
+      prepareAudio();
+      try {
+        recorder.current = new VoiceRecorder();
+        await recorder.current.start();
+        setStatus("recording");
+        limitTimer.current = window.setTimeout(() => void finish(), MAX_RECORDING_SECONDS * 1e3);
+      } catch (failure) {
+        recorder.current = null;
+        setError(microphoneError(failure));
+      }
+    }, [finish, prepareAudio, status, stopSpeaking]);
+    (0, import_react5.useEffect)(
+      () => () => {
+        var _a;
+        window.clearTimeout(limitTimer.current);
+        (_a = recorder.current) == null ? void 0 : _a.cancel();
+      },
+      []
+    );
+    return { status, error, toggle };
+  }
+  function microphoneError(failure) {
+    const name = failure == null ? void 0 : failure.name;
+    if (name === "NotAllowedError") return __("Microphone access was blocked. Allow it in your browser's site settings.");
+    if (name === "NotFoundError") return __("No microphone was found.");
+    return __("Could not start the microphone.");
+  }
+
+  // src/components/VoiceButton.tsx
   var import_jsx_runtime3 = __toESM(require_jsx_runtime(), 1);
+  function VoiceButton() {
+    const { voice, loaded, sending, paused, needsSetup, send, speaking, stopSpeaking, unlockAudio } = useStore();
+    const ready = loaded && !sending && !paused && !needsSetup;
+    const readyRef = (0, import_react6.useRef)(ready);
+    readyRef.current = ready;
+    const canSend = (0, import_react6.useCallback)(() => readyRef.current, []);
+    const { status, error, toggle } = useVoiceRecorder({
+      send,
+      canSend,
+      prepareAudio: unlockAudio,
+      stopSpeaking
+    });
+    if (!voice.available || !VoiceRecorder.supported()) return null;
+    const recording = status === "recording";
+    const transcribing = status === "transcribing";
+    const speakingNow = speaking && status === "idle";
+    const label = recording ? __("Listening\u2026 click to send") : transcribing ? __("Understanding\u2026") : speakingNow ? __("Speaking\u2026 click to stop") : __("Talk");
+    return /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)(import_jsx_runtime3.Fragment, { children: [
+      /* @__PURE__ */ (0, import_jsx_runtime3.jsx)(
+        "button",
+        {
+          type: "button",
+          className: `faip-icon-button faip-voice-button${recording ? " is-recording" : ""}`,
+          "aria-label": label,
+          title: label,
+          disabled: transcribing || !ready && !recording && !speakingNow,
+          onClick: speakingNow ? stopSpeaking : toggle,
+          children: transcribing ? /* @__PURE__ */ (0, import_jsx_runtime3.jsx)(LoaderCircle, { size: 15, className: "faip-spin" }) : recording ? /* @__PURE__ */ (0, import_jsx_runtime3.jsx)(Square, { size: 15 }) : speakingNow ? /* @__PURE__ */ (0, import_jsx_runtime3.jsx)(Volume2, { size: 15 }) : /* @__PURE__ */ (0, import_jsx_runtime3.jsx)(Mic, { size: 15 })
+        }
+      ),
+      (recording || transcribing || speakingNow || error) && /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("span", { className: `faip-voice-status${error && status === "idle" ? " is-error" : ""}`, role: "status", children: error && status === "idle" ? error : label })
+    ] });
+  }
+
+  // src/components/Composer.tsx
+  var import_jsx_runtime4 = __toESM(require_jsx_runtime(), 1);
   function Composer() {
     var _a;
     const {
@@ -14155,18 +16530,18 @@ var FrappeAIPanel = (() => {
       attachFiles,
       removeAttachment
     } = useStore();
-    const [text, setText] = (0, import_react4.useState)("");
-    const [dragging, setDragging] = (0, import_react4.useState)(false);
-    const textareaRef = (0, import_react4.useRef)(null);
-    const fileInputRef = (0, import_react4.useRef)(null);
-    const accept = (0, import_react4.useMemo)(
+    const [text, setText] = (0, import_react7.useState)("");
+    const [dragging, setDragging] = (0, import_react7.useState)(false);
+    const textareaRef = (0, import_react7.useRef)(null);
+    const fileInputRef = (0, import_react7.useRef)(null);
+    const accept = (0, import_react7.useMemo)(
       () => (supportedFileTypes || []).map((ext) => `.${ext}`).join(","),
       [supportedFileTypes]
     );
     const inputDisabled = !loaded || sending || paused || needsSetup;
     const canSend = text.trim() && !inputDisabled && !uploading;
     const placeholder = !loaded ? __("Loading\u2026") : needsSetup ? __("Setup required\u2026") : __("Ask {0}\u2026", [(agentRecord == null ? void 0 : agentRecord.title) || __("your agent")]);
-    (0, import_react4.useEffect)(() => {
+    (0, import_react7.useEffect)(() => {
       var _a2;
       (_a2 = textareaRef.current) == null ? void 0 : _a2.focus();
     }, [focusTick]);
@@ -14182,7 +16557,7 @@ var FrappeAIPanel = (() => {
       setText("");
       requestAnimationFrame(resize);
     }
-    return /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)(
+    return /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)(
       "div",
       {
         className: `faip-composer ${dragging ? "is-dragging" : ""}`,
@@ -14202,7 +16577,7 @@ var FrappeAIPanel = (() => {
           attachFiles(event.dataTransfer.files);
         },
         children: [
-          attachments.length ? /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("div", { className: "faip-composer-attachments", children: attachments.map((attachment) => /* @__PURE__ */ (0, import_jsx_runtime3.jsx)(
+          attachments.length ? /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("div", { className: "faip-composer-attachments", children: attachments.map((attachment) => /* @__PURE__ */ (0, import_jsx_runtime4.jsx)(
             AttachmentChip,
             {
               fileName: attachment.file_name,
@@ -14214,7 +16589,7 @@ var FrappeAIPanel = (() => {
             },
             attachment.uid
           )) }) : null,
-          /* @__PURE__ */ (0, import_jsx_runtime3.jsx)(
+          /* @__PURE__ */ (0, import_jsx_runtime4.jsx)(
             "textarea",
             {
               ref: textareaRef,
@@ -14233,9 +16608,9 @@ var FrappeAIPanel = (() => {
               }
             }
           ),
-          /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)("div", { className: "faip-composer-footer", children: [
-            /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)("div", { className: "faip-composer-tools", children: [
-              /* @__PURE__ */ (0, import_jsx_runtime3.jsx)(
+          /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)("div", { className: "faip-composer-footer", children: [
+            /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)("div", { className: "faip-composer-tools", children: [
+              /* @__PURE__ */ (0, import_jsx_runtime4.jsx)(
                 "button",
                 {
                   type: "button",
@@ -14245,10 +16620,10 @@ var FrappeAIPanel = (() => {
                     var _a2;
                     return (_a2 = fileInputRef.current) == null ? void 0 : _a2.click();
                   },
-                  children: /* @__PURE__ */ (0, import_jsx_runtime3.jsx)(Paperclip, { size: 15 })
+                  children: /* @__PURE__ */ (0, import_jsx_runtime4.jsx)(Paperclip, { size: 15 })
                 }
               ),
-              /* @__PURE__ */ (0, import_jsx_runtime3.jsx)(
+              /* @__PURE__ */ (0, import_jsx_runtime4.jsx)(
                 "input",
                 {
                   ref: fileInputRef,
@@ -14262,16 +16637,17 @@ var FrappeAIPanel = (() => {
                   }
                 }
               ),
-              /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)("div", { className: "faip-composer-agent-chip", children: [
-                /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("span", { children: (agentRecord == null ? void 0 : agentRecord.title) || __("Agent") }),
-                /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("small", { children: ((_a = agentRecord == null ? void 0 : agentRecord.model) == null ? void 0 : _a.title) || __("Agent default model") })
+              /* @__PURE__ */ (0, import_jsx_runtime4.jsx)(VoiceButton, {}),
+              /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)("div", { className: "faip-composer-agent-chip", children: [
+                /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("span", { children: (agentRecord == null ? void 0 : agentRecord.title) || __("Agent") }),
+                /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("small", { children: ((_a = agentRecord == null ? void 0 : agentRecord.model) == null ? void 0 : _a.title) || __("Agent default model") })
               ] })
             ] }),
-            sending ? /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)("button", { type: "button", className: "faip-danger-button", onClick: stopRun2, children: [
-              /* @__PURE__ */ (0, import_jsx_runtime3.jsx)(Square, { size: 14 }),
+            sending ? /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)("button", { type: "button", className: "faip-danger-button", onClick: stopRun2, children: [
+              /* @__PURE__ */ (0, import_jsx_runtime4.jsx)(Square, { size: 14 }),
               __("Stop")
-            ] }) : /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)("button", { type: "button", className: "faip-primary-button", disabled: !canSend, onClick: submit, children: [
-              /* @__PURE__ */ (0, import_jsx_runtime3.jsx)(ArrowUp, { size: 14 }),
+            ] }) : /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)("button", { type: "button", className: "faip-primary-button", disabled: !canSend, onClick: submit, children: [
+              /* @__PURE__ */ (0, import_jsx_runtime4.jsx)(ArrowUp, { size: 14 }),
               __("Send")
             ] })
           ] })
@@ -14281,10 +16657,10 @@ var FrappeAIPanel = (() => {
   }
 
   // src/components/InspectorDrawer.tsx
-  var import_jsx_runtime4 = __toESM(require_jsx_runtime(), 1);
+  var import_jsx_runtime5 = __toESM(require_jsx_runtime(), 1);
   function JsonBlock({ value }) {
     if (value === void 0 || value === null || value === "") return null;
-    return /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("pre", { className: "faip-code-block", children: typeof value === "string" ? value : JSON.stringify(value, null, 2) });
+    return /* @__PURE__ */ (0, import_jsx_runtime5.jsx)("pre", { className: "faip-code-block", children: typeof value === "string" ? value : JSON.stringify(value, null, 2) });
   }
   function InspectorDrawer() {
     var _a, _b, _c;
@@ -14298,107 +16674,107 @@ var FrappeAIPanel = (() => {
     } = useStore();
     if (!inspector.open) return null;
     const payload = inspector.payload;
-    return /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)("aside", { className: "faip-inspector", children: [
-      /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)("div", { className: "faip-inspector-header", children: [
-        /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)("div", { children: [
-          /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("div", { className: "faip-inspector-eyebrow", children: inspector.mode }),
-          /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("div", { className: "faip-inspector-title", children: inspector.title })
+    return /* @__PURE__ */ (0, import_jsx_runtime5.jsxs)("aside", { className: "faip-inspector", children: [
+      /* @__PURE__ */ (0, import_jsx_runtime5.jsxs)("div", { className: "faip-inspector-header", children: [
+        /* @__PURE__ */ (0, import_jsx_runtime5.jsxs)("div", { children: [
+          /* @__PURE__ */ (0, import_jsx_runtime5.jsx)("div", { className: "faip-inspector-eyebrow", children: inspector.mode }),
+          /* @__PURE__ */ (0, import_jsx_runtime5.jsx)("div", { className: "faip-inspector-title", children: inspector.title })
         ] }),
-        /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("button", { type: "button", className: "faip-icon-button", onClick: closeInspector, children: /* @__PURE__ */ (0, import_jsx_runtime4.jsx)(PanelRightClose, { size: 16 }) })
+        /* @__PURE__ */ (0, import_jsx_runtime5.jsx)("button", { type: "button", className: "faip-icon-button", onClick: closeInspector, children: /* @__PURE__ */ (0, import_jsx_runtime5.jsx)(PanelRightClose, { size: 16 }) })
       ] }),
-      /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)("div", { className: "faip-inspector-body", children: [
-        inspector.mode === "agent" ? /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)(import_jsx_runtime4.Fragment, { children: [
-          /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)("div", { className: "faip-inspector-stat-grid", children: [
-            /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)("div", { className: "faip-inspector-stat", children: [
-              /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("span", { children: __("Status") }),
-              /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("strong", { children: payload.readiness.label })
+      /* @__PURE__ */ (0, import_jsx_runtime5.jsxs)("div", { className: "faip-inspector-body", children: [
+        inspector.mode === "agent" ? /* @__PURE__ */ (0, import_jsx_runtime5.jsxs)(import_jsx_runtime5.Fragment, { children: [
+          /* @__PURE__ */ (0, import_jsx_runtime5.jsxs)("div", { className: "faip-inspector-stat-grid", children: [
+            /* @__PURE__ */ (0, import_jsx_runtime5.jsxs)("div", { className: "faip-inspector-stat", children: [
+              /* @__PURE__ */ (0, import_jsx_runtime5.jsx)("span", { children: __("Status") }),
+              /* @__PURE__ */ (0, import_jsx_runtime5.jsx)("strong", { children: payload.readiness.label })
             ] }),
-            /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)("div", { className: "faip-inspector-stat", children: [
-              /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("span", { children: __("Model") }),
-              /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("strong", { children: payload.model.title || payload.model.name })
+            /* @__PURE__ */ (0, import_jsx_runtime5.jsxs)("div", { className: "faip-inspector-stat", children: [
+              /* @__PURE__ */ (0, import_jsx_runtime5.jsx)("span", { children: __("Model") }),
+              /* @__PURE__ */ (0, import_jsx_runtime5.jsx)("strong", { children: payload.model.title || payload.model.name })
             ] }),
-            /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)("div", { className: "faip-inspector-stat", children: [
-              /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("span", { children: __("Tools") }),
-              /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("strong", { children: payload.tools.count })
+            /* @__PURE__ */ (0, import_jsx_runtime5.jsxs)("div", { className: "faip-inspector-stat", children: [
+              /* @__PURE__ */ (0, import_jsx_runtime5.jsx)("span", { children: __("Tools") }),
+              /* @__PURE__ */ (0, import_jsx_runtime5.jsx)("strong", { children: payload.tools.count })
             ] }),
-            /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)("div", { className: "faip-inspector-stat", children: [
-              /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("span", { children: __("MCPs") }),
-              /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("strong", { children: payload.mcp_connections.length })
+            /* @__PURE__ */ (0, import_jsx_runtime5.jsxs)("div", { className: "faip-inspector-stat", children: [
+              /* @__PURE__ */ (0, import_jsx_runtime5.jsx)("span", { children: __("MCPs") }),
+              /* @__PURE__ */ (0, import_jsx_runtime5.jsx)("strong", { children: payload.mcp_connections.length })
             ] })
           ] }),
-          /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)("div", { className: "faip-inspector-section", children: [
-            /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("div", { className: "faip-inspector-section-title", children: __("Prompt summary") }),
-            /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("p", { children: payload.prompt_summary })
+          /* @__PURE__ */ (0, import_jsx_runtime5.jsxs)("div", { className: "faip-inspector-section", children: [
+            /* @__PURE__ */ (0, import_jsx_runtime5.jsx)("div", { className: "faip-inspector-section-title", children: __("Prompt summary") }),
+            /* @__PURE__ */ (0, import_jsx_runtime5.jsx)("p", { children: payload.prompt_summary })
           ] }),
-          /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)("div", { className: "faip-inspector-section", children: [
-            /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("div", { className: "faip-inspector-section-title", children: __("Tools") }),
-            /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("div", { className: "faip-inspector-list", children: payload.tools.summaries.map((tool) => /* @__PURE__ */ (0, import_jsx_runtime4.jsx)(
+          /* @__PURE__ */ (0, import_jsx_runtime5.jsxs)("div", { className: "faip-inspector-section", children: [
+            /* @__PURE__ */ (0, import_jsx_runtime5.jsx)("div", { className: "faip-inspector-section-title", children: __("Tools") }),
+            /* @__PURE__ */ (0, import_jsx_runtime5.jsx)("div", { className: "faip-inspector-list", children: payload.tools.summaries.map((tool) => /* @__PURE__ */ (0, import_jsx_runtime5.jsx)(
               "button",
               {
                 type: "button",
                 className: "faip-inspector-row",
                 onClick: () => openToolInspector(tool),
-                children: /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)("div", { children: [
-                  /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("div", { className: "faip-inspector-row-title", children: tool.display_name }),
-                  /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("div", { className: "faip-inspector-row-meta", children: tool.summary })
+                children: /* @__PURE__ */ (0, import_jsx_runtime5.jsxs)("div", { children: [
+                  /* @__PURE__ */ (0, import_jsx_runtime5.jsx)("div", { className: "faip-inspector-row-title", children: tool.display_name }),
+                  /* @__PURE__ */ (0, import_jsx_runtime5.jsx)("div", { className: "faip-inspector-row-meta", children: tool.summary })
                 ] })
               },
               tool.name
             )) })
           ] }),
-          /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)("div", { className: "faip-inspector-section", children: [
-            /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("div", { className: "faip-inspector-section-title", children: __("MCP connections") }),
-            /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("div", { className: "faip-inspector-list", children: payload.mcp_connections.map((connection) => /* @__PURE__ */ (0, import_jsx_runtime4.jsx)(
+          /* @__PURE__ */ (0, import_jsx_runtime5.jsxs)("div", { className: "faip-inspector-section", children: [
+            /* @__PURE__ */ (0, import_jsx_runtime5.jsx)("div", { className: "faip-inspector-section-title", children: __("MCP connections") }),
+            /* @__PURE__ */ (0, import_jsx_runtime5.jsx)("div", { className: "faip-inspector-list", children: payload.mcp_connections.map((connection) => /* @__PURE__ */ (0, import_jsx_runtime5.jsx)(
               "button",
               {
                 type: "button",
                 className: "faip-inspector-row",
                 onClick: () => openMcpInspector(connection),
-                children: /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)("div", { children: [
-                  /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("div", { className: "faip-inspector-row-title", children: connection.display_name }),
-                  /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("div", { className: "faip-inspector-row-meta", children: connection.status_message || connection.status })
+                children: /* @__PURE__ */ (0, import_jsx_runtime5.jsxs)("div", { children: [
+                  /* @__PURE__ */ (0, import_jsx_runtime5.jsx)("div", { className: "faip-inspector-row-title", children: connection.display_name }),
+                  /* @__PURE__ */ (0, import_jsx_runtime5.jsx)("div", { className: "faip-inspector-row-meta", children: connection.status_message || connection.status })
                 ] })
               },
               connection.name
             )) })
           ] }),
-          payload.configure_action ? /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)("a", { className: "faip-primary-button", href: payload.configure_action.target, children: [
-            /* @__PURE__ */ (0, import_jsx_runtime4.jsx)(ExternalLink, { size: 14 }),
+          payload.configure_action ? /* @__PURE__ */ (0, import_jsx_runtime5.jsxs)("a", { className: "faip-primary-button", href: payload.configure_action.target, children: [
+            /* @__PURE__ */ (0, import_jsx_runtime5.jsx)(ExternalLink, { size: 14 }),
             payload.configure_action.label
           ] }) : null
         ] }) : null,
-        inspector.mode === "model" ? /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)(import_jsx_runtime4.Fragment, { children: [
-          /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)("div", { className: "faip-inspector-stat-grid", children: [
-            /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)("div", { className: "faip-inspector-stat", children: [
-              /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("span", { children: __("Model") }),
-              /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("strong", { children: payload.model.title || payload.model.name })
+        inspector.mode === "model" ? /* @__PURE__ */ (0, import_jsx_runtime5.jsxs)(import_jsx_runtime5.Fragment, { children: [
+          /* @__PURE__ */ (0, import_jsx_runtime5.jsxs)("div", { className: "faip-inspector-stat-grid", children: [
+            /* @__PURE__ */ (0, import_jsx_runtime5.jsxs)("div", { className: "faip-inspector-stat", children: [
+              /* @__PURE__ */ (0, import_jsx_runtime5.jsx)("span", { children: __("Model") }),
+              /* @__PURE__ */ (0, import_jsx_runtime5.jsx)("strong", { children: payload.model.title || payload.model.name })
             ] }),
-            /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)("div", { className: "faip-inspector-stat", children: [
-              /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("span", { children: __("Agent") }),
-              /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("strong", { children: payload.agent.title })
+            /* @__PURE__ */ (0, import_jsx_runtime5.jsxs)("div", { className: "faip-inspector-stat", children: [
+              /* @__PURE__ */ (0, import_jsx_runtime5.jsx)("span", { children: __("Agent") }),
+              /* @__PURE__ */ (0, import_jsx_runtime5.jsx)("strong", { children: payload.agent.title })
             ] })
           ] }),
-          /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("p", { children: __(
+          /* @__PURE__ */ (0, import_jsx_runtime5.jsx)("p", { children: __(
             "Model selection is metadata for this workspace. Switch agents from navigation to change the default."
           ) })
         ] }) : null,
-        inspector.mode === "mcp" ? /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)(import_jsx_runtime4.Fragment, { children: [
-          /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)("div", { className: "faip-inspector-stat-grid", children: [
-            /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)("div", { className: "faip-inspector-stat", children: [
-              /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("span", { children: __("Status") }),
-              /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("strong", { children: payload.status })
+        inspector.mode === "mcp" ? /* @__PURE__ */ (0, import_jsx_runtime5.jsxs)(import_jsx_runtime5.Fragment, { children: [
+          /* @__PURE__ */ (0, import_jsx_runtime5.jsxs)("div", { className: "faip-inspector-stat-grid", children: [
+            /* @__PURE__ */ (0, import_jsx_runtime5.jsxs)("div", { className: "faip-inspector-stat", children: [
+              /* @__PURE__ */ (0, import_jsx_runtime5.jsx)("span", { children: __("Status") }),
+              /* @__PURE__ */ (0, import_jsx_runtime5.jsx)("strong", { children: payload.status })
             ] }),
-            /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)("div", { className: "faip-inspector-stat", children: [
-              /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("span", { children: __("Transport") }),
-              /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("strong", { children: payload.transport })
+            /* @__PURE__ */ (0, import_jsx_runtime5.jsxs)("div", { className: "faip-inspector-stat", children: [
+              /* @__PURE__ */ (0, import_jsx_runtime5.jsx)("span", { children: __("Transport") }),
+              /* @__PURE__ */ (0, import_jsx_runtime5.jsx)("strong", { children: payload.transport })
             ] }),
-            /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)("div", { className: "faip-inspector-stat", children: [
-              /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("span", { children: __("Tools") }),
-              /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("strong", { children: (_a = payload.tool_count) != null ? _a : "\u2014" })
+            /* @__PURE__ */ (0, import_jsx_runtime5.jsxs)("div", { className: "faip-inspector-stat", children: [
+              /* @__PURE__ */ (0, import_jsx_runtime5.jsx)("span", { children: __("Tools") }),
+              /* @__PURE__ */ (0, import_jsx_runtime5.jsx)("strong", { children: (_a = payload.tool_count) != null ? _a : "\u2014" })
             ] })
           ] }),
-          /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("p", { children: payload.status_message || __("No status details reported.") }),
-          /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)(
+          /* @__PURE__ */ (0, import_jsx_runtime5.jsx)("p", { children: payload.status_message || __("No status details reported.") }),
+          /* @__PURE__ */ (0, import_jsx_runtime5.jsxs)(
             "button",
             {
               type: "button",
@@ -14406,66 +16782,66 @@ var FrappeAIPanel = (() => {
               disabled: !payload.test_connection_supported,
               onClick: () => void testMcpConnection(payload.name),
               children: [
-                /* @__PURE__ */ (0, import_jsx_runtime4.jsx)(CirclePlay, { size: 14 }),
+                /* @__PURE__ */ (0, import_jsx_runtime5.jsx)(CirclePlay, { size: 14 }),
                 __("Test connection")
               ]
             }
           ),
-          /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)("div", { className: "faip-inspector-section", children: [
-            /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("div", { className: "faip-inspector-section-title", children: __("Tool list") }),
-            payload.tool_summaries_available && payload.tool_summaries.length ? /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("div", { className: "faip-inspector-list", children: payload.tool_summaries.map((tool) => /* @__PURE__ */ (0, import_jsx_runtime4.jsx)(
+          /* @__PURE__ */ (0, import_jsx_runtime5.jsxs)("div", { className: "faip-inspector-section", children: [
+            /* @__PURE__ */ (0, import_jsx_runtime5.jsx)("div", { className: "faip-inspector-section-title", children: __("Tool list") }),
+            payload.tool_summaries_available && payload.tool_summaries.length ? /* @__PURE__ */ (0, import_jsx_runtime5.jsx)("div", { className: "faip-inspector-list", children: payload.tool_summaries.map((tool) => /* @__PURE__ */ (0, import_jsx_runtime5.jsx)(
               "button",
               {
                 type: "button",
                 className: "faip-inspector-row",
                 onClick: () => openToolInspector(tool),
-                children: /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("div", { className: "faip-inspector-row-title", children: tool.display_name || tool.name })
+                children: /* @__PURE__ */ (0, import_jsx_runtime5.jsx)("div", { className: "faip-inspector-row-title", children: tool.display_name || tool.name })
               },
               tool.name
-            )) }) : /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("p", { children: __("Tool metadata is not available for this connection yet.") })
+            )) }) : /* @__PURE__ */ (0, import_jsx_runtime5.jsx)("p", { children: __("Tool metadata is not available for this connection yet.") })
           ] })
         ] }) : null,
-        inspector.mode === "tool" ? /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)(import_jsx_runtime4.Fragment, { children: [
-          /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)("div", { className: "faip-inspector-stat-grid", children: [
-            /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)("div", { className: "faip-inspector-stat", children: [
-              /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("span", { children: __("Confirmation") }),
-              /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("strong", { children: payload.requires_confirmation ? __("Required") : __("Not required") })
+        inspector.mode === "tool" ? /* @__PURE__ */ (0, import_jsx_runtime5.jsxs)(import_jsx_runtime5.Fragment, { children: [
+          /* @__PURE__ */ (0, import_jsx_runtime5.jsxs)("div", { className: "faip-inspector-stat-grid", children: [
+            /* @__PURE__ */ (0, import_jsx_runtime5.jsxs)("div", { className: "faip-inspector-stat", children: [
+              /* @__PURE__ */ (0, import_jsx_runtime5.jsx)("span", { children: __("Confirmation") }),
+              /* @__PURE__ */ (0, import_jsx_runtime5.jsx)("strong", { children: payload.requires_confirmation ? __("Required") : __("Not required") })
             ] }),
-            /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)("div", { className: "faip-inspector-stat", children: [
-              /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("span", { children: __("Fields") }),
-              /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("strong", { children: ((_b = payload.schema_summary) == null ? void 0 : _b.length) || 0 })
+            /* @__PURE__ */ (0, import_jsx_runtime5.jsxs)("div", { className: "faip-inspector-stat", children: [
+              /* @__PURE__ */ (0, import_jsx_runtime5.jsx)("span", { children: __("Fields") }),
+              /* @__PURE__ */ (0, import_jsx_runtime5.jsx)("strong", { children: ((_b = payload.schema_summary) == null ? void 0 : _b.length) || 0 })
             ] })
           ] }),
-          /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("p", { children: payload.description || payload.summary }),
-          /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)("div", { className: "faip-inspector-section", children: [
-            /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("div", { className: "faip-inspector-section-title", children: __("Input schema") }),
-            /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("div", { className: "faip-inspector-list", children: (_c = payload.schema_summary) == null ? void 0 : _c.map((field) => /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)("div", { className: "faip-inspector-row is-static", children: [
-              /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)("div", { className: "faip-inspector-row-title", children: [
+          /* @__PURE__ */ (0, import_jsx_runtime5.jsx)("p", { children: payload.description || payload.summary }),
+          /* @__PURE__ */ (0, import_jsx_runtime5.jsxs)("div", { className: "faip-inspector-section", children: [
+            /* @__PURE__ */ (0, import_jsx_runtime5.jsx)("div", { className: "faip-inspector-section-title", children: __("Input schema") }),
+            /* @__PURE__ */ (0, import_jsx_runtime5.jsx)("div", { className: "faip-inspector-list", children: (_c = payload.schema_summary) == null ? void 0 : _c.map((field) => /* @__PURE__ */ (0, import_jsx_runtime5.jsxs)("div", { className: "faip-inspector-row is-static", children: [
+              /* @__PURE__ */ (0, import_jsx_runtime5.jsxs)("div", { className: "faip-inspector-row-title", children: [
                 field.name,
                 " ",
-                /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("small", { children: field.type })
+                /* @__PURE__ */ (0, import_jsx_runtime5.jsx)("small", { children: field.type })
               ] }),
-              /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("div", { className: "faip-inspector-row-meta", children: field.description || __("No description") })
+              /* @__PURE__ */ (0, import_jsx_runtime5.jsx)("div", { className: "faip-inspector-row-meta", children: field.description || __("No description") })
             ] }, field.name)) }),
-            /* @__PURE__ */ (0, import_jsx_runtime4.jsx)(JsonBlock, { value: payload.input_schema })
+            /* @__PURE__ */ (0, import_jsx_runtime5.jsx)(JsonBlock, { value: payload.input_schema })
           ] })
         ] }) : null,
-        inspector.mode === "execution" ? /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)(import_jsx_runtime4.Fragment, { children: [
-          /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)("div", { className: "faip-inspector-stat-grid", children: [
-            /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)("div", { className: "faip-inspector-stat", children: [
-              /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("span", { children: __("Status") }),
-              /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("strong", { children: payload.execution.status })
+        inspector.mode === "execution" ? /* @__PURE__ */ (0, import_jsx_runtime5.jsxs)(import_jsx_runtime5.Fragment, { children: [
+          /* @__PURE__ */ (0, import_jsx_runtime5.jsxs)("div", { className: "faip-inspector-stat-grid", children: [
+            /* @__PURE__ */ (0, import_jsx_runtime5.jsxs)("div", { className: "faip-inspector-stat", children: [
+              /* @__PURE__ */ (0, import_jsx_runtime5.jsx)("span", { children: __("Status") }),
+              /* @__PURE__ */ (0, import_jsx_runtime5.jsx)("strong", { children: payload.execution.status })
             ] }),
-            /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)("div", { className: "faip-inspector-stat", children: [
-              /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("span", { children: __("Type") }),
-              /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("strong", { children: payload.execution.kind })
+            /* @__PURE__ */ (0, import_jsx_runtime5.jsxs)("div", { className: "faip-inspector-stat", children: [
+              /* @__PURE__ */ (0, import_jsx_runtime5.jsx)("span", { children: __("Type") }),
+              /* @__PURE__ */ (0, import_jsx_runtime5.jsx)("strong", { children: payload.execution.kind })
             ] }),
-            /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)("div", { className: "faip-inspector-stat", children: [
-              /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("span", { children: __("Tool") }),
-              /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("strong", { children: payload.execution.tool_name })
+            /* @__PURE__ */ (0, import_jsx_runtime5.jsxs)("div", { className: "faip-inspector-stat", children: [
+              /* @__PURE__ */ (0, import_jsx_runtime5.jsx)("span", { children: __("Tool") }),
+              /* @__PURE__ */ (0, import_jsx_runtime5.jsx)("strong", { children: payload.execution.tool_name })
             ] })
           ] }),
-          payload.tool ? /* @__PURE__ */ (0, import_jsx_runtime4.jsx)(
+          payload.tool ? /* @__PURE__ */ (0, import_jsx_runtime5.jsx)(
             "button",
             {
               type: "button",
@@ -14474,24 +16850,24 @@ var FrappeAIPanel = (() => {
               children: __("Open tool")
             }
           ) : null,
-          /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)("div", { className: "faip-inspector-section", children: [
-            /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("div", { className: "faip-inspector-section-title", children: __("Inputs") }),
-            /* @__PURE__ */ (0, import_jsx_runtime4.jsx)(JsonBlock, { value: payload.execution.raw_input })
+          /* @__PURE__ */ (0, import_jsx_runtime5.jsxs)("div", { className: "faip-inspector-section", children: [
+            /* @__PURE__ */ (0, import_jsx_runtime5.jsx)("div", { className: "faip-inspector-section-title", children: __("Inputs") }),
+            /* @__PURE__ */ (0, import_jsx_runtime5.jsx)(JsonBlock, { value: payload.execution.raw_input })
           ] }),
-          /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)("div", { className: "faip-inspector-section", children: [
-            /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("div", { className: "faip-inspector-section-title", children: __("Output") }),
-            /* @__PURE__ */ (0, import_jsx_runtime4.jsx)(JsonBlock, { value: payload.execution.raw_output })
+          /* @__PURE__ */ (0, import_jsx_runtime5.jsxs)("div", { className: "faip-inspector-section", children: [
+            /* @__PURE__ */ (0, import_jsx_runtime5.jsx)("div", { className: "faip-inspector-section-title", children: __("Output") }),
+            /* @__PURE__ */ (0, import_jsx_runtime5.jsx)(JsonBlock, { value: payload.execution.raw_output })
           ] })
         ] }) : null,
-        inspector.mode === "activity" ? /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("div", { className: "faip-inspector-list", children: payload.map((item) => /* @__PURE__ */ (0, import_jsx_runtime4.jsx)(
+        inspector.mode === "activity" ? /* @__PURE__ */ (0, import_jsx_runtime5.jsx)("div", { className: "faip-inspector-list", children: payload.map((item) => /* @__PURE__ */ (0, import_jsx_runtime5.jsx)(
           "button",
           {
             type: "button",
             className: "faip-inspector-row",
             onClick: () => openExecutionInspector(item.execution, item.message),
-            children: /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)("div", { children: [
-              /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("div", { className: "faip-inspector-row-title", children: item.execution.display_title }),
-              /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("div", { className: "faip-inspector-row-meta", children: item.execution.result_summary || item.execution.status })
+            children: /* @__PURE__ */ (0, import_jsx_runtime5.jsxs)("div", { children: [
+              /* @__PURE__ */ (0, import_jsx_runtime5.jsx)("div", { className: "faip-inspector-row-title", children: item.execution.display_title }),
+              /* @__PURE__ */ (0, import_jsx_runtime5.jsx)("div", { className: "faip-inspector-row-meta", children: item.execution.result_summary || item.execution.status })
             ] })
           },
           item.execution.id
@@ -14501,35 +16877,35 @@ var FrappeAIPanel = (() => {
   }
 
   // src/components/MessageList.tsx
-  var import_react7 = __toESM(require_react(), 1);
+  var import_react10 = __toESM(require_react(), 1);
 
   // src/components/ConfirmCard.tsx
-  var import_react5 = __toESM(require_react(), 1);
-  var import_jsx_runtime5 = __toESM(require_jsx_runtime(), 1);
+  var import_react8 = __toESM(require_react(), 1);
+  var import_jsx_runtime6 = __toESM(require_jsx_runtime(), 1);
   function ConfirmCard({
     question,
     tool,
     onAnswer
   }) {
-    const [mode, setMode] = (0, import_react5.useState)("approve");
-    const [text, setText] = (0, import_react5.useState)("");
-    const meta = (0, import_react5.useMemo)(() => confirmTitle(tool.name, tool.arguments), [tool.arguments, tool.name]);
-    return /* @__PURE__ */ (0, import_jsx_runtime5.jsxs)("div", { className: `faip-confirm-card ${meta.danger ? "is-danger" : ""}`, children: [
-      /* @__PURE__ */ (0, import_jsx_runtime5.jsxs)("div", { className: "faip-confirm-header", children: [
-        /* @__PURE__ */ (0, import_jsx_runtime5.jsx)(ShieldAlert, { size: 16 }),
-        /* @__PURE__ */ (0, import_jsx_runtime5.jsxs)("div", { children: [
-          /* @__PURE__ */ (0, import_jsx_runtime5.jsx)("div", { className: "faip-confirm-title", children: meta.title }),
-          /* @__PURE__ */ (0, import_jsx_runtime5.jsx)("div", { className: "faip-confirm-prompt", children: question.prompt })
+    const [mode, setMode] = (0, import_react8.useState)("approve");
+    const [text, setText] = (0, import_react8.useState)("");
+    const meta = (0, import_react8.useMemo)(() => confirmTitle(tool.name, tool.arguments), [tool.arguments, tool.name]);
+    return /* @__PURE__ */ (0, import_jsx_runtime6.jsxs)("div", { className: `faip-confirm-card ${meta.danger ? "is-danger" : ""}`, children: [
+      /* @__PURE__ */ (0, import_jsx_runtime6.jsxs)("div", { className: "faip-confirm-header", children: [
+        /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(ShieldAlert, { size: 16 }),
+        /* @__PURE__ */ (0, import_jsx_runtime6.jsxs)("div", { children: [
+          /* @__PURE__ */ (0, import_jsx_runtime6.jsx)("div", { className: "faip-confirm-title", children: meta.title }),
+          /* @__PURE__ */ (0, import_jsx_runtime6.jsx)("div", { className: "faip-confirm-prompt", children: question.prompt })
         ] })
       ] }),
-      tool.arguments ? /* @__PURE__ */ (0, import_jsx_runtime5.jsx)("pre", { className: "faip-code-block", children: JSON.stringify(tool.arguments, null, 2) }) : null,
-      /* @__PURE__ */ (0, import_jsx_runtime5.jsxs)("div", { className: "faip-confirm-actions", children: [
-        /* @__PURE__ */ (0, import_jsx_runtime5.jsx)("button", { type: "button", className: "faip-secondary-button", onClick: () => onAnswer("Approve"), children: __("Approve") }),
-        /* @__PURE__ */ (0, import_jsx_runtime5.jsx)("button", { type: "button", className: "faip-secondary-button", onClick: () => onAnswer("Deny"), children: __("Deny") }),
-        /* @__PURE__ */ (0, import_jsx_runtime5.jsx)("button", { type: "button", className: "faip-secondary-button", onClick: () => setMode("redirect"), children: __("Request changes") })
+      tool.arguments ? /* @__PURE__ */ (0, import_jsx_runtime6.jsx)("pre", { className: "faip-code-block", children: JSON.stringify(tool.arguments, null, 2) }) : null,
+      /* @__PURE__ */ (0, import_jsx_runtime6.jsxs)("div", { className: "faip-confirm-actions", children: [
+        /* @__PURE__ */ (0, import_jsx_runtime6.jsx)("button", { type: "button", className: "faip-secondary-button", onClick: () => onAnswer("Approve"), children: __("Approve") }),
+        /* @__PURE__ */ (0, import_jsx_runtime6.jsx)("button", { type: "button", className: "faip-secondary-button", onClick: () => onAnswer("Deny"), children: __("Deny") }),
+        /* @__PURE__ */ (0, import_jsx_runtime6.jsx)("button", { type: "button", className: "faip-secondary-button", onClick: () => setMode("redirect"), children: __("Request changes") })
       ] }),
-      mode === "redirect" ? /* @__PURE__ */ (0, import_jsx_runtime5.jsxs)("div", { className: "faip-confirm-redirect", children: [
-        /* @__PURE__ */ (0, import_jsx_runtime5.jsx)(
+      mode === "redirect" ? /* @__PURE__ */ (0, import_jsx_runtime6.jsxs)("div", { className: "faip-confirm-redirect", children: [
+        /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(
           "textarea",
           {
             className: "faip-textarea",
@@ -14538,55 +16914,55 @@ var FrappeAIPanel = (() => {
             onChange: (event) => setText(event.target.value)
           }
         ),
-        /* @__PURE__ */ (0, import_jsx_runtime5.jsx)("button", { type: "button", className: "faip-primary-button", onClick: () => onAnswer(text), children: __("Send feedback") })
+        /* @__PURE__ */ (0, import_jsx_runtime6.jsx)("button", { type: "button", className: "faip-primary-button", onClick: () => onAnswer(text), children: __("Send feedback") })
       ] }) : null
     ] });
   }
 
   // src/components/ExecutionCard.tsx
-  var import_jsx_runtime6 = __toESM(require_jsx_runtime(), 1);
+  var import_jsx_runtime7 = __toESM(require_jsx_runtime(), 1);
   function ExecutionCard({ execution, message }) {
     var _a;
     const { openExecutionInspector } = useStore();
-    const icon = execution.status === "awaiting_confirmation" ? /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(ShieldAlert, { size: 16 }) : execution.status === "error" ? /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(CircleX, { size: 16 }) : execution.status === "completed" ? /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(CircleCheck, { size: 16 }) : execution.status === "running" ? /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(CircleDashed, { size: 16, className: "faip-spin-slow" }) : execution.kind === "mcp_tool" ? /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(CirclePlay, { size: 16 }) : /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(Wrench, { size: 16 });
+    const icon = execution.status === "awaiting_confirmation" ? /* @__PURE__ */ (0, import_jsx_runtime7.jsx)(ShieldAlert, { size: 16 }) : execution.status === "error" ? /* @__PURE__ */ (0, import_jsx_runtime7.jsx)(CircleX, { size: 16 }) : execution.status === "completed" ? /* @__PURE__ */ (0, import_jsx_runtime7.jsx)(CircleCheck, { size: 16 }) : execution.status === "running" ? /* @__PURE__ */ (0, import_jsx_runtime7.jsx)(CircleDashed, { size: 16, className: "faip-spin-slow" }) : execution.kind === "mcp_tool" ? /* @__PURE__ */ (0, import_jsx_runtime7.jsx)(CirclePlay, { size: 16 }) : /* @__PURE__ */ (0, import_jsx_runtime7.jsx)(Wrench, { size: 16 });
     const statusLabel = execution.status === "awaiting_confirmation" ? __("Awaiting confirmation") : execution.status === "running" ? __("Running") : execution.status === "error" ? __("Failed") : __("Completed");
-    return /* @__PURE__ */ (0, import_jsx_runtime6.jsxs)(
+    return /* @__PURE__ */ (0, import_jsx_runtime7.jsxs)(
       "button",
       {
         type: "button",
         className: `faip-execution-card is-${execution.status}`,
         onClick: () => openExecutionInspector(execution, message),
         children: [
-          /* @__PURE__ */ (0, import_jsx_runtime6.jsxs)("div", { className: "faip-execution-card-header", children: [
-            /* @__PURE__ */ (0, import_jsx_runtime6.jsxs)("div", { className: "faip-execution-card-title-wrap", children: [
-              /* @__PURE__ */ (0, import_jsx_runtime6.jsx)("span", { className: "faip-execution-card-icon", children: icon }),
-              /* @__PURE__ */ (0, import_jsx_runtime6.jsxs)("div", { children: [
-                /* @__PURE__ */ (0, import_jsx_runtime6.jsx)("div", { className: "faip-execution-card-title", children: execution.display_title }),
-                /* @__PURE__ */ (0, import_jsx_runtime6.jsx)("div", { className: "faip-execution-card-meta", children: execution.kind === "mcp_tool" ? __("MCP: {0}", [execution.connection_name || __("Connection")]) : __("Tool") })
+          /* @__PURE__ */ (0, import_jsx_runtime7.jsxs)("div", { className: "faip-execution-card-header", children: [
+            /* @__PURE__ */ (0, import_jsx_runtime7.jsxs)("div", { className: "faip-execution-card-title-wrap", children: [
+              /* @__PURE__ */ (0, import_jsx_runtime7.jsx)("span", { className: "faip-execution-card-icon", children: icon }),
+              /* @__PURE__ */ (0, import_jsx_runtime7.jsxs)("div", { children: [
+                /* @__PURE__ */ (0, import_jsx_runtime7.jsx)("div", { className: "faip-execution-card-title", children: execution.display_title }),
+                /* @__PURE__ */ (0, import_jsx_runtime7.jsx)("div", { className: "faip-execution-card-meta", children: execution.kind === "mcp_tool" ? __("MCP: {0}", [execution.connection_name || __("Connection")]) : __("Tool") })
               ] })
             ] }),
-            /* @__PURE__ */ (0, import_jsx_runtime6.jsx)("span", { className: "faip-execution-card-status", children: statusLabel })
+            /* @__PURE__ */ (0, import_jsx_runtime7.jsx)("span", { className: "faip-execution-card-status", children: statusLabel })
           ] }),
-          ((_a = execution.input_summary) == null ? void 0 : _a.length) ? /* @__PURE__ */ (0, import_jsx_runtime6.jsx)("div", { className: "faip-execution-card-grid", children: execution.input_summary.map((row) => /* @__PURE__ */ (0, import_jsx_runtime6.jsxs)("div", { className: "faip-execution-pill", children: [
-            /* @__PURE__ */ (0, import_jsx_runtime6.jsx)("span", { children: row.label }),
-            /* @__PURE__ */ (0, import_jsx_runtime6.jsx)("strong", { children: row.value })
+          ((_a = execution.input_summary) == null ? void 0 : _a.length) ? /* @__PURE__ */ (0, import_jsx_runtime7.jsx)("div", { className: "faip-execution-card-grid", children: execution.input_summary.map((row) => /* @__PURE__ */ (0, import_jsx_runtime7.jsxs)("div", { className: "faip-execution-pill", children: [
+            /* @__PURE__ */ (0, import_jsx_runtime7.jsx)("span", { children: row.label }),
+            /* @__PURE__ */ (0, import_jsx_runtime7.jsx)("strong", { children: row.value })
           ] }, row.label)) }) : null,
-          execution.result_summary ? /* @__PURE__ */ (0, import_jsx_runtime6.jsx)("div", { className: "faip-execution-card-summary", children: execution.result_summary }) : null
+          execution.result_summary ? /* @__PURE__ */ (0, import_jsx_runtime7.jsx)("div", { className: "faip-execution-card-summary", children: execution.result_summary }) : null
         ]
       }
     );
   }
 
   // src/components/FeedbackBar.tsx
-  var import_react6 = __toESM(require_react(), 1);
-  var import_jsx_runtime7 = __toESM(require_jsx_runtime(), 1);
+  var import_react9 = __toESM(require_react(), 1);
+  var import_jsx_runtime8 = __toESM(require_jsx_runtime(), 1);
   function FeedbackBar({
     runName,
     feedback
   }) {
     const { submitFeedback: submitFeedback2 } = useStore();
-    const [comment, setComment] = (0, import_react6.useState)((feedback == null ? void 0 : feedback.comment) || "");
-    const [busy, setBusy] = (0, import_react6.useState)(false);
+    const [comment, setComment] = (0, import_react9.useState)((feedback == null ? void 0 : feedback.comment) || "");
+    const [busy, setBusy] = (0, import_react9.useState)(false);
     async function rate(rating) {
       setBusy(true);
       try {
@@ -14595,8 +16971,8 @@ var FrappeAIPanel = (() => {
         setBusy(false);
       }
     }
-    return /* @__PURE__ */ (0, import_jsx_runtime7.jsxs)("div", { className: "faip-feedback", children: [
-      /* @__PURE__ */ (0, import_jsx_runtime7.jsxs)(
+    return /* @__PURE__ */ (0, import_jsx_runtime8.jsxs)("div", { className: "faip-feedback", children: [
+      /* @__PURE__ */ (0, import_jsx_runtime8.jsxs)(
         "button",
         {
           type: "button",
@@ -14604,12 +16980,12 @@ var FrappeAIPanel = (() => {
           disabled: busy,
           onClick: () => rate((feedback == null ? void 0 : feedback.rating) === "Up" ? "None" : "Up"),
           children: [
-            /* @__PURE__ */ (0, import_jsx_runtime7.jsx)(ThumbsUp, { size: 14 }),
+            /* @__PURE__ */ (0, import_jsx_runtime8.jsx)(ThumbsUp, { size: 14 }),
             __("Helpful")
           ]
         }
       ),
-      /* @__PURE__ */ (0, import_jsx_runtime7.jsxs)(
+      /* @__PURE__ */ (0, import_jsx_runtime8.jsxs)(
         "button",
         {
           type: "button",
@@ -14617,12 +16993,12 @@ var FrappeAIPanel = (() => {
           disabled: busy,
           onClick: () => rate((feedback == null ? void 0 : feedback.rating) === "Down" ? "None" : "Down"),
           children: [
-            /* @__PURE__ */ (0, import_jsx_runtime7.jsx)(ThumbsDown, { size: 14 }),
+            /* @__PURE__ */ (0, import_jsx_runtime8.jsx)(ThumbsDown, { size: 14 }),
             __("Needs work")
           ]
         }
       ),
-      (feedback == null ? void 0 : feedback.rating) === "Down" ? /* @__PURE__ */ (0, import_jsx_runtime7.jsx)(
+      (feedback == null ? void 0 : feedback.rating) === "Down" ? /* @__PURE__ */ (0, import_jsx_runtime8.jsx)(
         "textarea",
         {
           className: "faip-textarea",
@@ -14636,18 +17012,18 @@ var FrappeAIPanel = (() => {
   }
 
   // src/components/AssistantMessage.tsx
-  var import_jsx_runtime8 = __toESM(require_jsx_runtime(), 1);
+  var import_jsx_runtime9 = __toESM(require_jsx_runtime(), 1);
   function AssistantMessage({ message }) {
     var _a;
     const { answerQuestion } = useStore();
-    return /* @__PURE__ */ (0, import_jsx_runtime8.jsxs)("div", { className: "faip-assistant", children: [
-      message.content ? /* @__PURE__ */ (0, import_jsx_runtime8.jsx)("div", { className: "faip-assistant-text faip-text-block", children: message.content }) : null,
+    return /* @__PURE__ */ (0, import_jsx_runtime9.jsxs)("div", { className: "faip-assistant", children: [
+      message.content ? /* @__PURE__ */ (0, import_jsx_runtime9.jsx)("div", { className: "faip-assistant-text faip-text-block", children: message.content }) : null,
       message.executions.map((execution) => {
         const question = message.questions.find(
           (item) => item.key === execution.id && item._answer === void 0
         );
         if (question) {
-          return /* @__PURE__ */ (0, import_jsx_runtime8.jsx)(
+          return /* @__PURE__ */ (0, import_jsx_runtime9.jsx)(
             ConfirmCard,
             {
               question,
@@ -14657,22 +17033,22 @@ var FrappeAIPanel = (() => {
             execution.id
           );
         }
-        return /* @__PURE__ */ (0, import_jsx_runtime8.jsx)(ExecutionCard, { execution, message }, execution.id);
+        return /* @__PURE__ */ (0, import_jsx_runtime9.jsx)(ExecutionCard, { execution, message }, execution.id);
       }),
-      message.pending && !message.content && !message.executions.length ? /* @__PURE__ */ (0, import_jsx_runtime8.jsxs)("div", { className: "faip-working", children: [
-        /* @__PURE__ */ (0, import_jsx_runtime8.jsx)(LoaderCircle, { size: 15, className: "faip-spin" }),
+      message.pending && !message.content && !message.executions.length ? /* @__PURE__ */ (0, import_jsx_runtime9.jsxs)("div", { className: "faip-working", children: [
+        /* @__PURE__ */ (0, import_jsx_runtime9.jsx)(LoaderCircle, { size: 15, className: "faip-spin" }),
         "Thinking\u2026"
       ] }) : null,
-      message.run && !message.pending && !((_a = message.questions) == null ? void 0 : _a.length) ? /* @__PURE__ */ (0, import_jsx_runtime8.jsx)(FeedbackBar, { runName: message.run, feedback: message.feedback }) : null,
-      message.error ? /* @__PURE__ */ (0, import_jsx_runtime8.jsxs)("div", { className: "faip-inline-error", children: [
-        /* @__PURE__ */ (0, import_jsx_runtime8.jsx)(CircleAlert, { size: 14 }),
+      message.run && !message.pending && !((_a = message.questions) == null ? void 0 : _a.length) ? /* @__PURE__ */ (0, import_jsx_runtime9.jsx)(FeedbackBar, { runName: message.run, feedback: message.feedback }) : null,
+      message.error ? /* @__PURE__ */ (0, import_jsx_runtime9.jsxs)("div", { className: "faip-inline-error", children: [
+        /* @__PURE__ */ (0, import_jsx_runtime9.jsx)(CircleAlert, { size: 14 }),
         message.error
       ] }) : null
     ] });
   }
 
   // src/components/EmptyState.tsx
-  var import_jsx_runtime9 = __toESM(require_jsx_runtime(), 1);
+  var import_jsx_runtime10 = __toESM(require_jsx_runtime(), 1);
   function EmptyState({
     setup,
     hasModels,
@@ -14680,36 +17056,36 @@ var FrappeAIPanel = (() => {
   }) {
     const { send } = useStore();
     const prompts = [__("Search records"), __("Run a tool"), __("Analyze data")];
-    return /* @__PURE__ */ (0, import_jsx_runtime9.jsxs)("div", { className: "faip-empty", children: [
-      /* @__PURE__ */ (0, import_jsx_runtime9.jsx)("div", { className: "faip-empty-mark", children: /* @__PURE__ */ (0, import_jsx_runtime9.jsx)(Compass, { size: 26 }) }),
-      setup ? /* @__PURE__ */ (0, import_jsx_runtime9.jsxs)(import_jsx_runtime9.Fragment, { children: [
-        /* @__PURE__ */ (0, import_jsx_runtime9.jsx)("h3", { children: __("Finish setup to start") }),
-        /* @__PURE__ */ (0, import_jsx_runtime9.jsx)("p", { children: __("The workspace needs core AI configuration before it can run.") }),
-        /* @__PURE__ */ (0, import_jsx_runtime9.jsxs)("ol", { className: "faip-empty-list", children: [
-          !hasModels ? /* @__PURE__ */ (0, import_jsx_runtime9.jsx)("li", { children: __("Create and enable an AI Model.") }) : null,
-          !hasAgents ? /* @__PURE__ */ (0, import_jsx_runtime9.jsx)("li", { children: __("Enable at least one AI Agent.") }) : null,
-          /* @__PURE__ */ (0, import_jsx_runtime9.jsx)("li", { children: __("Enable Server Scripts so tool execution can run safely.") })
+    return /* @__PURE__ */ (0, import_jsx_runtime10.jsxs)("div", { className: "faip-empty", children: [
+      /* @__PURE__ */ (0, import_jsx_runtime10.jsx)("div", { className: "faip-empty-mark", children: /* @__PURE__ */ (0, import_jsx_runtime10.jsx)(Compass, { size: 26 }) }),
+      setup ? /* @__PURE__ */ (0, import_jsx_runtime10.jsxs)(import_jsx_runtime10.Fragment, { children: [
+        /* @__PURE__ */ (0, import_jsx_runtime10.jsx)("h3", { children: __("Finish setup to start") }),
+        /* @__PURE__ */ (0, import_jsx_runtime10.jsx)("p", { children: __("The workspace needs core AI configuration before it can run.") }),
+        /* @__PURE__ */ (0, import_jsx_runtime10.jsxs)("ol", { className: "faip-empty-list", children: [
+          !hasModels ? /* @__PURE__ */ (0, import_jsx_runtime10.jsx)("li", { children: __("Create and enable an AI Model.") }) : null,
+          !hasAgents ? /* @__PURE__ */ (0, import_jsx_runtime10.jsx)("li", { children: __("Enable at least one AI Agent.") }) : null,
+          /* @__PURE__ */ (0, import_jsx_runtime10.jsx)("li", { children: __("Enable Server Scripts so tool execution can run safely.") })
         ] })
-      ] }) : /* @__PURE__ */ (0, import_jsx_runtime9.jsxs)(import_jsx_runtime9.Fragment, { children: [
-        /* @__PURE__ */ (0, import_jsx_runtime9.jsx)("h3", { children: __("Start in the workspace") }),
-        /* @__PURE__ */ (0, import_jsx_runtime9.jsx)("p", { children: __(
+      ] }) : /* @__PURE__ */ (0, import_jsx_runtime10.jsxs)(import_jsx_runtime10.Fragment, { children: [
+        /* @__PURE__ */ (0, import_jsx_runtime10.jsx)("h3", { children: __("Start in the workspace") }),
+        /* @__PURE__ */ (0, import_jsx_runtime10.jsx)("p", { children: __(
           "Use a prompt, then inspect tools, MCP activity, and execution details without leaving the transcript."
         ) }),
-        /* @__PURE__ */ (0, import_jsx_runtime9.jsxs)("div", { className: "faip-empty-feature-grid", children: [
-          /* @__PURE__ */ (0, import_jsx_runtime9.jsxs)("div", { className: "faip-empty-feature", children: [
-            /* @__PURE__ */ (0, import_jsx_runtime9.jsx)(Database, { size: 16 }),
-            /* @__PURE__ */ (0, import_jsx_runtime9.jsx)("span", { children: __("Search live records") })
+        /* @__PURE__ */ (0, import_jsx_runtime10.jsxs)("div", { className: "faip-empty-feature-grid", children: [
+          /* @__PURE__ */ (0, import_jsx_runtime10.jsxs)("div", { className: "faip-empty-feature", children: [
+            /* @__PURE__ */ (0, import_jsx_runtime10.jsx)(Database, { size: 16 }),
+            /* @__PURE__ */ (0, import_jsx_runtime10.jsx)("span", { children: __("Search live records") })
           ] }),
-          /* @__PURE__ */ (0, import_jsx_runtime9.jsxs)("div", { className: "faip-empty-feature", children: [
-            /* @__PURE__ */ (0, import_jsx_runtime9.jsx)(Hammer, { size: 16 }),
-            /* @__PURE__ */ (0, import_jsx_runtime9.jsx)("span", { children: __("Run guided actions") })
+          /* @__PURE__ */ (0, import_jsx_runtime10.jsxs)("div", { className: "faip-empty-feature", children: [
+            /* @__PURE__ */ (0, import_jsx_runtime10.jsx)(Hammer, { size: 16 }),
+            /* @__PURE__ */ (0, import_jsx_runtime10.jsx)("span", { children: __("Run guided actions") })
           ] }),
-          /* @__PURE__ */ (0, import_jsx_runtime9.jsxs)("div", { className: "faip-empty-feature", children: [
-            /* @__PURE__ */ (0, import_jsx_runtime9.jsx)(Sparkles, { size: 16 }),
-            /* @__PURE__ */ (0, import_jsx_runtime9.jsx)("span", { children: __("Inspect execution details") })
+          /* @__PURE__ */ (0, import_jsx_runtime10.jsxs)("div", { className: "faip-empty-feature", children: [
+            /* @__PURE__ */ (0, import_jsx_runtime10.jsx)(Sparkles, { size: 16 }),
+            /* @__PURE__ */ (0, import_jsx_runtime10.jsx)("span", { children: __("Inspect execution details") })
           ] })
         ] }),
-        /* @__PURE__ */ (0, import_jsx_runtime9.jsx)("div", { className: "faip-empty-prompts", children: prompts.map((prompt) => /* @__PURE__ */ (0, import_jsx_runtime9.jsx)(
+        /* @__PURE__ */ (0, import_jsx_runtime10.jsx)("div", { className: "faip-empty-prompts", children: prompts.map((prompt) => /* @__PURE__ */ (0, import_jsx_runtime10.jsx)(
           "button",
           {
             type: "button",
@@ -14724,13 +17100,13 @@ var FrappeAIPanel = (() => {
   }
 
   // src/components/UserMessage.tsx
-  var import_jsx_runtime10 = __toESM(require_jsx_runtime(), 1);
+  var import_jsx_runtime11 = __toESM(require_jsx_runtime(), 1);
   function UserMessage({
     content,
     attachments
   }) {
-    return /* @__PURE__ */ (0, import_jsx_runtime10.jsx)("div", { className: "faip-user-wrap", children: /* @__PURE__ */ (0, import_jsx_runtime10.jsxs)("div", { className: "faip-user-message", children: [
-      attachments.length ? /* @__PURE__ */ (0, import_jsx_runtime10.jsx)("div", { className: "faip-user-attachments", children: attachments.map((attachment, index) => /* @__PURE__ */ (0, import_jsx_runtime10.jsx)(
+    return /* @__PURE__ */ (0, import_jsx_runtime11.jsx)("div", { className: "faip-user-wrap", children: /* @__PURE__ */ (0, import_jsx_runtime11.jsxs)("div", { className: "faip-user-message", children: [
+      attachments.length ? /* @__PURE__ */ (0, import_jsx_runtime11.jsx)("div", { className: "faip-user-attachments", children: attachments.map((attachment, index) => /* @__PURE__ */ (0, import_jsx_runtime11.jsx)(
         AttachmentChip,
         {
           fileName: attachment.file_name,
@@ -14738,17 +17114,17 @@ var FrappeAIPanel = (() => {
         },
         `${attachment.file_name}-${index}`
       )) }) : null,
-      /* @__PURE__ */ (0, import_jsx_runtime10.jsx)("div", { className: "faip-text-block", children: content })
+      /* @__PURE__ */ (0, import_jsx_runtime11.jsx)("div", { className: "faip-text-block", children: content })
     ] }) });
   }
 
   // src/components/MessageList.tsx
-  var import_jsx_runtime11 = __toESM(require_jsx_runtime(), 1);
+  var import_jsx_runtime12 = __toESM(require_jsx_runtime(), 1);
   function MessageList() {
     const { transcript, needsSetup, agents, models, scrollTick, forceScroll, clearForceScroll } = useStore();
-    const ref = (0, import_react7.useRef)(null);
-    const stickRef = (0, import_react7.useRef)(true);
-    (0, import_react7.useEffect)(() => {
+    const ref = (0, import_react10.useRef)(null);
+    const stickRef = (0, import_react10.useRef)(true);
+    (0, import_react10.useEffect)(() => {
       const element = ref.current;
       if (!element) return;
       if (stickRef.current || forceScroll) {
@@ -14757,7 +17133,7 @@ var FrappeAIPanel = (() => {
         if (forceScroll) clearForceScroll();
       }
     }, [clearForceScroll, forceScroll, scrollTick]);
-    return /* @__PURE__ */ (0, import_jsx_runtime11.jsx)(
+    return /* @__PURE__ */ (0, import_jsx_runtime12.jsx)(
       "div",
       {
         ref,
@@ -14767,16 +17143,16 @@ var FrappeAIPanel = (() => {
           if (!element) return;
           stickRef.current = element.scrollHeight - element.scrollTop - element.clientHeight < 80;
         },
-        children: /* @__PURE__ */ (0, import_jsx_runtime11.jsxs)("div", { className: "faip-message-stack", children: [
-          !transcript.length ? /* @__PURE__ */ (0, import_jsx_runtime11.jsx)(EmptyState, { setup: needsSetup, hasModels: models.length > 0, hasAgents: agents.length > 0 }) : null,
+        children: /* @__PURE__ */ (0, import_jsx_runtime12.jsxs)("div", { className: "faip-message-stack", children: [
+          !transcript.length ? /* @__PURE__ */ (0, import_jsx_runtime12.jsx)(EmptyState, { setup: needsSetup, hasModels: models.length > 0, hasAgents: agents.length > 0 }) : null,
           transcript.map(
-            (message) => message.role === "user" ? /* @__PURE__ */ (0, import_jsx_runtime11.jsxs)(import_react7.default.Fragment, { children: [
-              /* @__PURE__ */ (0, import_jsx_runtime11.jsx)(UserMessage, { content: message.content, attachments: message.attachments }),
-              message.interrupted ? /* @__PURE__ */ (0, import_jsx_runtime11.jsxs)("div", { className: "faip-inline-error", children: [
-                /* @__PURE__ */ (0, import_jsx_runtime11.jsx)(CircleAlert, { size: 14 }),
+            (message) => message.role === "user" ? /* @__PURE__ */ (0, import_jsx_runtime12.jsxs)(import_react10.default.Fragment, { children: [
+              /* @__PURE__ */ (0, import_jsx_runtime12.jsx)(UserMessage, { content: message.content, attachments: message.attachments }),
+              message.interrupted ? /* @__PURE__ */ (0, import_jsx_runtime12.jsxs)("div", { className: "faip-inline-error", children: [
+                /* @__PURE__ */ (0, import_jsx_runtime12.jsx)(CircleAlert, { size: 14 }),
                 __("Response interrupted")
               ] }) : null
-            ] }, message.id) : /* @__PURE__ */ (0, import_jsx_runtime11.jsx)(AssistantMessage, { message }, message.id)
+            ] }, message.id) : /* @__PURE__ */ (0, import_jsx_runtime12.jsx)(AssistantMessage, { message }, message.id)
           )
         ] })
       }
@@ -14784,8 +17160,8 @@ var FrappeAIPanel = (() => {
   }
 
   // src/components/PageSidebar.tsx
-  var import_react8 = __toESM(require_react(), 1);
-  var import_jsx_runtime12 = __toESM(require_jsx_runtime(), 1);
+  var import_react11 = __toESM(require_react(), 1);
+  var import_jsx_runtime13 = __toESM(require_jsx_runtime(), 1);
   function bucketLabel(value) {
     if (!value) return __("Earlier");
     const date = new Date(value);
@@ -14806,10 +17182,10 @@ var FrappeAIPanel = (() => {
   }
   function PageSidebar({ onClose, onNavigate }) {
     const { agents, selectedAgent, setAgent, history, currentSession, switchSession, newChat, searchSessions: searchSessions2 } = useStore();
-    const [query, setQuery] = (0, import_react8.useState)("");
-    const [items, setItems] = (0, import_react8.useState)(history);
-    (0, import_react8.useEffect)(() => setItems(history), [history]);
-    (0, import_react8.useEffect)(() => {
+    const [query, setQuery] = (0, import_react11.useState)("");
+    const [items, setItems] = (0, import_react11.useState)(history);
+    (0, import_react11.useEffect)(() => setItems(history), [history]);
+    (0, import_react11.useEffect)(() => {
       let active = true;
       void searchSessions2(query).then((rows) => {
         if (active) setItems(rows);
@@ -14818,7 +17194,7 @@ var FrappeAIPanel = (() => {
         active = false;
       };
     }, [query, searchSessions2]);
-    const groups = (0, import_react8.useMemo)(() => {
+    const groups = (0, import_react11.useMemo)(() => {
       const output = /* @__PURE__ */ new Map();
       for (const item of items) {
         const label = bucketLabel(item.modified);
@@ -14828,25 +17204,25 @@ var FrappeAIPanel = (() => {
       }
       return Array.from(output.entries());
     }, [items]);
-    return /* @__PURE__ */ (0, import_jsx_runtime12.jsxs)("aside", { className: "faip-nav", children: [
-      /* @__PURE__ */ (0, import_jsx_runtime12.jsxs)("div", { className: "faip-nav-header", children: [
-        /* @__PURE__ */ (0, import_jsx_runtime12.jsx)("div", { className: "faip-header-mark", children: /* @__PURE__ */ (0, import_jsx_runtime12.jsx)(Bot, { size: 18 }) }),
-        /* @__PURE__ */ (0, import_jsx_runtime12.jsxs)("div", { className: "faip-nav-brand", children: [
-          /* @__PURE__ */ (0, import_jsx_runtime12.jsx)("div", { className: "faip-nav-title", children: "Frappe AI" }),
-          /* @__PURE__ */ (0, import_jsx_runtime12.jsx)("div", { className: "faip-nav-subtitle", children: __("Navigation") })
+    return /* @__PURE__ */ (0, import_jsx_runtime13.jsxs)("aside", { className: "faip-nav", children: [
+      /* @__PURE__ */ (0, import_jsx_runtime13.jsxs)("div", { className: "faip-nav-header", children: [
+        /* @__PURE__ */ (0, import_jsx_runtime13.jsx)("div", { className: "faip-header-mark", children: /* @__PURE__ */ (0, import_jsx_runtime13.jsx)(Bot, { size: 18 }) }),
+        /* @__PURE__ */ (0, import_jsx_runtime13.jsxs)("div", { className: "faip-nav-brand", children: [
+          /* @__PURE__ */ (0, import_jsx_runtime13.jsx)("div", { className: "faip-nav-title", children: "Frappe AI" }),
+          /* @__PURE__ */ (0, import_jsx_runtime13.jsx)("div", { className: "faip-nav-subtitle", children: __("Navigation") })
         ] }),
-        /* @__PURE__ */ (0, import_jsx_runtime12.jsx)(
+        /* @__PURE__ */ (0, import_jsx_runtime13.jsx)(
           "button",
           {
             type: "button",
             className: "faip-icon-button faip-nav-close",
             onClick: onClose,
             "aria-label": "Close sidebar",
-            children: /* @__PURE__ */ (0, import_jsx_runtime12.jsx)(X, { size: 16 })
+            children: /* @__PURE__ */ (0, import_jsx_runtime13.jsx)(X, { size: 16 })
           }
         )
       ] }),
-      /* @__PURE__ */ (0, import_jsx_runtime12.jsxs)(
+      /* @__PURE__ */ (0, import_jsx_runtime13.jsxs)(
         "button",
         {
           type: "button",
@@ -14856,14 +17232,14 @@ var FrappeAIPanel = (() => {
             onNavigate();
           },
           children: [
-            /* @__PURE__ */ (0, import_jsx_runtime12.jsx)(MessageSquarePlus, { size: 15 }),
+            /* @__PURE__ */ (0, import_jsx_runtime13.jsx)(MessageSquarePlus, { size: 15 }),
             __("New chat")
           ]
         }
       ),
-      /* @__PURE__ */ (0, import_jsx_runtime12.jsxs)("div", { className: "faip-page-search", children: [
-        /* @__PURE__ */ (0, import_jsx_runtime12.jsx)(Search, { size: 14 }),
-        /* @__PURE__ */ (0, import_jsx_runtime12.jsx)(
+      /* @__PURE__ */ (0, import_jsx_runtime13.jsxs)("div", { className: "faip-page-search", children: [
+        /* @__PURE__ */ (0, import_jsx_runtime13.jsx)(Search, { size: 14 }),
+        /* @__PURE__ */ (0, import_jsx_runtime13.jsx)(
           "input",
           {
             value: query,
@@ -14872,9 +17248,9 @@ var FrappeAIPanel = (() => {
           }
         )
       ] }),
-      /* @__PURE__ */ (0, import_jsx_runtime12.jsxs)("div", { className: "faip-nav-section", children: [
-        /* @__PURE__ */ (0, import_jsx_runtime12.jsx)("div", { className: "faip-nav-section-title", children: __("Agents") }),
-        /* @__PURE__ */ (0, import_jsx_runtime12.jsx)("div", { className: "faip-nav-list", children: agents.map((agent) => /* @__PURE__ */ (0, import_jsx_runtime12.jsxs)(
+      /* @__PURE__ */ (0, import_jsx_runtime13.jsxs)("div", { className: "faip-nav-section", children: [
+        /* @__PURE__ */ (0, import_jsx_runtime13.jsx)("div", { className: "faip-nav-section-title", children: __("Agents") }),
+        /* @__PURE__ */ (0, import_jsx_runtime13.jsx)("div", { className: "faip-nav-list", children: agents.map((agent) => /* @__PURE__ */ (0, import_jsx_runtime13.jsxs)(
           "button",
           {
             type: "button",
@@ -14884,21 +17260,21 @@ var FrappeAIPanel = (() => {
               onNavigate();
             },
             children: [
-              /* @__PURE__ */ (0, import_jsx_runtime12.jsxs)("div", { className: "faip-nav-item-copy", children: [
-                /* @__PURE__ */ (0, import_jsx_runtime12.jsx)("div", { className: "faip-nav-item-title", children: agent.title }),
-                /* @__PURE__ */ (0, import_jsx_runtime12.jsx)("div", { className: "faip-nav-item-meta", children: agent.readiness.label })
+              /* @__PURE__ */ (0, import_jsx_runtime13.jsxs)("div", { className: "faip-nav-item-copy", children: [
+                /* @__PURE__ */ (0, import_jsx_runtime13.jsx)("div", { className: "faip-nav-item-title", children: agent.title }),
+                /* @__PURE__ */ (0, import_jsx_runtime13.jsx)("div", { className: "faip-nav-item-meta", children: agent.readiness.label })
               ] }),
-              /* @__PURE__ */ (0, import_jsx_runtime12.jsx)(ChevronRight, { size: 14 })
+              /* @__PURE__ */ (0, import_jsx_runtime13.jsx)(ChevronRight, { size: 14 })
             ]
           },
           agent.name
         )) })
       ] }),
-      /* @__PURE__ */ (0, import_jsx_runtime12.jsxs)("div", { className: "faip-nav-section faip-nav-section-sessions", children: [
-        /* @__PURE__ */ (0, import_jsx_runtime12.jsx)("div", { className: "faip-nav-section-title", children: __("Sessions") }),
-        /* @__PURE__ */ (0, import_jsx_runtime12.jsx)("div", { className: "faip-nav-session-scroll", children: groups.map(([label, sessions]) => /* @__PURE__ */ (0, import_jsx_runtime12.jsxs)("div", { className: "faip-nav-group", children: [
-          /* @__PURE__ */ (0, import_jsx_runtime12.jsx)("div", { className: "faip-nav-group-label", children: label }),
-          /* @__PURE__ */ (0, import_jsx_runtime12.jsx)("div", { className: "faip-nav-list", children: sessions.map((item) => /* @__PURE__ */ (0, import_jsx_runtime12.jsxs)(
+      /* @__PURE__ */ (0, import_jsx_runtime13.jsxs)("div", { className: "faip-nav-section faip-nav-section-sessions", children: [
+        /* @__PURE__ */ (0, import_jsx_runtime13.jsx)("div", { className: "faip-nav-section-title", children: __("Sessions") }),
+        /* @__PURE__ */ (0, import_jsx_runtime13.jsx)("div", { className: "faip-nav-session-scroll", children: groups.map(([label, sessions]) => /* @__PURE__ */ (0, import_jsx_runtime13.jsxs)("div", { className: "faip-nav-group", children: [
+          /* @__PURE__ */ (0, import_jsx_runtime13.jsx)("div", { className: "faip-nav-group-label", children: label }),
+          /* @__PURE__ */ (0, import_jsx_runtime13.jsx)("div", { className: "faip-nav-list", children: sessions.map((item) => /* @__PURE__ */ (0, import_jsx_runtime13.jsxs)(
             "button",
             {
               type: "button",
@@ -14908,11 +17284,11 @@ var FrappeAIPanel = (() => {
                 onNavigate();
               },
               children: [
-                /* @__PURE__ */ (0, import_jsx_runtime12.jsxs)("div", { className: "faip-nav-item-copy", children: [
-                  /* @__PURE__ */ (0, import_jsx_runtime12.jsx)("div", { className: "faip-nav-item-title", children: item.title }),
-                  /* @__PURE__ */ (0, import_jsx_runtime12.jsx)("div", { className: "faip-nav-item-meta", children: timeLabel(item.modified) })
+                /* @__PURE__ */ (0, import_jsx_runtime13.jsxs)("div", { className: "faip-nav-item-copy", children: [
+                  /* @__PURE__ */ (0, import_jsx_runtime13.jsx)("div", { className: "faip-nav-item-title", children: item.title }),
+                  /* @__PURE__ */ (0, import_jsx_runtime13.jsx)("div", { className: "faip-nav-item-meta", children: timeLabel(item.modified) })
                 ] }),
-                /* @__PURE__ */ (0, import_jsx_runtime12.jsx)(ChevronRight, { size: 14 })
+                /* @__PURE__ */ (0, import_jsx_runtime13.jsx)(ChevronRight, { size: 14 })
               ]
             },
             item.name
@@ -14923,7 +17299,7 @@ var FrappeAIPanel = (() => {
   }
 
   // src/components/WorkspaceShell.tsx
-  var import_jsx_runtime13 = __toESM(require_jsx_runtime(), 1);
+  var import_jsx_runtime14 = __toESM(require_jsx_runtime(), 1);
   function runStatusLabel(run, sending) {
     if (sending) return __("Running");
     if (!run) return __("Ready");
@@ -14947,14 +17323,14 @@ var FrappeAIPanel = (() => {
       openActivityInspector,
       closeInspector
     } = useStore();
-    const [sidebarOpen, setSidebarOpen] = (0, import_react9.useState)(variant === "standalone");
-    const [actionsOpen, setActionsOpen] = (0, import_react9.useState)(false);
-    const actionsRef = (0, import_react9.useRef)(null);
-    const latestExecution = (0, import_react9.useMemo)(() => {
+    const [sidebarOpen, setSidebarOpen] = (0, import_react12.useState)(variant === "standalone");
+    const [actionsOpen, setActionsOpen] = (0, import_react12.useState)(false);
+    const actionsRef = (0, import_react12.useRef)(null);
+    const latestExecution = (0, import_react12.useMemo)(() => {
       const message = [...transcript].reverse().find((item) => item.role === "assistant" && item.executions.length);
       return (message == null ? void 0 : message.role) === "assistant" ? message.executions[0] || null : null;
     }, [transcript]);
-    (0, import_react9.useEffect)(() => {
+    (0, import_react12.useEffect)(() => {
       function onPointerDown(event) {
         var _a2;
         if (!((_a2 = actionsRef.current) == null ? void 0 : _a2.contains(event.target))) setActionsOpen(false);
@@ -14979,37 +17355,37 @@ var FrappeAIPanel = (() => {
         setSidebarOpen(false);
       }
     }
-    return /* @__PURE__ */ (0, import_jsx_runtime13.jsxs)("div", { className: `faip-workspace-shell is-${variant} ${sidebarOpen ? "has-sidebar" : ""}`, children: [
-      /* @__PURE__ */ (0, import_jsx_runtime13.jsx)(
+    return /* @__PURE__ */ (0, import_jsx_runtime14.jsxs)("div", { className: `faip-workspace-shell is-${variant} ${sidebarOpen ? "has-sidebar" : ""}`, children: [
+      /* @__PURE__ */ (0, import_jsx_runtime14.jsx)(
         "div",
         {
           className: `faip-shell-backdrop is-sidebar ${sidebarOpen ? "is-visible" : ""}`,
           onClick: () => setSidebarOpen(false)
         }
       ),
-      /* @__PURE__ */ (0, import_jsx_runtime13.jsx)(
+      /* @__PURE__ */ (0, import_jsx_runtime14.jsx)(
         "div",
         {
           className: `faip-shell-backdrop is-inspector ${inspector.open ? "is-visible" : ""}`,
           onClick: closeInspector
         }
       ),
-      /* @__PURE__ */ (0, import_jsx_runtime13.jsx)(PageSidebar, { onClose: () => setSidebarOpen(false), onNavigate: dismissSidebarIfMobile }),
-      /* @__PURE__ */ (0, import_jsx_runtime13.jsxs)("div", { className: "faip-workspace-main", children: [
-        /* @__PURE__ */ (0, import_jsx_runtime13.jsxs)("header", { className: "faip-workspace-header", children: [
-          /* @__PURE__ */ (0, import_jsx_runtime13.jsxs)("div", { className: "faip-workspace-header-left", children: [
-            /* @__PURE__ */ (0, import_jsx_runtime13.jsx)(
+      /* @__PURE__ */ (0, import_jsx_runtime14.jsx)(PageSidebar, { onClose: () => setSidebarOpen(false), onNavigate: dismissSidebarIfMobile }),
+      /* @__PURE__ */ (0, import_jsx_runtime14.jsxs)("div", { className: "faip-workspace-main", children: [
+        /* @__PURE__ */ (0, import_jsx_runtime14.jsxs)("header", { className: "faip-workspace-header", children: [
+          /* @__PURE__ */ (0, import_jsx_runtime14.jsxs)("div", { className: "faip-workspace-header-left", children: [
+            /* @__PURE__ */ (0, import_jsx_runtime14.jsx)(
               "button",
               {
                 type: "button",
                 className: "faip-icon-button faip-workspace-menu-button",
                 onClick: () => setSidebarOpen((value) => !value),
-                children: /* @__PURE__ */ (0, import_jsx_runtime13.jsx)(Menu, { size: 16 })
+                children: /* @__PURE__ */ (0, import_jsx_runtime14.jsx)(Menu, { size: 16 })
               }
             ),
-            /* @__PURE__ */ (0, import_jsx_runtime13.jsxs)("button", { type: "button", className: "faip-workspace-agent", onClick: openAgentInspector, children: [
-              /* @__PURE__ */ (0, import_jsx_runtime13.jsx)("div", { className: "faip-workspace-agent-title", title: (agentRecord == null ? void 0 : agentRecord.title) || __("Agent"), children: (agentRecord == null ? void 0 : agentRecord.title) || __("Agent") }),
-              /* @__PURE__ */ (0, import_jsx_runtime13.jsxs)(
+            /* @__PURE__ */ (0, import_jsx_runtime14.jsxs)("button", { type: "button", className: "faip-workspace-agent", onClick: openAgentInspector, children: [
+              /* @__PURE__ */ (0, import_jsx_runtime14.jsx)("div", { className: "faip-workspace-agent-title", title: (agentRecord == null ? void 0 : agentRecord.title) || __("Agent"), children: (agentRecord == null ? void 0 : agentRecord.title) || __("Agent") }),
+              /* @__PURE__ */ (0, import_jsx_runtime14.jsxs)(
                 "div",
                 {
                   className: "faip-workspace-agent-meta",
@@ -15024,9 +17400,9 @@ var FrappeAIPanel = (() => {
               )
             ] })
           ] }),
-          /* @__PURE__ */ (0, import_jsx_runtime13.jsxs)("div", { className: "faip-workspace-header-right", ref: actionsRef, children: [
-            /* @__PURE__ */ (0, import_jsx_runtime13.jsx)("span", { className: "faip-status-pill faip-workspace-status", children: runStatusLabel(currentRun, sending) }),
-            /* @__PURE__ */ (0, import_jsx_runtime13.jsxs)(
+          /* @__PURE__ */ (0, import_jsx_runtime14.jsxs)("div", { className: "faip-workspace-header-right", ref: actionsRef, children: [
+            /* @__PURE__ */ (0, import_jsx_runtime14.jsx)("span", { className: "faip-status-pill faip-workspace-status", children: runStatusLabel(currentRun, sending) }),
+            /* @__PURE__ */ (0, import_jsx_runtime14.jsxs)(
               "button",
               {
                 type: "button",
@@ -15034,12 +17410,12 @@ var FrappeAIPanel = (() => {
                 onClick: handleOpenTools,
                 disabled: !(agentRecord == null ? void 0 : agentRecord.tools.summaries.length),
                 children: [
-                  /* @__PURE__ */ (0, import_jsx_runtime13.jsx)(Wrench, { size: 14 }),
+                  /* @__PURE__ */ (0, import_jsx_runtime14.jsx)(Wrench, { size: 14 }),
                   __("Tools")
                 ]
               }
             ),
-            /* @__PURE__ */ (0, import_jsx_runtime13.jsxs)(
+            /* @__PURE__ */ (0, import_jsx_runtime14.jsxs)(
               "button",
               {
                 type: "button",
@@ -15047,25 +17423,25 @@ var FrappeAIPanel = (() => {
                 onClick: handleOpenMcps,
                 disabled: !(agentRecord == null ? void 0 : agentRecord.mcp_connections.length),
                 children: [
-                  /* @__PURE__ */ (0, import_jsx_runtime13.jsx)(Server, { size: 14 }),
+                  /* @__PURE__ */ (0, import_jsx_runtime14.jsx)(Server, { size: 14 }),
                   __("MCPs")
                 ]
               }
             ),
-            /* @__PURE__ */ (0, import_jsx_runtime13.jsxs)(
+            /* @__PURE__ */ (0, import_jsx_runtime14.jsxs)(
               "button",
               {
                 type: "button",
                 className: "faip-secondary-button faip-header-action is-activity",
                 onClick: handleOpenActivity,
                 children: [
-                  /* @__PURE__ */ (0, import_jsx_runtime13.jsx)(PanelsTopLeft, { size: 14 }),
+                  /* @__PURE__ */ (0, import_jsx_runtime14.jsx)(PanelsTopLeft, { size: 14 }),
                   __("Activity")
                 ]
               }
             ),
-            /* @__PURE__ */ (0, import_jsx_runtime13.jsxs)("div", { className: `faip-overflow ${actionsOpen ? "is-open" : ""}`, children: [
-              /* @__PURE__ */ (0, import_jsx_runtime13.jsx)(
+            /* @__PURE__ */ (0, import_jsx_runtime14.jsxs)("div", { className: `faip-overflow ${actionsOpen ? "is-open" : ""}`, children: [
+              /* @__PURE__ */ (0, import_jsx_runtime14.jsx)(
                 "button",
                 {
                   type: "button",
@@ -15073,11 +17449,11 @@ var FrappeAIPanel = (() => {
                   onClick: () => setActionsOpen((value) => !value),
                   "aria-expanded": actionsOpen,
                   "aria-label": __("More actions"),
-                  children: /* @__PURE__ */ (0, import_jsx_runtime13.jsx)(Ellipsis, { size: 14 })
+                  children: /* @__PURE__ */ (0, import_jsx_runtime14.jsx)(Ellipsis, { size: 14 })
                 }
               ),
-              actionsOpen ? /* @__PURE__ */ (0, import_jsx_runtime13.jsxs)("div", { className: "faip-overflow-menu", children: [
-                /* @__PURE__ */ (0, import_jsx_runtime13.jsxs)(
+              actionsOpen ? /* @__PURE__ */ (0, import_jsx_runtime14.jsxs)("div", { className: "faip-overflow-menu", children: [
+                /* @__PURE__ */ (0, import_jsx_runtime14.jsxs)(
                   "button",
                   {
                     type: "button",
@@ -15085,12 +17461,12 @@ var FrappeAIPanel = (() => {
                     onClick: handleOpenTools,
                     disabled: !(agentRecord == null ? void 0 : agentRecord.tools.summaries.length),
                     children: [
-                      /* @__PURE__ */ (0, import_jsx_runtime13.jsx)(Wrench, { size: 14 }),
+                      /* @__PURE__ */ (0, import_jsx_runtime14.jsx)(Wrench, { size: 14 }),
                       __("Tools")
                     ]
                   }
                 ),
-                /* @__PURE__ */ (0, import_jsx_runtime13.jsxs)(
+                /* @__PURE__ */ (0, import_jsx_runtime14.jsxs)(
                   "button",
                   {
                     type: "button",
@@ -15098,51 +17474,51 @@ var FrappeAIPanel = (() => {
                     onClick: handleOpenMcps,
                     disabled: !(agentRecord == null ? void 0 : agentRecord.mcp_connections.length),
                     children: [
-                      /* @__PURE__ */ (0, import_jsx_runtime13.jsx)(Server, { size: 14 }),
+                      /* @__PURE__ */ (0, import_jsx_runtime14.jsx)(Server, { size: 14 }),
                       __("MCPs")
                     ]
                   }
                 ),
-                /* @__PURE__ */ (0, import_jsx_runtime13.jsxs)("button", { type: "button", className: "faip-menu-item", onClick: handleOpenActivity, children: [
-                  /* @__PURE__ */ (0, import_jsx_runtime13.jsx)(PanelsTopLeft, { size: 14 }),
+                /* @__PURE__ */ (0, import_jsx_runtime14.jsxs)("button", { type: "button", className: "faip-menu-item", onClick: handleOpenActivity, children: [
+                  /* @__PURE__ */ (0, import_jsx_runtime14.jsx)(PanelsTopLeft, { size: 14 }),
                   __("Activity")
                 ] })
               ] }) : null
             ] }),
-            variant === "panel" && panelControls ? /* @__PURE__ */ (0, import_jsx_runtime13.jsxs)("div", { className: "faip-panel-controls", children: [
-              /* @__PURE__ */ (0, import_jsx_runtime13.jsx)("button", { type: "button", className: "faip-icon-button", onClick: panelControls.onToggleFullscreen, children: panelControls.fullscreen ? /* @__PURE__ */ (0, import_jsx_runtime13.jsx)(Minimize2, { size: 16 }) : /* @__PURE__ */ (0, import_jsx_runtime13.jsx)(Maximize2, { size: 16 }) }),
-              /* @__PURE__ */ (0, import_jsx_runtime13.jsx)("button", { type: "button", className: "faip-icon-button", onClick: panelControls.onClose, children: /* @__PURE__ */ (0, import_jsx_runtime13.jsx)(PanelRightClose, { size: 16 }) })
+            variant === "panel" && panelControls ? /* @__PURE__ */ (0, import_jsx_runtime14.jsxs)("div", { className: "faip-panel-controls", children: [
+              /* @__PURE__ */ (0, import_jsx_runtime14.jsx)("button", { type: "button", className: "faip-icon-button", onClick: panelControls.onToggleFullscreen, children: panelControls.fullscreen ? /* @__PURE__ */ (0, import_jsx_runtime14.jsx)(Minimize2, { size: 16 }) : /* @__PURE__ */ (0, import_jsx_runtime14.jsx)(Maximize2, { size: 16 }) }),
+              /* @__PURE__ */ (0, import_jsx_runtime14.jsx)("button", { type: "button", className: "faip-icon-button", onClick: panelControls.onClose, children: /* @__PURE__ */ (0, import_jsx_runtime14.jsx)(PanelRightClose, { size: 16 }) })
             ] }) : null
           ] })
         ] }),
-        /* @__PURE__ */ (0, import_jsx_runtime13.jsx)("div", { className: "faip-workspace-context", children: /* @__PURE__ */ (0, import_jsx_runtime13.jsxs)("div", { children: [
-          /* @__PURE__ */ (0, import_jsx_runtime13.jsx)("div", { className: "faip-workspace-context-title", children: (currentSession == null ? void 0 : currentSession.title) || __("New chat") }),
-          /* @__PURE__ */ (0, import_jsx_runtime13.jsx)("div", { className: "faip-workspace-context-meta", children: latestExecution ? latestExecution.kind === "mcp_tool" ? __("Latest activity: {0} via {1}", [
+        /* @__PURE__ */ (0, import_jsx_runtime14.jsx)("div", { className: "faip-workspace-context", children: /* @__PURE__ */ (0, import_jsx_runtime14.jsxs)("div", { children: [
+          /* @__PURE__ */ (0, import_jsx_runtime14.jsx)("div", { className: "faip-workspace-context-title", children: (currentSession == null ? void 0 : currentSession.title) || __("New chat") }),
+          /* @__PURE__ */ (0, import_jsx_runtime14.jsx)("div", { className: "faip-workspace-context-meta", children: latestExecution ? latestExecution.kind === "mcp_tool" ? __("Latest activity: {0} via {1}", [
             latestExecution.display_title,
             latestExecution.connection_name || __("MCP")
           ]) : __("Latest activity: {0}", [latestExecution.display_title]) : __("Workspace transcript and execution details stay in sync here.") })
         ] }) }),
-        /* @__PURE__ */ (0, import_jsx_runtime13.jsxs)("div", { className: "faip-workspace-content", children: [
-          /* @__PURE__ */ (0, import_jsx_runtime13.jsx)(MessageList, {}),
-          /* @__PURE__ */ (0, import_jsx_runtime13.jsx)(Composer, {})
+        /* @__PURE__ */ (0, import_jsx_runtime14.jsxs)("div", { className: "faip-workspace-content", children: [
+          /* @__PURE__ */ (0, import_jsx_runtime14.jsx)(MessageList, {}),
+          /* @__PURE__ */ (0, import_jsx_runtime14.jsx)(Composer, {})
         ] })
       ] }),
-      /* @__PURE__ */ (0, import_jsx_runtime13.jsx)(InspectorDrawer, {})
+      /* @__PURE__ */ (0, import_jsx_runtime14.jsx)(InspectorDrawer, {})
     ] });
   }
 
   // src/components/PageRoot.tsx
-  var import_jsx_runtime14 = __toESM(require_jsx_runtime(), 1);
+  var import_jsx_runtime15 = __toESM(require_jsx_runtime(), 1);
   function PageRoot() {
     const { loadInitial, restoreSession } = useStore();
-    const rootRef = (0, import_react10.useRef)(null);
-    (0, import_react10.useEffect)(() => {
+    const rootRef = (0, import_react13.useRef)(null);
+    (0, import_react13.useEffect)(() => {
       void loadInitial();
     }, [loadInitial]);
-    (0, import_react10.useEffect)(() => {
+    (0, import_react13.useEffect)(() => {
       void restoreSession();
     }, [restoreSession]);
-    (0, import_react10.useEffect)(() => {
+    (0, import_react13.useEffect)(() => {
       const root = rootRef.current;
       if (!root) return;
       const applyTheme = () => {
@@ -15154,25 +17530,25 @@ var FrappeAIPanel = (() => {
       observer.observe(document.documentElement, { attributes: true, attributeFilter: ["data-theme"] });
       return () => observer.disconnect();
     }, []);
-    return /* @__PURE__ */ (0, import_jsx_runtime14.jsx)("div", { ref: rootRef, className: "faip-page", children: /* @__PURE__ */ (0, import_jsx_runtime14.jsx)(WorkspaceShell, { variant: "standalone" }) });
+    return /* @__PURE__ */ (0, import_jsx_runtime15.jsx)("div", { ref: rootRef, className: "faip-page", children: /* @__PURE__ */ (0, import_jsx_runtime15.jsx)(WorkspaceShell, { variant: "standalone" }) });
   }
 
   // src/components/PanelRoot.tsx
-  var import_react11 = __toESM(require_react(), 1);
-  var import_jsx_runtime15 = __toESM(require_jsx_runtime(), 1);
+  var import_react14 = __toESM(require_react(), 1);
+  var import_jsx_runtime16 = __toESM(require_jsx_runtime(), 1);
   function PanelRoot({
     fullscreen,
     onClose,
     onToggleFullscreen
   }) {
     const { loadInitial, restoreSession } = useStore();
-    (0, import_react11.useEffect)(() => {
+    (0, import_react14.useEffect)(() => {
       void loadInitial();
     }, [loadInitial]);
-    (0, import_react11.useEffect)(() => {
+    (0, import_react14.useEffect)(() => {
       void restoreSession();
     }, [restoreSession]);
-    return /* @__PURE__ */ (0, import_jsx_runtime15.jsx)(
+    return /* @__PURE__ */ (0, import_jsx_runtime16.jsx)(
       WorkspaceShell,
       {
         variant: "panel",
@@ -15186,14 +17562,14 @@ var FrappeAIPanel = (() => {
   }
 
   // src/app.tsx
-  var import_jsx_runtime16 = __toESM(require_jsx_runtime(), 1);
+  var import_jsx_runtime17 = __toESM(require_jsx_runtime(), 1);
   function App({
     host,
     variant = "panel",
     panel
   }) {
     var _a;
-    return /* @__PURE__ */ (0, import_jsx_runtime16.jsx)(StoreProvider, { host, children: variant === "standalone" ? /* @__PURE__ */ (0, import_jsx_runtime16.jsx)(PageRoot, {}) : /* @__PURE__ */ (0, import_jsx_runtime16.jsx)(
+    return /* @__PURE__ */ (0, import_jsx_runtime17.jsx)(StoreProvider, { host, children: variant === "standalone" ? /* @__PURE__ */ (0, import_jsx_runtime17.jsx)(PageRoot, {}) : /* @__PURE__ */ (0, import_jsx_runtime17.jsx)(
       PanelRoot,
       {
         fullscreen: (_a = panel == null ? void 0 : panel.fullscreen) != null ? _a : false,
@@ -15222,20 +17598,20 @@ var FrappeAIPanel = (() => {
   }
 
   // src/hosts/deskPanel.tsx
-  var import_jsx_runtime17 = __toESM(require_jsx_runtime(), 1);
+  var import_jsx_runtime18 = __toESM(require_jsx_runtime(), 1);
   var PANEL_WIDTH = 420;
   var MIN_WIDTH = 360;
   function DeskPanelHost() {
     var _a;
-    const saved = (0, import_react12.useMemo)(() => readPanelState(), []);
-    const [open, setOpen] = (0, import_react12.useState)(Boolean(saved.open));
-    const [fullscreen, setFullscreen] = (0, import_react12.useState)((_a = saved.fullscreen) != null ? _a : true);
-    const [width, setWidth] = (0, import_react12.useState)(saved.width || PANEL_WIDTH);
-    const shellRef = (0, import_react12.useRef)(null);
-    (0, import_react12.useEffect)(() => {
+    const saved = (0, import_react15.useMemo)(() => readPanelState(), []);
+    const [open, setOpen] = (0, import_react15.useState)(Boolean(saved.open));
+    const [fullscreen, setFullscreen] = (0, import_react15.useState)((_a = saved.fullscreen) != null ? _a : true);
+    const [width, setWidth] = (0, import_react15.useState)(saved.width || PANEL_WIDTH);
+    const shellRef = (0, import_react15.useRef)(null);
+    (0, import_react15.useEffect)(() => {
       writePanelState({ open, fullscreen, width, session: readPanelState().session || null });
     }, [fullscreen, open, width]);
-    (0, import_react12.useEffect)(() => {
+    (0, import_react15.useEffect)(() => {
       const shell = shellRef.current;
       if (!shell) return;
       const applyTheme = () => {
@@ -15250,7 +17626,7 @@ var FrappeAIPanel = (() => {
       });
       return () => observer.disconnect();
     }, []);
-    (0, import_react12.useEffect)(() => {
+    (0, import_react15.useEffect)(() => {
       var _a2, _b;
       const api = {
         show: () => setOpen(true),
@@ -15279,7 +17655,7 @@ var FrappeAIPanel = (() => {
         return () => document.removeEventListener("keydown", onKeyDown);
       }
     }, []);
-    (0, import_react12.useEffect)(() => {
+    (0, import_react15.useEffect)(() => {
       const shell = shellRef.current;
       if (!shell) return;
       const handle = shell.querySelector(".faip-resize-handle");
@@ -15308,7 +17684,7 @@ var FrappeAIPanel = (() => {
       handle.addEventListener("mousedown", onDown);
       return () => handle.removeEventListener("mousedown", onDown);
     }, []);
-    return /* @__PURE__ */ (0, import_jsx_runtime17.jsxs)(
+    return /* @__PURE__ */ (0, import_jsx_runtime18.jsxs)(
       "div",
       {
         ref: shellRef,
@@ -15318,8 +17694,8 @@ var FrappeAIPanel = (() => {
           transform: open ? "translateX(0)" : "translateX(100%)"
         },
         children: [
-          /* @__PURE__ */ (0, import_jsx_runtime17.jsx)("div", { className: "faip-resize-handle" }),
-          /* @__PURE__ */ (0, import_jsx_runtime17.jsx)(
+          /* @__PURE__ */ (0, import_jsx_runtime18.jsx)("div", { className: "faip-resize-handle" }),
+          /* @__PURE__ */ (0, import_jsx_runtime18.jsx)(
             App,
             {
               host: {
@@ -15346,12 +17722,12 @@ var FrappeAIPanel = (() => {
     if (!existing) document.body.appendChild(rootNode);
     rootNode.__faipMounted = true;
     const root = (0, import_client2.createRoot)(rootNode);
-    root.render(/* @__PURE__ */ (0, import_jsx_runtime17.jsx)(DeskPanelHost, {}));
+    root.render(/* @__PURE__ */ (0, import_jsx_runtime18.jsx)(DeskPanelHost, {}));
   }
 
   // src/hosts/frappePage.tsx
   var import_client3 = __toESM(require_client(), 1);
-  var import_jsx_runtime18 = __toESM(require_jsx_runtime(), 1);
+  var import_jsx_runtime19 = __toESM(require_jsx_runtime(), 1);
   function currentSessionFromUrl() {
     return new URL(window.location.href).searchParams.get("session");
   }
@@ -15377,7 +17753,7 @@ var FrappeAIPanel = (() => {
     const root = target.__faipPageRoot || (0, import_client3.createRoot)(target);
     target.__faipPageRoot = root;
     root.render(
-      /* @__PURE__ */ (0, import_jsx_runtime18.jsx)("div", { className: "faip-root faip-page-host", children: /* @__PURE__ */ (0, import_jsx_runtime18.jsx)(
+      /* @__PURE__ */ (0, import_jsx_runtime19.jsx)("div", { className: "faip-root faip-page-host", children: /* @__PURE__ */ (0, import_jsx_runtime19.jsx)(
         App,
         {
           variant: "standalone",

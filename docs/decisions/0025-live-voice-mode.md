@@ -48,6 +48,11 @@ fails instead. This helps every client, not only voice.
   speech. Echo without headphones can trigger false interruptions, so interrupting is a setting.
 - The voice-activity detector is energy based; very noisy rooms need push-to-talk.
 
+## Status
+
+Phases 1 to 3 are built (live streaming, backend, push-to-talk with spoken replies). Hands-free turn-taking, barge-in
+and the broader browser test are designed and tracked in [voice-mode.md](../progress/voice-mode.md).
+
 ## Not included
 
 Speech-to-speech realtime models, streaming partial transcripts, a wake word, speaker identification, voice
