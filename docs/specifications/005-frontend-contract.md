@@ -282,6 +282,18 @@ Returns:
 
 This is a staged attachment object for later use in `start_run`.
 
+### `POST frappe_ai.api.frontend.transcribe_voice`
+
+Transport: `multipart/form-data`, field `file` (a WAV recording of one phrase, at most 5 MB). Returns
+`{"text": "..."}` (plain text, no timestamps). Requires a transcription model; rate limited per user.
+
+### `POST frappe_ai.api.frontend.speak_text`
+
+Body `{"text": "one sentence"}` (at most 1,000 characters). Returns `{"audio": "<base64>", "format": "mp3"}`.
+Requires a speech model; clients use the browser voice when `bootstrap.composer.voice.tts` is `"browser"`.
+
+`bootstrap.composer.voice` is `{"available": bool, "tts": "server" | "browser"}`.
+
 ### `GET frappe_ai.api.frontend.agent_tools`
 
 Query params:

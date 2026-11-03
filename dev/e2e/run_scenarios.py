@@ -10,11 +10,12 @@ It talks to the real HTTP API (token auth), opens the real SSE stream, and reads
 running `e2e_checks` functions inside the site. Exit status is non-zero if any scenario fails.
 
 Scenarios (`--only` takes these names): knowledge, approval, deny-stop, provider-error, backends,
-memory, triggers, attachment, parallel-budget, sessions-search, audio, live-streaming.
+memory, triggers, attachment, parallel-budget, sessions-search, audio, live-streaming, voice-api.
 """
 
 from __future__ import annotations
 
+import base64
 import json
 import os
 import subprocess
@@ -605,6 +606,100 @@ def scenario_live_streaming(ctx):
 	check("the run completed", arrivals[-1][1] == "done")
 
 
+def post_voice(client: Client, wav: bytes):
+	return client.http.post(
+		f"{WEB}/api/method/frappe_ai.api.frontend.transcribe_voice",
+		files={"file": ("utterance.wav", wav, "audio/wav")},
+		timeout=120,
+	)
+
+
+def speak_text(client: Client, text: str):
+	return client.http.post(
+		f"{WEB}/api/method/frappe_ai.api.frontend.speak_text", json={"text": text}, timeout=120
+	)
+
+
+def scenario_voice_api(ctx):
+	"""The two voice endpoints: capabilities follow the settings, a phrase becomes plain text, a sentence becomes audio."""
+	site, client = ctx["site"], ctx["client"]
+
+	in_site(site, "set_voice", transcription=False, speech=False)
+	voice = client.get("bootstrap")["composer"]["voice"]
+	check(
+		"voice is unavailable until a transcription model is set",
+		voice == {"available": False, "tts": "browser"},
+		json.dumps(voice),
+	)
+	reply = post_voice(client, make_wav("hello"))
+	check(
+		"a phrase is refused while voice is off",
+		reply.status_code != 200 and "transcription model" in reply.text,
+		reply.text[:120],
+	)
+
+	in_site(site, "set_voice", transcription=True, speech=False)
+	voice = client.get("bootstrap")["composer"]["voice"]
+	check(
+		"voice uses the browser voice without a speech model",
+		voice == {"available": True, "tts": "browser"},
+		json.dumps(voice),
+	)
+	spoken = "Turn on the kitchen lights."
+	reply = post_voice(client, make_wav(spoken))
+	check(
+		"a phrase comes back as plain text, without timestamps",
+		reply.status_code == 200 and reply.json()["message"]["text"] == spoken,
+		reply.text[:160],
+	)
+	reply = post_voice(client, b"x" * (6 * 1024 * 1024))
+	check(
+		"an oversized recording is refused",
+		reply.status_code != 200 and "too long" in reply.text,
+		reply.text[:120],
+	)
+	reply = speak_text(client, "Hello.")
+	check(
+		"speech is refused while no speech model is set",
+		reply.status_code != 200 and "No speech model" in reply.text,
+		reply.text[:120],
+	)
+
+	in_site(site, "set_voice", transcription=True, speech=True)
+	voice = client.get("bootstrap")["composer"]["voice"]
+	check(
+		"voice uses the server voice once a speech model is set",
+		voice == {"available": True, "tts": "server"},
+		json.dumps(voice),
+	)
+	clear_stub_log()
+	reply = speak_text(client, "The kitchen lights are on.")
+	payload = reply.json().get("message", {}) if reply.status_code == 200 else {}
+	audio = base64.b64decode(payload.get("audio", ""))
+	check(
+		"a sentence comes back as playable audio",
+		audio[:4] == b"RIFF" and payload.get("format") == "mp3",
+		f"{reply.status_code} {len(audio)} bytes",
+	)
+	sent = [
+		e
+		for e in requests.get(f"{STUB}/_requests", timeout=5).json()["requests"]
+		if e["path"].endswith("/audio/speech")
+	]
+	check(
+		"the provider was asked to speak exactly that sentence",
+		len(sent) == 1 and sent[0]["body"]["input"] == "The kitchen lights are on.",
+		json.dumps(sent)[:160],
+	)
+	reply = speak_text(client, "x" * 1500)
+	check(
+		"an over-long sentence is refused",
+		reply.status_code != 200 and "limited to" in reply.text,
+		reply.text[:120],
+	)
+	in_site(site, "set_voice", transcription=False, speech=False)
+
+
 SCENARIOS = {
 	"knowledge": scenario_knowledge_and_search,
 	"approval": scenario_approval_flow,
@@ -618,6 +713,7 @@ SCENARIOS = {
 	"sessions-search": scenario_sessions_search,
 	"audio": scenario_audio,
 	"live-streaming": scenario_live_streaming,
+	"voice-api": scenario_voice_api,
 }
 
 

@@ -89,6 +89,15 @@ other attachment or knowledge source (ADR 0024). The feature is **off** until yo
 
 Files over the limit are refused before anything is sent. Transcription happens while the file uploads.
 
+## Voice mode
+
+Voice mode lets a user speak to an agent and hear the answer (ADR 0025). It needs a **Transcription Model**
+(see Audio uploads above). For natural voices also choose a **Speech Model** in **AI Settings → Voice**: a model
+served by an OpenAI-compatible `/audio/speech` endpoint (OpenAI `tts-1`, or a local Piper or Kokoro server) and,
+optionally, a voice name. Reply text is sent to that provider. With no speech model the browser speaks the reply
+with its own voice. Each phrase and sentence is one request that holds a web worker for one to three seconds;
+requests are limited per user.
+
 ## Storage and backups
 
 The site database is authoritative for knowledge text and metadata. The search index is a

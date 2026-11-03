@@ -525,3 +525,29 @@ def add_audio_source(kb: str, spoken: str, title: str = "Call recording"):
 		}
 	).insert(ignore_permissions=True)
 	return source.name
+
+
+def set_voice(transcription: bool, speech: bool):
+	"""Switch the transcription and speech models on or off the way an admin would in AI Settings."""
+	from frappe_ai.knowledge.transcribe import DEFAULT_MAX_AUDIO_MB
+
+	def model_named(title: str, model_id: str) -> str:
+		if not frappe.db.exists("AI Model", {"title": title}):
+			frappe.get_doc(
+				{
+					"doctype": "AI Model",
+					"title": title,
+					"enabled": 1,
+					"provider": "openai",
+					"model_id": model_id,
+				}
+			).insert(ignore_permissions=True)
+		return frappe.db.get_value("AI Model", {"title": title}, "name")
+
+	settings = frappe.get_doc("AI Settings")
+	settings.transcription_model = model_named("E2E Whisper", "whisper-stub") if transcription else None
+	settings.speech_model = model_named("E2E Speech", "tts-stub") if speech else None
+	settings.max_audio_mb = DEFAULT_MAX_AUDIO_MB
+	settings.save(ignore_permissions=True)
+	frappe.clear_document_cache("AI Settings", "AI Settings")
+	return {"transcription": bool(settings.transcription_model), "speech": bool(settings.speech_model)}

@@ -23,6 +23,8 @@ class AISettings(Document):
 		request_timeout: DF.Int
 		search_type: DF.Literal["Hybrid", "Vector"]
 		service_status: DF.Data | None
+		speech_model: DF.Link | None
+		speech_voice: DF.Data | None
 		stream_timeout: DF.Int
 		transcription_model: DF.Link | None
 		transcription_timeout: DF.Int
@@ -50,7 +52,9 @@ class AISettings(Document):
 				title=_("Invalid Vector Backend"),
 			)
 		if choice.lower() == "pgvector" and frappe.db.db_type != "postgres":
-			frappe.throw(_("The pgvector backend needs a Postgres site database."), title=_("Invalid Vector Backend"))
+			frappe.throw(
+				_("The pgvector backend needs a Postgres site database."), title=_("Invalid Vector Backend")
+			)
 
 	def _validate_chunking(self):
 		if cint(self.chunk_size) < 1:
@@ -59,13 +63,15 @@ class AISettings(Document):
 			frappe.throw(_("Chunk Overlap must be smaller than Chunk Size."), title=_("Invalid Chunking"))
 
 	def _validate_audio(self):
-		"""The transcription model must be usable, and the limits must not be negative (0 means default)."""
+		"""The audio models must be usable, and the limits must not be negative (0 means default)."""
 		if cint(self.max_audio_mb) < 0:
 			frappe.throw(_("Max Audio Size cannot be negative."), title=_("Invalid Audio Settings"))
 		if cint(self.transcription_timeout) < 0:
 			frappe.throw(_("Transcription Timeout cannot be negative."), title=_("Invalid Audio Settings"))
-		if self.transcription_model and not frappe.db.get_value("AI Model", self.transcription_model, "enabled"):
-			frappe.throw(
-				_("Transcription Model {0} is disabled.").format(self.transcription_model),
-				title=_("Invalid Audio Settings"),
-			)
+		self._require_enabled_model(self.transcription_model, _("Transcription Model"))
+		self._require_enabled_model(self.speech_model, _("Speech Model"))
+
+	@staticmethod
+	def _require_enabled_model(model: str | None, label: str) -> None:
+		if model and not frappe.db.get_value("AI Model", model, "enabled"):
+			frappe.throw(_("{0} {1} is disabled.").format(label, model), title=_("Invalid Audio Settings"))

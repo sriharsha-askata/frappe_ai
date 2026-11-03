@@ -124,6 +124,8 @@ architecture requires.
 | `transcription_model` | Link → `AI Model` | empty = audio uploads off; audio is sent to this model's provider (ADR 0024) | **new** |
 | `max_audio_mb` | Int | default 25; 0 means the default | **new** |
 | `transcription_timeout` | Int | default 110 (seconds); 0 means the default | **new** |
+| `speech_model` | Link → `AI Model` | empty = the browser speaks replies; reply text is sent to this model's provider (ADR 0025) | **new** |
+| `speech_voice` | Data | default `alloy` | **new** |
 | `vector_backend` | Data | default `Auto`; `Auto`, `lancedb`, `pgvector`, `chroma`, or an app-registered name | **new** |
 | `service_status` | Data | read-only, health indicator | **new** |
 

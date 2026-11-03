@@ -20,6 +20,9 @@ It replaces the two external services the app calls so that tests are determinis
 * ``POST /v1/audio/transcriptions`` - a "transcriber" for audio built by the tests. The audio bytes carry
   their own transcript after the marker ``SPOKEN:`` (ended by a NUL byte), so the stub needs no speech model;
   sentences become verbose_json segments five seconds apart. Audio containing ``FAIL`` gets an HTTP 500.
+  Without the marker the transcript is ``--transcript`` when given (so a real recording can be "understood").
+
+* ``POST /v1/audio/speech`` - returns a short tone (a valid WAV, sent as audio/mpeg) so playback can be tested.
 
   After a tool result the model answers with ``TOOL RESULT: <first 300 chars>``. Streaming
   (server-sent events) and non-streaming requests are both supported.
@@ -32,11 +35,14 @@ from __future__ import annotations
 
 import argparse
 import hashlib
+import io
 import json
 import math
 import re
+import struct
 import threading
 import time
+import wave
 from email.parser import BytesParser
 from email.policy import default as email_policy
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
@@ -50,6 +56,10 @@ _DIRECTIVE = re.compile(r"\[\[(search|tool|fail)(?::\s*|\s+)?(.*?)\]\]", re.S)
 
 LOG_PATH: str | None = None
 CHUNK_DELAY = 0.0
+FIXED_TRANSCRIPT = ""
+TONE_SECONDS = 0.3
+TONE_HZ = 440
+TONE_RATE_HZ = 8000
 LOG_LOCK = threading.Lock()
 REQUESTS: list[dict] = []
 
@@ -97,7 +107,8 @@ def decide(messages: list[dict]) -> dict:
 def transcribe(audio: bytes) -> dict:
 	"""A verbose_json transcription of `audio`, taken from the text embedded in its bytes."""
 	match = _SPOKEN.search(audio)
-	spoken = match.group(1).decode("utf-8", "replace") if match else f"stub transcript of {len(audio)} bytes"
+	fallback = FIXED_TRANSCRIPT or f"stub transcript of {len(audio)} bytes"
+	spoken = match.group(1).decode("utf-8", "replace") if match else fallback
 	sentences = [part.strip() for part in re.split(r"(?<=[.!?])\s+", spoken) if part.strip()]
 	segments = [
 		{"id": i, "start": i * SEGMENT_SECONDS, "end": (i + 1) * SEGMENT_SECONDS, "text": " " + sentence}
@@ -110,6 +121,21 @@ def transcribe(audio: bytes) -> dict:
 		"text": spoken,
 		"segments": segments,
 	}
+
+
+def tone() -> bytes:
+	"""A short sine tone as a valid mono 16-bit WAV file."""
+	samples = b"".join(
+		struct.pack("<h", int(12000 * math.sin(2 * math.pi * TONE_HZ * i / TONE_RATE_HZ)))
+		for i in range(int(TONE_SECONDS * TONE_RATE_HZ))
+	)
+	buffer = io.BytesIO()
+	with wave.open(buffer, "wb") as wav:
+		wav.setnchannels(1)
+		wav.setsampwidth(2)
+		wav.setframerate(TONE_RATE_HZ)
+		wav.writeframes(samples)
+	return buffer.getvalue()
 
 
 def parse_multipart(content_type: str, raw: bytes) -> dict:
@@ -174,6 +200,8 @@ class Handler(BaseHTTPRequestHandler):
 			return self._transcription(content_type, raw)
 		body = json.loads(raw or b"{}")
 		self._record({"path": self.path, "body": body})
+		if self.path.endswith("/audio/speech"):
+			return self._speech()
 		if self.path.endswith("/embeddings"):
 			return self._embeddings(body)
 		if self.path.endswith("/chat/completions"):
@@ -201,6 +229,14 @@ class Handler(BaseHTTPRequestHandler):
 				500, {"error": {"message": "stub transcription failure", "type": "server_error"}}
 			)
 		self._send_json(200, transcribe(audio))
+
+	def _speech(self) -> None:
+		data = tone()
+		self.send_response(200)
+		self.send_header("Content-Type", "audio/mpeg")
+		self.send_header("Content-Length", str(len(data)))
+		self.end_headers()
+		self.wfile.write(data)
 
 	def _embeddings(self, body: dict) -> None:
 		inputs = body.get("input", [])
@@ -294,17 +330,19 @@ class Handler(BaseHTTPRequestHandler):
 
 
 def main() -> None:
-	global LOG_PATH, CHUNK_DELAY
+	global LOG_PATH, CHUNK_DELAY, FIXED_TRANSCRIPT
 	parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
 	parser.add_argument("--port", type=int, default=11434)
 	parser.add_argument("--host", default="127.0.0.1")
 	parser.add_argument(
 		"--delay", type=float, default=0.0, help="seconds to wait after each streamed text chunk"
 	)
+	parser.add_argument("--transcript", default="", help="transcript for audio without a SPOKEN: marker")
 	parser.add_argument("--log", default=None, help="append each request body to this JSON-lines file")
 	args = parser.parse_args()
 	LOG_PATH = args.log
 	CHUNK_DELAY = args.delay
+	FIXED_TRANSCRIPT = args.transcript
 	server = ThreadingHTTPServer((args.host, args.port), Handler)
 	print(f"openai stub listening on http://{args.host}:{args.port}", flush=True)
 	server.serve_forever()

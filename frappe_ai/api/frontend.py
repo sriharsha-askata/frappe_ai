@@ -5,10 +5,12 @@
 
 from __future__ import annotations
 
+import base64
 from typing import Any
 
 import frappe
 from frappe import _
+from frappe.rate_limiter import rate_limit
 from frappe.utils.file_manager import save_file
 
 from frappe_ai.api import api
@@ -29,7 +31,10 @@ from frappe_ai.api.frontend_view import (
 from frappe_ai.frappe_ai.doctype.ai_run.ai_run import assert_run_owner
 from frappe_ai.frappe_ai.doctype.ai_session.ai_session import assert_session_owner
 from frappe_ai.knowledge.extract import supported_extensions
+from frappe_ai.knowledge.transcribe import transcription_model
 from frappe_ai.utils.like import contains
+from frappe_ai.voice.speech import AUDIO_FORMAT, speak, speech_model
+from frappe_ai.voice.utterance import read_uploaded_utterance, transcribe_utterance
 
 
 def _tool_summaries(agent_doc) -> list[dict[str, Any]]:
@@ -191,7 +196,9 @@ def _bootstrap_payload(*, current_session: dict[str, Any] | None = None) -> dict
 	agent_rows = [_agent_row(row) for row in agents]
 	selected_agent = current_session.get("agent") if current_session else None
 	if not selected_agent and agent_rows:
-		selected_agent = next((row["name"] for row in agent_rows if row["name"] == "Frappe AI"), agent_rows[0]["name"])
+		selected_agent = next(
+			(row["name"] for row in agent_rows if row["name"] == "Frappe AI"), agent_rows[0]["name"]
+		)
 	return {
 		"user": {
 			"name": frappe.session.user,
@@ -220,6 +227,7 @@ def _bootstrap_payload(*, current_session: dict[str, Any] | None = None) -> dict
 		},
 		"composer": {
 			"supported_file_types": sorted(supported_extensions()),
+			"voice": _voice_capabilities(),
 		},
 		"capabilities": {
 			"standalone_page": True,
@@ -227,6 +235,15 @@ def _bootstrap_payload(*, current_session: dict[str, Any] | None = None) -> dict
 			"custom_frontend": True,
 			"stream_transport": "fastapi_bearer_sse",
 		},
+	}
+
+
+def _voice_capabilities() -> dict[str, Any]:
+	"""Voice mode needs speech-to-text; replies use the server voice when a speech model is set,
+	otherwise the browser's own."""
+	return {
+		"available": bool(transcription_model()),
+		"tts": "server" if speech_model() else "browser",
 	}
 
 
@@ -334,6 +351,28 @@ def upload_attachment() -> dict[str, Any]:
 	)
 	attachment = api.attach_file(file_doc.name)
 	return {"attachment": attachment}
+
+
+VOICE_TRANSCRIPTIONS_PER_MINUTE = 30
+VOICE_SPEECH_REQUESTS_PER_MINUTE = 90  # one request per spoken sentence
+
+
+@frappe.whitelist(methods=["POST"])
+@rate_limit(limit=VOICE_TRANSCRIPTIONS_PER_MINUTE, seconds=60, ip_based=False, user_based=True)
+def transcribe_voice() -> dict[str, str]:
+	"""Text of one recorded phrase from voice mode. The audio is not stored."""
+	if frappe.session.user == "Guest":
+		raise frappe.PermissionError
+	return {"text": transcribe_utterance(read_uploaded_utterance(frappe.request))}
+
+
+@frappe.whitelist(methods=["POST"])
+@rate_limit(limit=VOICE_SPEECH_REQUESTS_PER_MINUTE, seconds=60, ip_based=False, user_based=True)
+def speak_text(text: str) -> dict[str, str]:
+	"""Speech for one sentence of a reply, as base64 audio. Only used when a speech model is set."""
+	if frappe.session.user == "Guest":
+		raise frappe.PermissionError
+	return {"audio": base64.b64encode(speak(text)).decode("ascii"), "format": AUDIO_FORMAT}
 
 
 @frappe.whitelist()

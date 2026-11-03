@@ -17,6 +17,10 @@
   "column_break_audio",
   "max_audio_mb",
   "transcription_timeout",
+  "section_break_voice",
+  "speech_model",
+  "column_break_voice",
+  "speech_voice",
   "section_break_service",
   "column_break_service",
   "request_timeout",
@@ -105,6 +109,29 @@
    "fieldname": "transcription_timeout",
    "fieldtype": "Int",
    "label": "Transcription Timeout (seconds)"
+  },
+  {
+   "fieldname": "section_break_voice",
+   "fieldtype": "Section Break",
+   "label": "Voice"
+  },
+  {
+   "description": "Model that speaks replies in voice mode. It must be served by an OpenAI-compatible /audio/speech endpoint (for example OpenAI tts-1 or a local Piper/Kokoro server). Reply text is sent to that provider. Leave empty to use the browser's own voice. Voice mode also needs a Transcription Model.",
+   "fieldname": "speech_model",
+   "fieldtype": "Link",
+   "label": "Speech Model",
+   "options": "AI Model"
+  },
+  {
+   "fieldname": "column_break_voice",
+   "fieldtype": "Column Break"
+  },
+  {
+   "default": "alloy",
+   "description": "Voice name your speech model understands (OpenAI: alloy, echo, fable, onyx, nova, shimmer).",
+   "fieldname": "speech_voice",
+   "fieldtype": "Data",
+   "label": "Speech Voice"
   },
   {
    "fieldname": "section_break_service",

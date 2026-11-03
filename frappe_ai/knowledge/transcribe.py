@@ -67,20 +67,20 @@ def check_audio_size(size_bytes: int) -> None:
 		)
 
 
-def transcribe(filename: str, content: bytes) -> str:
+def transcribe(filename: str, content: bytes, *, timestamps: bool = True) -> str:
 	"""Transcribe audio held in memory. `filename` must keep the real extension: the provider
-	uses it to detect the format."""
-	return _transcribe(filename, content, len(content))
+	uses it to detect the format. `timestamps=False` returns plain text instead of timed lines."""
+	return _transcribe(filename, content, len(content), timestamps)
 
 
 def transcribe_file(path: str, extension: str) -> str:
 	"""Transcribe an audio file on disk without reading it into memory first."""
 	size = os.path.getsize(path)
 	with open(path, "rb") as handle:
-		return _transcribe(f"audio.{extension}", handle, size)
+		return _transcribe(f"audio.{extension}", handle, size, timestamps=True)
 
 
-def _transcribe(filename: str, audio: bytes | BinaryIO, size_bytes: int) -> str:
+def _transcribe(filename: str, audio: bytes | BinaryIO, size_bytes: int, timestamps: bool) -> str:
 	model_name = require_transcription_model()
 	check_audio_size(size_bytes)
 
@@ -95,15 +95,17 @@ def _transcribe(filename: str, audio: bytes | BinaryIO, size_bytes: int) -> str:
 	except Exception as error:
 		failure = normalize_provider_error(error, provider=config["provider"], model_id=config["model_id"])
 		frappe.throw(failure.message, title=_("Transcription Failed"))
-	return format_transcript(response)
+	return format_transcript(response, timestamps=timestamps)
 
 
-def format_transcript(response: Any) -> str:
-	"""One `[hh:mm:ss] text` line per segment; the plain text when the provider sends no segments."""
-	segments = _field(response, "segments") or []
-	lines = [_segment_line(segment) for segment in segments if (_field(segment, "text") or "").strip()]
-	if lines:
-		return "\n".join(lines)
+def format_transcript(response: Any, *, timestamps: bool = True) -> str:
+	"""One `[hh:mm:ss] text` line per segment; the plain text when the provider sends no segments
+	or when `timestamps` is False."""
+	if timestamps:
+		segments = _field(response, "segments") or []
+		lines = [_segment_line(segment) for segment in segments if (_field(segment, "text") or "").strip()]
+		if lines:
+			return "\n".join(lines)
 	return (_field(response, "text") or "").strip()
 
 

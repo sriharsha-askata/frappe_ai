@@ -3,7 +3,9 @@
 
 frappe.ui.form.on("AI Settings", {
 	setup(frm) {
-		// Only enabled models can transcribe audio.
-		frm.set_query("transcription_model", () => ({ filters: { enabled: 1 } }));
+		// Only enabled models can transcribe or speak.
+		for (const field of ["transcription_model", "speech_model"]) {
+			frm.set_query(field, () => ({ filters: { enabled: 1 } }));
+		}
 	},
 });
