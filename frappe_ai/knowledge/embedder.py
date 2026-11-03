@@ -48,6 +48,11 @@ def embed_texts(texts: list[str]) -> list[list[float]]:
 	return vectors
 
 
+def embedding_identity(dimension: int) -> dict[str, Any]:
+	"""What an index built from this embedding setup is stamped with and later checked against."""
+	return {"provider": EMBEDDING_PROVIDER, "model": EMBEDDING_MODEL, "dimension": int(dimension)}
+
+
 def probe_dimension() -> int:
 	"""Discover and persist the fixed model's vector width with one real request."""
 	config = _embedding_config()

@@ -74,7 +74,7 @@ class TestGetServiceConfigAuth(IntegrationTestCase):
 
 		self.assertIn("request_timeout", result)
 		self.assertIn("stream_timeout", result)
-		self.assertIn("lancedb_path", result)
+		self.assertIn("vector_backend", result)
 
 	def test_wrong_secret_rejected(self):
 		with patch("frappe.get_request_header", new=_patch_request_header("wrong-secret")):

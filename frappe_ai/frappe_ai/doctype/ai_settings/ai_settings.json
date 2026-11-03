@@ -7,6 +7,7 @@
   "embedding_dimension",
   "column_break_search",
   "search_type",
+  "vector_backend",
   "section_break_chunking",
   "chunk_size",
   "column_break_chunking",
@@ -16,7 +17,6 @@
   "request_timeout",
   "stream_timeout",
   "section_break_status",
-  "lancedb_path",
   "service_status"
  ],
  "fields": [
@@ -38,6 +38,13 @@
    "fieldtype": "Select",
    "label": "Search Type",
    "options": "Hybrid\nVector"
+  },
+  {
+   "default": "Auto",
+   "description": "Where search vectors are stored: Auto (pgvector on Postgres, otherwise lancedb), lancedb, pgvector, chroma, or a backend registered by an installed app. After changing it, rebuild the knowledge index.",
+   "fieldname": "vector_backend",
+   "fieldtype": "Data",
+   "label": "Vector Backend"
   },
   {
    "fieldname": "section_break_chunking",
@@ -93,13 +100,6 @@
    "fieldname": "section_break_status",
    "fieldtype": "Section Break",
    "label": "Status"
-  },
-  {
-   "description": "Site-scoped path where LanceDB tables are stored.",
-   "fieldname": "lancedb_path",
-   "fieldtype": "Data",
-   "label": "LanceDB Path",
-   "read_only": 1
   },
   {
    "description": "Health indicator for the FastAPI service, updated by the health probe.",

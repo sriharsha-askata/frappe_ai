@@ -6,7 +6,7 @@
 Extraction now goes through `frappe_ai.knowledge.extract.extract_file`
 (`FILE_EXTENSIONS`) — PDF, DOCX, XLSX, HTML, OCR, and plain text, same set `AI
 Knowledge Source`'s File sources use. Retrieval mode (chunk + embed oversized files
-into LanceDB's `chat_attachment_chunks`) is wired in `AISession.persist_turn`/
+into the attachment search index) is wired in `AISession.persist_turn`/
 `_index_retrieval_attachments`/`build_prompt_messages`.
 """
 

@@ -77,6 +77,7 @@ def _tsquery(text: str) -> str | None:
 class PgVectorBackend(VectorBackend):
 	name = "pgvector"
 	supports_keyword_search = True
+	transactional_ddl = True
 
 	def __init__(self, sql: SqlRunner):
 		self._sql = sql
@@ -127,6 +128,11 @@ class PgVectorBackend(VectorBackend):
 			return None
 		(count,) = self._sql.fetchall(f"select count(*) from {_table(collection)}")[0]
 		return CollectionInfo(dimension=row["dimension"], identity=row["identity"], count=int(count))
+
+	def list_ids(self, collection):
+		if not self._registry_row(collection):
+			return set()
+		return {row[0] for row in self._sql.fetchall(f'select "id" from {_table(collection)}')}
 
 	def drop(self, collection):
 		self._sql.execute(f"drop table if exists {_table(collection)}")

@@ -45,13 +45,3 @@ class AIAgentMemory(Document):
 		if self.scope == "Agent":
 			self.user = None
 
-	def on_update(self):
-		from frappe_ai.memory import store
-
-		store.sync(self)
-
-	def on_trash(self):
-		from frappe_ai.memory import store
-
-		store.remove(self.name)
-

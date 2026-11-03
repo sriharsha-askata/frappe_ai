@@ -100,7 +100,7 @@ def get_service_config() -> dict:
 	return {
 		"request_timeout": settings.request_timeout,
 		"stream_timeout": settings.stream_timeout,
-		"lancedb_path": settings.lancedb_path,
+		"vector_backend": settings.vector_backend or "Auto",
 	}
 
 

@@ -98,6 +98,13 @@ class BackendContract:
 		with self.assertRaises(ValueError):
 			self.ensure(dimension=0)
 
+	def test_list_ids_tracks_writes_and_deletes(self):
+		self.assertEqual(self.backend.list_ids(self.name), set())
+		self.filled()
+		self.assertEqual(self.backend.list_ids(self.name), {"1", "2", "3", "4"})
+		self.backend.delete(self.name, ids=["2"])
+		self.assertEqual(self.backend.list_ids(self.name), {"1", "3", "4"})
+
 	def test_drop_removes_and_is_idempotent(self):
 		self.filled()
 		self.backend.drop(self.name)

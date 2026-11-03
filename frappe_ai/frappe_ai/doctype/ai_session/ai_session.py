@@ -168,7 +168,7 @@ class AISession(Document):
 
 		from frappe.utils import cint
 
-		from frappe_ai.knowledge import attachment_store
+		from frappe_ai.knowledge import index
 		from frappe_ai.knowledge.chunker import chunk_text
 		from frappe_ai.knowledge.embedder import embed_texts
 
@@ -186,10 +186,10 @@ class AISession(Document):
 					row.mode = "Inline"
 					continue
 				vectors = embed_texts(chunks)
-				attachment_store.ensure_table(len(vectors[0]))
-				attachment_store.add(self.name, row.name, chunks, vectors)
+				index.attachments.ensure(len(vectors[0]))
+				index.attachments.add(self.name, row.name, chunks, vectors)
 			except Exception:
-				# Permanent demotion: data never made it to LanceDB, so Retrieval mode
+				# Permanent demotion: data never made it to the search index, so Retrieval mode
 				# would silently return nothing. Inline ensures the user gets the capped text.
 				frappe.log_error(title="Chat attachment indexing failed")
 				row.db_set("mode", "Inline")
@@ -341,10 +341,10 @@ def _delete_attachment_files(sessions: list[str]) -> None:
 def _purge_attachment_chunks(session: str | list[str]) -> None:
 	"""Best-effort removal of a session's (or batch's) retrieval chunks. The chunk index is
 	disposable, so a failure here must never block deleting the session."""
-	from frappe_ai.knowledge import attachment_store
+	from frappe_ai.knowledge import index
 
 	try:
-		attachment_store.delete(session=session)
+		index.attachments.delete(session=session)
 	except Exception:
 		frappe.log_error(title="Chat attachment cleanup failed")
 

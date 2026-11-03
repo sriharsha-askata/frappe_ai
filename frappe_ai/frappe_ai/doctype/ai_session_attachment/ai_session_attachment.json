@@ -47,7 +47,7 @@
   },
   {
    "default": "Inline",
-   "description": "Inline: full text injected every turn. Retrieval: chunked and embedded, top matches injected per turn (for oversized files) — lands in Phase 4 with LanceDB's chat_attachment_chunks table; Phase 3 only implements Inline.",
+   "description": "Inline: full text injected every turn. Retrieval: chunked and embedded, top matches injected per turn (for oversized files).",
    "fieldname": "mode",
    "fieldtype": "Select",
    "options": "Inline\nRetrieval",

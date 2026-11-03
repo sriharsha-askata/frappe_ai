@@ -9,19 +9,19 @@ import frappe
 from frappe.tests import IntegrationTestCase
 from frappe.utils.file_manager import save_file
 
-from frappe_ai.knowledge import Knowledge, store
+from frappe_ai.knowledge import Knowledge, index
 
 
 class TestKnowledgePublicAPI(IntegrationTestCase):
 	def setUp(self):
-		store.drop_table()
+		index.chunks.drop()
 		frappe.db.set_single_value("AI Settings", "embedding_dimension", 4)
 		frappe.db.set_single_value("AI Settings", "chunk_size", 200)
 		frappe.db.set_single_value("AI Settings", "chunk_overlap", 20)
 		frappe.clear_document_cache("AI Settings", "AI Settings")
 
 	def tearDown(self):
-		store.drop_table()
+		index.chunks.drop()
 		frappe.db.rollback()
 
 	@staticmethod
@@ -96,14 +96,14 @@ class TestFindExistingCompleted(IntegrationTestCase):
 	"""`find_existing_completed` resolves candidates' File rows in batches."""
 
 	def setUp(self):
-		store.drop_table()
+		index.chunks.drop()
 		frappe.db.set_single_value("AI Settings", "embedding_dimension", 4)
 		frappe.db.set_single_value("AI Settings", "chunk_size", 200)
 		frappe.db.set_single_value("AI Settings", "chunk_overlap", 20)
 		frappe.clear_document_cache("AI Settings", "AI Settings")
 
 	def tearDown(self):
-		store.drop_table()
+		index.chunks.drop()
 		frappe.db.rollback()
 
 	@staticmethod

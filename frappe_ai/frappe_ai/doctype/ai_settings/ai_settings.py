@@ -19,15 +19,34 @@ class AISettings(Document):
 		chunk_overlap: DF.Int
 		chunk_size: DF.Int
 		embedding_dimension: DF.Int
-		lancedb_path: DF.Data | None
 		request_timeout: DF.Int
 		search_type: DF.Literal["Hybrid", "Vector"]
 		service_status: DF.Data | None
 		stream_timeout: DF.Int
+		vector_backend: DF.Data | None
 	# end: auto-generated types
 
 	def validate(self):
 		self._validate_chunking()
+		self._validate_vector_backend()
+
+	def _validate_vector_backend(self):
+		"""Accept Auto or a backend that is built in or registered by an installed app."""
+		from frappe_ai.vector.registry import available_backends
+
+		choice = (self.vector_backend or "Auto").strip()
+		self.vector_backend = choice
+		if choice.lower() == "auto":
+			return
+		if choice.lower() not in available_backends():
+			frappe.throw(
+				_("Unknown vector backend {0}. Use Auto or one of: {1}.").format(
+					choice, ", ".join(available_backends())
+				),
+				title=_("Invalid Vector Backend"),
+			)
+		if choice.lower() == "pgvector" and frappe.db.db_type != "postgres":
+			frappe.throw(_("The pgvector backend needs a Postgres site database."), title=_("Invalid Vector Backend"))
 
 	def _validate_chunking(self):
 		if cint(self.chunk_size) < 1:

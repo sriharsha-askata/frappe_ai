@@ -120,6 +120,12 @@ class LanceDBBackend(VectorBackend):
 			dimension=meta["dimension"], identity=meta["identity"], count=table.count_rows()
 		)
 
+	def list_ids(self, collection):
+		table = self._open(collection)
+		if table is None:
+			return set()
+		return set(table.to_arrow().column("id").to_pylist())
+
 	def drop(self, collection):
 		db = self._db()
 		if check_identifier(collection) in self._names(db):

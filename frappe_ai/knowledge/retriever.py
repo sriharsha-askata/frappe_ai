@@ -29,14 +29,14 @@ def retrieve_attachments(query: str, *, session: str, limit: int = DEFAULT_LIMIT
 	if not query or not session:
 		return []
 
-	from frappe_ai.knowledge import attachment_store
+	from frappe_ai.knowledge import index
 	from frappe_ai.knowledge.embedder import embed_texts
 
 	search_type = frappe.get_cached_value("AI Settings", "AI Settings", "search_type")
 	text = query if search_type != "Vector" else None
 
 	(vector,) = embed_texts([query])
-	return attachment_store.search(vector, session=session, text=text, limit=limit)
+	return index.attachments.search(vector, session=session, text=text, limit=limit)
 
 
 def retrieve(query: str, *, kbs: list[str], limit: int = DEFAULT_LIMIT) -> list[dict[str, Any]]:
@@ -57,14 +57,14 @@ def retrieve(query: str, *, kbs: list[str], limit: int = DEFAULT_LIMIT) -> list[
 	if not kbs:
 		return []
 
-	from frappe_ai.knowledge import store
+	from frappe_ai.knowledge import index
 	from frappe_ai.knowledge.embedder import embed_texts
 
 	search_type = frappe.get_cached_value("AI Settings", "AI Settings", "search_type")
 	text = query if search_type != "Vector" else None
 
 	(vector,) = embed_texts([query])
-	hits = store.search(vector, text=text, kbs=kbs, limit=limit)
+	hits = index.chunks.search(vector, text=text, kbs=kbs, limit=limit)
 	if not hits:
 		return []
 

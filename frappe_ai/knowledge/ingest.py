@@ -1,7 +1,7 @@
 # Copyright (c) 2026, Frappe Technologies and contributors
 # License: MIT. See LICENSE
 
-"""Ingest knowledge sources into MariaDB chunks and a derived LanceDB index.
+"""Ingest knowledge sources into database chunks and a derived search index.
 
 Text, File, and URL sources rebuild each run. DocType sources use a modification
 watermark and content hashes; deletions and filter exits remove stale chunks."""
@@ -48,7 +48,7 @@ def enqueue_reconciliation(source: str) -> None:
 
 
 def ingest_source(source: str, rebuild: bool = False) -> None:
-	"""Worker: bring a source's chunks in both stores up to date.
+	"""Worker: bring a source's chunks in the database and the index up to date.
 
 	rebuild forces a full re-chunk of a DocType source (purge + reset watermark) so
 	new chunk settings apply to rows whose content is otherwise unchanged. Single-doc
@@ -126,10 +126,10 @@ def ingest_source(source: str, rebuild: bool = False) -> None:
 
 
 def purge_source(source: str) -> None:
-	"""Remove a source's chunks from both stores. Safe to call repeatedly."""
-	from frappe_ai.knowledge import store
+	"""Remove a source's chunks from the database and the index. Safe to call repeatedly."""
+	from frappe_ai.knowledge import index
 
-	store.delete(source=source)
+	index.chunks.delete(source=source)
 	frappe.db.delete(CHUNK_DOCTYPE, {"source": source})
 
 
@@ -138,7 +138,7 @@ def purge_source(source: str) -> None:
 
 def _rebuild_single(doc, settings) -> None:
 	"""Re-extract, chunk, embed, and replace all chunks for a single-doc source."""
-	from frappe_ai.knowledge import store
+	from frappe_ai.knowledge import index
 	from frappe_ai.knowledge.chunker import chunk_text
 	from frappe_ai.knowledge.embedder import embed_texts
 	from frappe_ai.knowledge.extract import extract
@@ -153,7 +153,7 @@ def _rebuild_single(doc, settings) -> None:
 		return
 
 	vectors = embed_texts(pieces)
-	store.ensure_table_for_dimension(len(vectors[0]))
+	index.chunks.ensure(len(vectors[0]))
 	purge_source(doc.name)
 
 	rows = []
@@ -177,7 +177,7 @@ def _rebuild_single(doc, settings) -> None:
 			}
 		)
 
-	store.add(rows)
+	index.chunks.add(rows)
 
 
 # --- DocType sources (incremental) -------------------------------------------
@@ -252,14 +252,14 @@ def _upsert_page(doc, settings, meta, fields, page, matched_refs, *, track_exits
 
 
 def _embed_and_insert(doc, settings, to_embed, stale) -> None:
-	from frappe_ai.knowledge import store
+	from frappe_ai.knowledge import index
 	from frappe_ai.knowledge.embedder import embed_texts
 
 	all_pieces = []
 	for _, _, pieces in to_embed:
 		all_pieces.extend(pieces)
 	vectors = embed_texts(all_pieces)
-	store.ensure_table_for_dimension(len(vectors[0]))
+	index.chunks.ensure(len(vectors[0]))
 	if stale:
 		_purge_refs(doc.name, stale)
 
@@ -291,7 +291,7 @@ def _embed_and_insert(doc, settings, to_embed, stale) -> None:
 				}
 			)
 
-	store.add(rows)
+	index.chunks.add(rows)
 
 
 def _remove_stale(doc, ref, watermark, matched_refs) -> None:
@@ -324,13 +324,13 @@ def _existing_chunk_state(source, reference_name) -> dict:
 
 
 def _purge_refs(source, reference_names) -> None:
-	from frappe_ai.knowledge import store
+	from frappe_ai.knowledge import index
 
 	for start in range(0, len(reference_names), BATCH):
 		criterion = {"source": source, "reference_name": ["in", reference_names[start : start + BATCH]]}
 		ids = [int(name) for name in frappe.get_all(CHUNK_DOCTYPE, filters=criterion, pluck="name")]
 		if ids:
-			store.delete(ids=ids)
+			index.chunks.delete(ids=ids)
 			frappe.db.delete(CHUNK_DOCTYPE, criterion)
 
 

@@ -83,6 +83,9 @@ class VectorBackend(ABC):
 	name: str = ""
 	#: True when `search(text=...)` ranks by keywords (BM25 or similar).
 	supports_keyword_search: bool = True
+	#: True when creating or dropping a collection takes part in the caller's database
+	#: transaction, so the caller should commit right after it.
+	transactional_ddl: bool = False
 
 	@abstractmethod
 	def ensure_collection(
@@ -129,6 +132,11 @@ class VectorBackend(ABC):
 		Both: reciprocal-rank fusion of the two. A missing or empty collection returns [].
 		A backend without keyword search ignores `text` when `vector` is given and raises
 		`BackendUnavailable` when only `text` is given."""
+
+	@abstractmethod
+	def list_ids(self, collection: str) -> set[str]:
+		"""Return every id in the collection (empty for a missing one). Used to reconcile the
+		index against the authoritative database."""
 
 	@abstractmethod
 	def drop(self, collection: str) -> None:

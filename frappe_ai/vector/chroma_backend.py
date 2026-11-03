@@ -121,6 +121,10 @@ class ChromaBackend(VectorBackend):
 		meta = self._meta(col)
 		return CollectionInfo(dimension=meta["dimension"], identity=meta["identity"], count=col.count())
 
+	def list_ids(self, collection):
+		col = self._get(collection)
+		return set(col.get(include=[])["ids"]) if col is not None else set()
+
 	def drop(self, collection):
 		if self._get(collection) is not None:
 			self._chroma().delete_collection(self._name(collection))

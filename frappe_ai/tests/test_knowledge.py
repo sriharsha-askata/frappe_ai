@@ -1,7 +1,7 @@
 # Copyright (c) 2026, Frappe Technologies and contributors
 # License: MIT. See LICENSE
 
-"""Knowledge retrieval, fixed Ollama embeddings, and LanceDB integration tests."""
+"""Knowledge retrieval, fixed Ollama embeddings, and search-index integration tests."""
 
 import json
 import os
@@ -11,7 +11,7 @@ from unittest.mock import patch
 import frappe
 from frappe.tests import IntegrationTestCase
 
-from frappe_ai.knowledge import Knowledge, attachment_store, store
+from frappe_ai.knowledge import Knowledge, index
 from frappe_ai.knowledge.chunker import chunk_text
 from frappe_ai.knowledge.embedder import embed_texts, probe_dimension
 from frappe_ai.knowledge.extract import (
@@ -32,7 +32,7 @@ from frappe_ai.knowledge.ingest import (
 	reconcile_source,
 	sync_due_sources,
 )
-from frappe_ai.knowledge.migration import migrate_legacy_embedding_configuration, rebuild_knowledge_index
+from frappe_ai.knowledge.reindex import rebuild_knowledge_index
 from frappe_ai.knowledge.retriever import _permitted, retrieve, retrieve_attachments
 
 DIM = 4
@@ -105,79 +105,78 @@ def _rows():
 
 class TestKnowledgeStore(IntegrationTestCase):
 	def setUp(self):
-		store.drop_table()
+		index.chunks.drop()
 
 	def tearDown(self):
-		store.drop_table()
+		index.chunks.drop()
 
 	def _seed(self):
-		store.ensure_table_for_dimension(DIM)
-		store.add(_rows())
+		index.chunks.ensure(DIM)
+		index.chunks.add(_rows())
 
 	def test_ensure_table_is_idempotent(self):
-		store.ensure_table_for_dimension(DIM)
-		store.ensure_table_for_dimension(DIM)
-		self.assertTrue(store.table_exists())
-		self.assertEqual(store.table_dimension(), DIM)
+		index.chunks.ensure(DIM)
+		index.chunks.ensure(DIM)
+		self.assertTrue(index.chunks.exists())
+		self.assertEqual(index.chunks.dimension(), DIM)
 
 	def test_index_stores_fixed_embedding_metadata(self):
-		store.ensure_table_for_dimension(DIM)
+		index.chunks.ensure(DIM)
 
 		self.assertEqual(
-			store.index_metadata(),
+			index.chunks.metadata(),
 			{"provider": "ollama", "model": "nomic-embed-text", "dimension": DIM},
 		)
 
 	def test_ensure_table_rejects_dimension_change(self):
-		store.ensure_table_for_dimension(DIM)
+		index.chunks.ensure(DIM)
 		with self.assertRaisesRegex(frappe.ValidationError, "Rebuild"):
-			store.ensure_table_for_dimension(DIM + 1)
+			index.chunks.ensure(DIM + 1)
 
 	def test_ensure_table_rejects_embedding_metadata_change(self):
-		store.ensure_table_for_dimension(DIM)
-		with patch.object(
-			store,
-			"index_metadata_for_table",
+		index.chunks.ensure(DIM)
+		with patch(
+			"frappe_ai.knowledge.index.embedding_identity",
 			return_value={"provider": "openai", "model": "old-model", "dimension": DIM},
 		):
 			with self.assertRaisesRegex(frappe.ValidationError, "Rebuild"):
-				store.ensure_table_for_dimension(DIM)
+				index.chunks.ensure(DIM)
 
 	def test_search_rejects_query_dimension_change(self):
 		self._seed()
 		with self.assertRaisesRegex(frappe.ValidationError, "dimension"):
-			store.search([1.0] * (DIM + 1))
+			index.chunks.search([1.0] * (DIM + 1))
 
 	def test_ensure_table_rejects_invalid_dimension(self):
 		with self.assertRaises(ValueError):
-			store.ensure_table_for_dimension(0)
+			index.chunks.ensure(0)
 
 	def test_search_before_table_exists_returns_empty(self):
-		self.assertEqual(store.search([1.0, 0.0, 0.0, 0.0]), [])
+		self.assertEqual(index.chunks.search([1.0, 0.0, 0.0, 0.0]), [])
 
 	def test_search_on_empty_table_returns_empty(self):
-		store.ensure_table_for_dimension(DIM)
-		self.assertEqual(store.search([1.0, 0.0, 0.0, 0.0]), [])
+		index.chunks.ensure(DIM)
+		self.assertEqual(index.chunks.search([1.0, 0.0, 0.0, 0.0]), [])
 
 	def test_vector_search_ranks_by_similarity(self):
 		self._seed()
-		hits = store.search([1.0, 0.0, 0.0, 0.0], limit=2)
+		hits = index.chunks.search([1.0, 0.0, 0.0, 0.0], limit=2)
 		self.assertEqual([h["id"] for h in hits], [1, 3])
 		self.assertGreater(hits[0]["score"], hits[1]["score"])
 
 	def test_search_scopes_to_knowledge_bases(self):
 		self._seed()
-		hits = store.search([1.0, 0.0, 0.0, 0.0], kbs=["Onboarding"], limit=5)
+		hits = index.chunks.search([1.0, 0.0, 0.0, 0.0], kbs=["Onboarding"], limit=5)
 		self.assertEqual([h["kb"] for h in hits], ["Onboarding"])
 
 	def test_hybrid_search_surfaces_keyword_match(self):
 		self._seed()
-		hits = store.search([0.0, 0.0, 1.0, 0.0], text="printer", limit=3)
+		hits = index.chunks.search([0.0, 0.0, 1.0, 0.0], text="printer", limit=3)
 		self.assertIn(2, [h["id"] for h in hits])
 
 	def test_hybrid_search_finds_rows_added_after_index_creation(self):
 		self._seed()
-		store.add(
+		index.chunks.add(
 			[
 				{
 					"id": 4,
@@ -188,39 +187,39 @@ class TestKnowledgeStore(IntegrationTestCase):
 				}
 			]
 		)
-		hits = store.search([0.0, 0.0, 1.0, 0.0], text="vpn", limit=3)
+		hits = index.chunks.search([0.0, 0.0, 1.0, 0.0], text="vpn", limit=3)
 		self.assertEqual(hits[0]["id"], 4)
 
 	def test_delete_by_source(self):
 		self._seed()
-		store.delete(source="SRC-a")
-		hits = store.search([1.0, 0.0, 0.0, 0.0], limit=5)
+		index.chunks.delete(source="SRC-a")
+		hits = index.chunks.search([1.0, 0.0, 0.0, 0.0], limit=5)
 		self.assertEqual([h["id"] for h in hits], [3])
 
 	def test_delete_by_ids(self):
 		self._seed()
-		store.delete(ids=[1, 3])
-		hits = store.search([1.0, 0.0, 0.0, 0.0], limit=5)
+		index.chunks.delete(ids=[1, 3])
+		hits = index.chunks.search([1.0, 0.0, 0.0, 0.0], limit=5)
 		self.assertEqual([h["id"] for h in hits], [2])
 
 	def test_delete_with_empty_ids_is_noop(self):
 		self._seed()
-		store.delete(ids=[])
-		self.assertEqual(len(store.search([1.0, 0.0, 0.0, 0.0], limit=5)), 3)
+		index.chunks.delete(ids=[])
+		self.assertEqual(len(index.chunks.search([1.0, 0.0, 0.0, 0.0], limit=5)), 3)
 
 	def test_delete_requires_a_criterion(self):
 		with self.assertRaises(ValueError):
-			store.delete()
+			index.chunks.delete()
 
 	def test_filter_values_with_quotes_are_escaped(self):
 		self._seed()
-		hits = store.search([1.0, 0.0, 0.0, 0.0], kbs=["x'; DROP TABLE chunks; --"], limit=5)
+		hits = index.chunks.search([1.0, 0.0, 0.0, 0.0], kbs=["x'; DROP TABLE chunks; --"], limit=5)
 		self.assertEqual(hits, [])
-		self.assertTrue(store.table_exists())
+		self.assertTrue(index.chunks.exists())
 
 	def test_add_requires_table(self):
 		with self.assertRaisesRegex(frappe.ValidationError, "not initialized"):
-			store.add(_rows())
+			index.chunks.add(_rows())
 
 
 def _fake_vectors(count, vector=None):
@@ -345,6 +344,21 @@ class TestKnowledgeSettings(IntegrationTestCase):
 		settings = self._save_settings(embedding_dimension=768)
 		self.assertEqual(settings.embedding_dimension, 768)
 
+	def test_vector_backend_defaults_to_auto(self):
+		self.assertEqual((frappe.get_doc("AI Settings").vector_backend or "Auto").lower(), "auto")
+
+	def test_vector_backend_accepts_a_built_in_backend(self):
+		self.assertEqual(self._save_settings(vector_backend="lancedb").vector_backend, "lancedb")
+
+	def test_unknown_vector_backend_is_rejected(self):
+		with self.assertRaisesRegex(frappe.ValidationError, "Unknown vector backend"):
+			self._save_settings(vector_backend="nonsense")
+
+	def test_pgvector_needs_a_postgres_database(self):
+		with patch.object(frappe.db, "db_type", "mariadb"):
+			with self.assertRaisesRegex(frappe.ValidationError, "Postgres"):
+				self._save_settings(vector_backend="pgvector")
+
 	def test_chunk_overlap_must_be_smaller_than_chunk_size(self):
 		with self.assertRaisesRegex(frappe.ValidationError, "Chunk Overlap"):
 			self._save_settings(chunk_size=100, chunk_overlap=100)
@@ -354,45 +368,49 @@ class TestKnowledgeSettings(IntegrationTestCase):
 			self._save_settings(chunk_size=0)
 
 
-class TestEmbeddingMigration(IntegrationTestCase):
+class TestIndexRebuild(IntegrationTestCase):
 	def tearDown(self):
 		frappe.db.rollback()
 
-	def test_legacy_config_is_reported_and_dimension_reset(self):
-		with (
-			patch("frappe_ai.knowledge.migration._read_legacy_embedding_model", return_value="Old Embeddings"),
-			patch("frappe_ai.knowledge.migration._reset_persisted_dimension") as reset,
-		):
-			report = migrate_legacy_embedding_configuration()
-
-		self.assertEqual(report, {"status": "legacy_configuration_found", "legacy_model": "Old Embeddings"})
-		reset.assert_called_once_with()
-
-	def test_rebuild_preserves_mariadb_chunk_ids_and_counts(self):
+	def test_rebuild_preserves_chunk_ids_and_counts(self):
 		rows = [SimpleNamespace(name="42", knowledge_base="KB", source="SRC", content="content")]
-		table = SimpleNamespace(count_rows=lambda: 1)
+		identity = {"provider": "ollama", "model": "nomic-embed-text", "dimension": DIM}
 		with (
-			patch("frappe_ai.knowledge.migration._reset_persisted_dimension"),
-			patch("frappe_ai.knowledge.migration._clear_legacy_embedding_model"),
+			patch("frappe_ai.knowledge.reindex._reset_persisted_dimension"),
 			patch("frappe_ai.knowledge.embedder.probe_dimension", return_value=DIM),
 			patch("frappe_ai.knowledge.embedder.embed_texts", return_value=[[0.1, 0.2, 0.3, 0.4]]) as embed,
-			patch("frappe_ai.knowledge.migration.frappe.get_all", return_value=rows),
-			patch("frappe_ai.knowledge.migration.frappe.db.count", return_value=1),
-			patch("frappe_ai.knowledge.store.drop_table"),
-			patch("frappe_ai.knowledge.store.ensure_table_for_dimension") as ensure,
-			patch("frappe_ai.knowledge.store.add") as add,
-			patch("frappe_ai.knowledge.store._open_table", return_value=table),
-			patch(
-				"frappe_ai.knowledge.store.index_metadata",
-				return_value={"provider": "ollama", "model": "nomic-embed-text", "dimension": DIM},
-		)):
+			patch("frappe_ai.knowledge.reindex.frappe.get_all", return_value=rows),
+			patch.object(index.chunks, "drop"),
+			patch.object(index.attachments, "drop") as drop_attachments,
+			patch.object(index.chunks, "ensure") as ensure,
+			patch.object(index.chunks, "add") as add,
+			patch.object(index.chunks, "count", return_value=1),
+			patch.object(index.chunks, "metadata", return_value=identity),
+		):
 			report = rebuild_knowledge_index()
 
 		self.assertEqual(report["status"], "completed")
 		self.assertEqual(report["chunks"], 1)
 		ensure.assert_called_once_with(DIM)
+		drop_attachments.assert_called_once_with()
 		embed.assert_called_once_with(["content"])
 		self.assertEqual(add.call_args.args[0][0]["id"], 42)
+
+	def test_rebuild_fails_when_the_index_is_incomplete(self):
+		rows = [SimpleNamespace(name="1", knowledge_base="KB", source="SRC", content="content")]
+		with (
+			patch("frappe_ai.knowledge.reindex._reset_persisted_dimension"),
+			patch("frappe_ai.knowledge.embedder.probe_dimension", return_value=DIM),
+			patch("frappe_ai.knowledge.embedder.embed_texts", return_value=[[0.1, 0.2, 0.3, 0.4]]),
+			patch("frappe_ai.knowledge.reindex.frappe.get_all", return_value=rows),
+			patch.object(index.chunks, "drop"),
+			patch.object(index.attachments, "drop"),
+			patch.object(index.chunks, "ensure"),
+			patch.object(index.chunks, "add"),
+			patch.object(index.chunks, "count", return_value=0),
+		):
+			with self.assertRaisesRegex(frappe.ValidationError, "indexed 0 chunks"):
+				rebuild_knowledge_index()
 
 
 class TestChunker(IntegrationTestCase):
@@ -733,7 +751,7 @@ class TestExtract(IntegrationTestCase):
 
 class TestIngest(IntegrationTestCase):
 	def setUp(self):
-		store.drop_table()
+		index.chunks.drop()
 		self.model = _make_model()
 		_set_settings(
 			embedding_dimension=DIM,
@@ -743,7 +761,7 @@ class TestIngest(IntegrationTestCase):
 		self.kb = frappe.get_doc({"doctype": "AI Knowledge Base", "title": "Ingest KB"}).insert()
 
 	def tearDown(self):
-		store.drop_table()
+		index.chunks.drop()
 		frappe.db.rollback()
 
 	def _make_source(self, **values):
@@ -773,10 +791,10 @@ class TestIngest(IntegrationTestCase):
 			order_by="chunk_index asc",
 		)
 
-	def _lance_count(self):
-		return store._open_table().count_rows() if store.table_exists() else 0
+	def _index_count(self):
+		return index.chunks.count()
 
-	def test_text_source_ingests_to_both_stores(self):
+	def test_text_source_ingests_to_database_and_index(self):
 		source = self._make_source(content="Wifi keeps dropping on the office network every afternoon. " * 4)
 		self._ingest(source.name)
 
@@ -789,10 +807,8 @@ class TestIngest(IntegrationTestCase):
 		self.assertEqual([c["chunk_index"] for c in chunks], list(range(len(chunks))))
 		self.assertTrue(all(c["knowledge_base"] == self.kb.name for c in chunks))
 
-		table = store._open_table()
-		self.assertEqual(table.count_rows(), len(chunks))
-		lance_ids = set(table.to_arrow().column("id").to_pylist())
-		self.assertEqual(lance_ids, {int(c["name"]) for c in chunks})
+		self.assertEqual(index.chunks.count(), len(chunks))
+		self.assertEqual(index.chunks.ids(), {int(c["name"]) for c in chunks})
 
 	def test_ingest_initializes_dimension_from_embedding_response(self):
 		_set_settings(embedding_dimension=0)
@@ -800,31 +816,31 @@ class TestIngest(IntegrationTestCase):
 		self._ingest(source.name)
 
 		self.assertEqual(frappe.db.get_single_value("AI Settings", "embedding_dimension"), DIM)
-		self.assertEqual(store.index_metadata()["dimension"], DIM)
+		self.assertEqual(index.chunks.metadata()["dimension"], DIM)
 
 	def test_resync_is_idempotent(self):
 		source = self._make_source(content="Reset your password from the account settings page. " * 4)
 		self._ingest(source.name)
 		first = self._chunks(source.name)
-		first_lance = self._lance_count()
+		first_index = self._index_count()
 
 		self._ingest(source.name)
 		second = self._chunks(source.name)
 
 		self.assertEqual(len(first), len(second))
-		self.assertEqual(self._lance_count(), first_lance)
-		self.assertEqual(self._lance_count(), len(second))
+		self.assertEqual(self._index_count(), first_index)
+		self.assertEqual(self._index_count(), len(second))
 		self.assertEqual(len({c["name"] for c in second}), len(second))
 
 	def test_trash_cleans_both_stores(self):
 		source = self._make_source(content="VPN setup guide for remote employees. " * 4)
 		self._ingest(source.name)
-		self.assertGreater(self._lance_count(), 0)
+		self.assertGreater(self._index_count(), 0)
 
 		source.delete()
 
 		self.assertEqual(frappe.db.count("AI Knowledge Chunk", {"source": source.name}), 0)
-		self.assertEqual(self._lance_count(), 0)
+		self.assertEqual(self._index_count(), 0)
 
 	def test_empty_source_fails_with_zero_chunks(self):
 		source = self._make_source(content="   ")
@@ -883,7 +899,7 @@ class TestIngest(IntegrationTestCase):
 		source = self._make_source(content="content that is already indexed")
 		self._ingest(source.name)
 		before_chunks = self._chunks(source.name)
-		before_lance_count = self._lance_count()
+		before_index_count = self._index_count()
 		source.reload()
 		self.assertEqual(source.is_embedded, 1)
 
@@ -896,7 +912,7 @@ class TestIngest(IntegrationTestCase):
 			ingest_source(source.name)
 
 		self.assertEqual(self._chunks(source.name), before_chunks)
-		self.assertEqual(self._lance_count(), before_lance_count)
+		self.assertEqual(self._index_count(), before_index_count)
 		source.reload()
 		self.assertEqual(source.is_embedded, 0)
 
@@ -947,7 +963,7 @@ class TestIngest(IntegrationTestCase):
 
 class TestDoctypeSync(IntegrationTestCase):
 	def setUp(self):
-		store.drop_table()
+		index.chunks.drop()
 		self.model = _make_model()
 		_set_settings(
 			embedding_dimension=DIM,
@@ -957,7 +973,7 @@ class TestDoctypeSync(IntegrationTestCase):
 		self.kb = frappe.get_doc({"doctype": "AI Knowledge Base", "title": "Sync KB"}).insert()
 
 	def tearDown(self):
-		store.drop_table()
+		index.chunks.drop()
 		frappe.db.rollback()
 
 	def _todo(self, description, **values):
@@ -998,10 +1014,8 @@ class TestDoctypeSync(IntegrationTestCase):
 			order_by="name asc",
 		)
 
-	def _lance_ids(self):
-		if not store.table_exists():
-			return set()
-		return set(store._open_table().to_arrow().column("id").to_pylist())
+	def _index_ids(self):
+		return index.chunks.ids() if index.chunks.exists() else set()
 
 	def test_backfill_indexes_filtered_rows(self):
 		self._todo("SYNCTEST wifi keeps dropping on the office network")
@@ -1016,7 +1030,7 @@ class TestDoctypeSync(IntegrationTestCase):
 		chunks = self._chunks(src.name)
 		self.assertEqual(len({c["reference_name"] for c in chunks}), 2)
 		self.assertTrue(all(c["content_hash"] for c in chunks))
-		self.assertEqual(self._lance_ids(), {int(c["name"]) for c in chunks})
+		self.assertEqual(self._index_ids(), {int(c["name"]) for c in chunks})
 
 	def test_insert_adds_only_new_row(self):
 		self._todo("SYNCTEST first ticket about printers")
@@ -1030,7 +1044,7 @@ class TestDoctypeSync(IntegrationTestCase):
 		chunks = self._chunks(src.name)
 		self.assertEqual(len({c["reference_name"] for c in chunks}), 2)
 		self.assertTrue(before.issubset({c["name"] for c in chunks}))
-		self.assertEqual(self._lance_ids(), {int(c["name"]) for c in chunks})
+		self.assertEqual(self._index_ids(), {int(c["name"]) for c in chunks})
 
 	def test_update_content_replaces_chunks(self):
 		todo = self._todo("SYNCTEST wifi keeps dropping")
@@ -1051,7 +1065,7 @@ class TestDoctypeSync(IntegrationTestCase):
 		after = self._chunks(src.name, todo.name)
 		self.assertNotEqual(after[0]["content_hash"], before[0]["content_hash"])
 		self.assertTrue(old_names.isdisjoint({c["name"] for c in after}))
-		self.assertEqual(self._lance_ids(), {int(c["name"]) for c in after})
+		self.assertEqual(self._index_ids(), {int(c["name"]) for c in after})
 
 	def test_noncontent_change_is_skipped(self):
 		todo = self._todo("SYNCTEST vpn issue", priority="Low")
@@ -1076,7 +1090,7 @@ class TestDoctypeSync(IntegrationTestCase):
 		mock = self._sync(src.name)
 
 		self.assertEqual(self._chunks(src.name, todo.name), [])
-		self.assertEqual(self._lance_ids(), set())
+		self.assertEqual(self._index_ids(), set())
 		self.assertEqual(mock.call_count, 0)
 
 	def test_delete_removes_chunks(self):
@@ -1090,7 +1104,7 @@ class TestDoctypeSync(IntegrationTestCase):
 		self._sync(src.name)
 
 		self.assertEqual({c["reference_name"] for c in self._chunks(src.name)}, {keep.name})
-		self.assertEqual(self._lance_ids(), {int(c["name"]) for c in self._chunks(src.name)})
+		self.assertEqual(self._index_ids(), {int(c["name"]) for c in self._chunks(src.name)})
 
 	def test_reconcile_purges_chunks_for_tombstoneless_deletes(self):
 		keep = self._todo("SYNCTEST keep this one")
@@ -1106,7 +1120,7 @@ class TestDoctypeSync(IntegrationTestCase):
 		reconcile_source(src.name)
 
 		self.assertEqual({c["reference_name"] for c in self._chunks(src.name)}, {keep.name})
-		self.assertEqual(self._lance_ids(), {int(c["name"]) for c in self._chunks(src.name)})
+		self.assertEqual(self._index_ids(), {int(c["name"]) for c in self._chunks(src.name)})
 		src.reload()
 		self.assertEqual(src.chunk_count, len(self._chunks(src.name)))
 		self.assertEqual(src.is_embedded, 1)
@@ -1138,7 +1152,7 @@ class TestDoctypeSync(IntegrationTestCase):
 
 class TestRetriever(IntegrationTestCase):
 	def setUp(self):
-		store.drop_table()
+		index.chunks.drop()
 		self.model = _make_model()
 		_set_settings(
 			embedding_dimension=DIM,
@@ -1148,7 +1162,7 @@ class TestRetriever(IntegrationTestCase):
 		self.kb = frappe.get_doc({"doctype": "AI Knowledge Base", "title": "Retrieve KB"}).insert()
 
 	def tearDown(self):
-		store.drop_table()
+		index.chunks.drop()
 		frappe.db.rollback()
 
 	def _fake_embed(self, texts, config, *, timeout):
@@ -1219,14 +1233,14 @@ class TestRetriever(IntegrationTestCase):
 	def test_retrieve_vector_mode_omits_text(self):
 		self._text_source(self.kb.name, "laptop setup guide. " * 4)
 		frappe.db.set_single_value("AI Settings", "search_type", "Vector")
-		with patch("frappe_ai.knowledge.store.search", return_value=[]) as mock:
+		with patch.object(index.chunks, "search", return_value=[]) as mock:
 			self._retrieve("laptop", kbs=[self.kb.name])
 		self.assertIsNone(mock.call_args.kwargs["text"])
 
 	def test_retrieve_hybrid_mode_passes_text(self):
 		self._text_source(self.kb.name, "laptop setup guide. " * 4)
 		frappe.db.set_single_value("AI Settings", "search_type", "Hybrid")
-		with patch("frappe_ai.knowledge.store.search", return_value=[]) as mock:
+		with patch.object(index.chunks, "search", return_value=[]) as mock:
 			self._retrieve("laptop", kbs=[self.kb.name])
 		self.assertEqual(mock.call_args.kwargs["text"], "laptop")
 
@@ -1306,7 +1320,7 @@ class TestRetrieverSourceDocumentPermissions(IntegrationTestCase):
 
 class TestKnowledgeBuilder(IntegrationTestCase):
 	def setUp(self):
-		store.drop_table()
+		index.chunks.drop()
 		self.model = _make_model()
 		_set_settings(
 			embedding_dimension=DIM,
@@ -1315,7 +1329,7 @@ class TestKnowledgeBuilder(IntegrationTestCase):
 		)
 
 	def tearDown(self):
-		store.drop_table()
+		index.chunks.drop()
 		frappe.db.rollback()
 
 	def _fake_embed(self, texts, config, *, timeout):
@@ -1455,111 +1469,111 @@ class TestAgentKnowledge(IntegrationTestCase):
 
 class TestAttachmentStore(IntegrationTestCase):
 	def setUp(self):
-		attachment_store.drop_table()
+		index.attachments.drop()
 
 	def tearDown(self):
-		attachment_store.drop_table()
+		index.attachments.drop()
 
 	def _seed(self):
-		attachment_store.ensure_table(DIM)
-		attachment_store.add(
+		index.attachments.ensure(DIM)
+		index.attachments.add(
 			"SES-a",
 			"ATT-1",
 			["wifi not connecting on macbook", "printer not detected on windows"],
 			[[1.0, 0.0, 0.0, 0.0], [0.0, 1.0, 0.0, 0.0]],
 		)
-		attachment_store.add("SES-b", "ATT-2", ["how to set up your laptop"], [[0.9, 0.1, 0.0, 0.0]])
+		index.attachments.add("SES-b", "ATT-2", ["how to set up your laptop"], [[0.9, 0.1, 0.0, 0.0]])
 
 	def test_ensure_table_idempotent(self):
-		attachment_store.ensure_table(DIM)
-		attachment_store.ensure_table(DIM)
-		self.assertTrue(attachment_store._table_exists())
+		index.attachments.ensure(DIM)
+		index.attachments.ensure(DIM)
+		self.assertTrue(index.attachments.exists())
 
 	def test_index_stores_fixed_embedding_metadata(self):
-		attachment_store.ensure_table(DIM)
+		index.attachments.ensure(DIM)
 
 		self.assertEqual(
-			attachment_store.index_metadata(),
+			index.attachments.metadata(),
 			{"provider": "ollama", "model": "nomic-embed-text", "dimension": DIM},
 		)
 
 	def test_ensure_table_recreates_on_dimension_change(self):
 		self._seed()
-		attachment_store.ensure_table(DIM + 1)  # different width -> dropped and recreated
-		self.assertEqual(attachment_store._open_table().count_rows(), 0)
+		index.attachments.ensure(DIM + 1)  # different width -> dropped and recreated
+		self.assertEqual(index.attachments.count(), 0)
 
 	def test_ensure_table_rejects_invalid_dimension(self):
 		with self.assertRaises(ValueError):
-			attachment_store.ensure_table(0)
+			index.attachments.ensure(0)
 
 	def test_add_length_mismatch_raises(self):
-		attachment_store.ensure_table(DIM)
+		index.attachments.ensure(DIM)
 		with self.assertRaises(ValueError):
-			attachment_store.add("SES-a", "ATT-1", ["one", "two"], [[1.0, 0.0, 0.0, 0.0]])
+			index.attachments.add("SES-a", "ATT-1", ["one", "two"], [[1.0, 0.0, 0.0, 0.0]])
 
 	def test_search_before_table_returns_empty(self):
-		self.assertEqual(attachment_store.search([1.0, 0.0, 0.0, 0.0], session="SES-a"), [])
+		self.assertEqual(index.attachments.search([1.0, 0.0, 0.0, 0.0], session="SES-a"), [])
 
 	def test_search_requires_session(self):
 		self._seed()
 		with self.assertRaises(ValueError):
-			attachment_store.search([1.0, 0.0, 0.0, 0.0], session="")
+			index.attachments.search([1.0, 0.0, 0.0, 0.0], session="")
 
 	def test_vector_search_scopes_to_session(self):
 		self._seed()
-		hits = attachment_store.search([1.0, 0.0, 0.0, 0.0], session="SES-a", limit=5)
+		hits = index.attachments.search([1.0, 0.0, 0.0, 0.0], session="SES-a", limit=5)
 		self.assertTrue(hits)
 		self.assertTrue(all("laptop" not in h["content"] for h in hits))  # SES-b not leaked
 
 	def test_search_excludes_other_sessions(self):
 		self._seed()
-		hits = attachment_store.search([0.9, 0.1, 0.0, 0.0], session="SES-b", limit=5)
+		hits = index.attachments.search([0.9, 0.1, 0.0, 0.0], session="SES-b", limit=5)
 		self.assertEqual([h["content"] for h in hits], ["how to set up your laptop"])
 
 	def test_hybrid_search_surfaces_keyword(self):
 		self._seed()
-		hits = attachment_store.search([1.0, 0.0, 0.0, 0.0], session="SES-a", text="printer", limit=2)
+		hits = index.attachments.search([1.0, 0.0, 0.0, 0.0], session="SES-a", text="printer", limit=2)
 		self.assertTrue(any("printer" in h["content"] for h in hits))
 
 	def test_delete_by_attachment(self):
 		self._seed()
-		attachment_store.delete(session="SES-a", attachment="ATT-1")
-		self.assertEqual(attachment_store.search([1.0, 0.0, 0.0, 0.0], session="SES-a", limit=5), [])
+		index.attachments.delete(session="SES-a", attachment="ATT-1")
+		self.assertEqual(index.attachments.search([1.0, 0.0, 0.0, 0.0], session="SES-a", limit=5), [])
 
 	def test_delete_by_session(self):
 		self._seed()
-		attachment_store.delete(session="SES-b")
-		self.assertEqual(attachment_store.search([0.9, 0.1, 0.0, 0.0], session="SES-b", limit=5), [])
+		index.attachments.delete(session="SES-b")
+		self.assertEqual(index.attachments.search([0.9, 0.1, 0.0, 0.0], session="SES-b", limit=5), [])
 
 	def test_delete_requires_a_criterion(self):
 		with self.assertRaises(ValueError):
-			attachment_store.delete()
+			index.attachments.delete()
 
 	def test_delete_by_session_list(self):
 		self._seed()
-		attachment_store.delete(session=["SES-a", "SES-b"])
-		self.assertEqual(attachment_store.search([1.0, 0.0, 0.0, 0.0], session="SES-a", limit=5), [])
-		self.assertEqual(attachment_store.search([0.9, 0.1, 0.0, 0.0], session="SES-b", limit=5), [])
+		index.attachments.delete(session=["SES-a", "SES-b"])
+		self.assertEqual(index.attachments.search([1.0, 0.0, 0.0, 0.0], session="SES-a", limit=5), [])
+		self.assertEqual(index.attachments.search([0.9, 0.1, 0.0, 0.0], session="SES-b", limit=5), [])
 
 	def test_delete_session_list_leaves_others(self):
 		self._seed()
-		attachment_store.delete(session=["SES-a"])
-		self.assertEqual(attachment_store.search([1.0, 0.0, 0.0, 0.0], session="SES-a", limit=5), [])
-		self.assertTrue(attachment_store.search([0.9, 0.1, 0.0, 0.0], session="SES-b", limit=5))
+		index.attachments.delete(session=["SES-a"])
+		self.assertEqual(index.attachments.search([1.0, 0.0, 0.0, 0.0], session="SES-a", limit=5), [])
+		self.assertTrue(index.attachments.search([0.9, 0.1, 0.0, 0.0], session="SES-b", limit=5))
 
 	def test_delete_empty_session_list_is_noop(self):
 		self._seed()
-		attachment_store.delete(session=[])
-		self.assertTrue(attachment_store.search([0.9, 0.1, 0.0, 0.0], session="SES-b", limit=5))
+		index.attachments.delete(session=[])
+		self.assertTrue(index.attachments.search([0.9, 0.1, 0.0, 0.0], session="SES-b", limit=5))
 
 
 class TestRetrieveAttachments(IntegrationTestCase):
 	def setUp(self):
-		attachment_store.drop_table()
+		index.attachments.drop()
 		self.model = _make_model()
 		_set_settings(embedding_dimension=DIM, search_type="Hybrid")
-		attachment_store.ensure_table(DIM)
-		attachment_store.add(
+		index.attachments.ensure(DIM)
+		index.attachments.add(
 			"SES-x",
 			"ATT-1",
 			["the refund policy allows returns within thirty days"],
@@ -1567,7 +1581,7 @@ class TestRetrieveAttachments(IntegrationTestCase):
 		)
 
 	def tearDown(self):
-		attachment_store.drop_table()
+		index.attachments.drop()
 		frappe.db.rollback()
 
 	def _fake_embed(self, texts, config, *, timeout):
@@ -1595,7 +1609,7 @@ class TestRetrieveAttachments(IntegrationTestCase):
 		_set_settings(search_type="Vector")
 		with (
 			patch("frappe_ai.knowledge.embedder._call_openai_compatible", side_effect=self._fake_embed),
-			patch.object(attachment_store, "search", return_value=[]) as mocked,
+			patch.object(index.attachments, "search", return_value=[]) as mocked,
 		):
 			retrieve_attachments("refund", session="SES-x")
 		self.assertIsNone(mocked.call_args.kwargs["text"])  # Vector mode -> no FTS text
@@ -1604,7 +1618,7 @@ class TestRetrieveAttachments(IntegrationTestCase):
 		_set_settings(search_type="Hybrid")
 		with (
 			patch("frappe_ai.knowledge.embedder._call_openai_compatible", side_effect=self._fake_embed),
-			patch.object(attachment_store, "search", return_value=[]) as mocked,
+			patch.object(index.attachments, "search", return_value=[]) as mocked,
 		):
 			retrieve_attachments("refund", session="SES-x")
 		self.assertEqual(mocked.call_args.kwargs["text"], "refund")
