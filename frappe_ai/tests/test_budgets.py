@@ -3,7 +3,6 @@
 
 from __future__ import annotations
 
-import json
 
 import frappe
 from frappe.tests import IntegrationTestCase
@@ -69,6 +68,6 @@ class TestRuntimeBudget(IntegrationTestCase):
 		consume(self.run)
 		consume(self.run, mutation=True)
 
-		usage = json.loads(frappe.db.get_value("AI Run", self.run, "budget_usage"))
+		usage = frappe.parse_json(frappe.db.get_value("AI Run", self.run, "budget_usage"))
 		self.assertEqual(usage["tool_calls"], 2)
 		self.assertEqual(usage["mutations"], 1)

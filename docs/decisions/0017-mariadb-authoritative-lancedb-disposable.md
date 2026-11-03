@@ -1,6 +1,6 @@
 # ADR 0017 — MariaDB as source of truth, LanceDB as disposable index
 
-**Status:** Accepted
+**Status:** Accepted — the index backend is now chosen by [0022](0022-pluggable-vector-store.md); the database stays authoritative
 **Date:** 2026-09-03
 **Deciders:** Sri Harsha Dabbiru
 

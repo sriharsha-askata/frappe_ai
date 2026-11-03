@@ -127,7 +127,7 @@ def _sync_tool_config(instance, plugin_name: str, result: dict) -> None:
 def _legacy_enabled_plugins() -> set[str]:
 	try:
 		value = frappe.db.get_single_value("Assistant Core Settings", "enabled_plugins_list")
-		return set(json.loads(value)) if value else set()
+		return set(frappe.parse_json(value)) if value else set()
 	except Exception:
 		return set()
 

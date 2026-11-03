@@ -296,9 +296,8 @@ class TestAIRunApplyResult(IntegrationTestCase):
 		self.assertEqual(run.status, "Completed")
 		self.assertEqual(run.iterations, 2)
 
-		import json
 
-		usage = json.loads(run.usage)
+		usage = frappe.parse_json(run.usage)
 		self.assertEqual(usage["prompt_tokens"], 13)
 		self.assertEqual(usage["completion_tokens"], 7)
 

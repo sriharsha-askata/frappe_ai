@@ -1,6 +1,6 @@
 # ADR 0002 — LanceDB as the vector store
 
-**Status:** Accepted
+**Status:** Superseded by [0022](0022-pluggable-vector-store.md)
 **Date:** 2026-08-05
 **Deciders:** Sri Harsha Dabbiru
 

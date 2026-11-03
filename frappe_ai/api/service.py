@@ -10,7 +10,6 @@ user's permissions; `mint_token` binds a run token to its run and session."""
 from __future__ import annotations
 
 import hmac
-import json
 import shlex
 
 import requests
@@ -169,7 +168,7 @@ def _run_config_payload(run_doc, session_doc, agent_doc, model_doc, user: str) -
 			"reasoning": bool(agent_doc.reasoning),
 			"markdown": bool(agent_doc.markdown),
 			"auto_approve": bool(
-				(json.loads(run_doc.config_snapshot) if run_doc.config_snapshot else {}).get("auto_approve")
+				(frappe.parse_json(run_doc.config_snapshot) if run_doc.config_snapshot else {}).get("auto_approve")
 			),
 		},
 		"model": _model_call_config(model_doc),
@@ -178,11 +177,11 @@ def _run_config_payload(run_doc, session_doc, agent_doc, model_doc, user: str) -
 			agent_doc, direct_tool_names={tool["name"] for tool in plugin_tools}
 		),
 		"messages": session_doc.build_prompt_messages(),
-		"config_snapshot": json.loads(run_doc.config_snapshot) if run_doc.config_snapshot else {},
+		"config_snapshot": frappe.parse_json(run_doc.config_snapshot) if run_doc.config_snapshot else {},
 		# Pending confirmations from the prior segment, `[{key, name, arguments,
 		# prompt}, ...]` — the arguments a resume's approved calls must actually be
 		# dispatched with. Empty on a fresh (non-resumed) run.
-		"questions": json.loads(run_doc.questions) if run_doc.questions else [],
+		"questions": frappe.parse_json(run_doc.questions) if run_doc.questions else [],
 	}
 
 
@@ -284,7 +283,7 @@ def _resolve_agent_mcp_connections(agent_doc, direct_tool_names: set[str] | None
 		if not doc.enabled:
 			continue
 		command_parts = shlex.split(doc.command or "")
-		stored_args = json.loads(doc.command_args) if getattr(doc, "command_args", None) else None
+		stored_args = frappe.parse_json(doc.command_args) if getattr(doc, "command_args", None) else None
 
 		connection_dict = {
 			"name": doc.name,
@@ -292,8 +291,8 @@ def _resolve_agent_mcp_connections(agent_doc, direct_tool_names: set[str] | None
 			"command": command_parts[0] if command_parts else doc.command,
 			"command_args": stored_args if stored_args is not None else command_parts[1:],
 			"endpoint_url": doc.endpoint_url,
-			"environment_variables": json.loads(doc.environment_variables) if doc.environment_variables else {},
-			"include_tools": json.loads(row.include_tools) if getattr(row, "include_tools", None) else None,
+			"environment_variables": frappe.parse_json(doc.environment_variables) if doc.environment_variables else {},
+			"include_tools": frappe.parse_json(row.include_tools) if getattr(row, "include_tools", None) else None,
 			"is_connected": bool(doc.is_connected),
 			"status_message": doc.status_message,
 		}

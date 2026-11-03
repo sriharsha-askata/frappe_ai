@@ -77,6 +77,8 @@ and the [Assistant Core migration tracker](progress/ai-tool-retirement-via-assis
 | [0014](decisions/0014-openai-compatible-chat-transport.md) | One OpenAI-compatible transport for all chat execution | Removes provider SDK coupling while preserving Agno orchestration, tools, confirmations, structured output, and streaming |
 | [0015](decisions/0015-configuration-time-model-capability-tests.md) | Capability checks run explicitly at configuration time | Provides actionable coverage without runtime preflight calls or real business-tool execution |
 | [0016](decisions/0016-fixed-ollama-embeddings.md) | Fixed Ollama `nomic-embed-text` embeddings | Keeps one vector space while allowing environment-specific private endpoints |
+| [0021](decisions/0021-database-independence.md) | The app runs on MariaDB and Postgres | No vendor SQL in application code; one test guards it |
+| [0022](decisions/0022-pluggable-vector-store.md) | Pluggable vector store: pgvector, LanceDB, Chroma | One small interface; the backend is a setting, the database stays authoritative |
 | [0020](decisions/0020-retire-ai-tool-for-fac.md) | Retire `AI Tool` / `AI Agent Tool` / `AI Agent Tool Config` in favour of Assistant Core (FAC) tools | One tool path and one authorization path; deletion is gated by a per-site archive |
 
 ---

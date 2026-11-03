@@ -132,8 +132,8 @@ def record_approvals(run: "AIRun", answers: dict[str, Any]) -> list[str]:
 	"""Record user-approved call IDs against the pending tool and argument digest.
 
 	Only the user-authenticated resume path may grant these approvals."""
-	questions = {q.get("key"): q for q in json.loads(run.questions) if isinstance(q, dict)} if run.questions else {}
-	approvals = json.loads(run.approvals) if run.approvals else {}
+	questions = {q.get("key"): q for q in frappe.parse_json(run.questions) if isinstance(q, dict)} if run.questions else {}
+	approvals = frappe.parse_json(run.approvals) if run.approvals else {}
 	recorded = []
 	for call_id, answer in answers.items():
 		question = questions.get(call_id)
@@ -153,7 +153,7 @@ def consume_approval(run: str, call_id: str | None, tool: str, arguments: dict[s
 	if not call_id:
 		return False
 	doc = frappe.get_doc("AI Run", run, for_update=True)
-	approvals = json.loads(doc.approvals) if doc.approvals else {}
+	approvals = frappe.parse_json(doc.approvals) if doc.approvals else {}
 	approval = approvals.get(call_id)
 	if not approval or approval.get("tool") != tool or approval.get("args_hash") != approval_hash(arguments):
 		return False
@@ -218,7 +218,7 @@ def _dump_json(value: Any) -> str | None:
 
 def _merge_usage(existing: str | None, new: dict[str, int]) -> dict[str, int]:
 	"""Add token counts from a (resumed) segment onto whatever the run already recorded."""
-	merged = json.loads(existing) if existing else {}
+	merged = frappe.parse_json(existing) if existing else {}
 	for key, value in new.items():
 		merged[key] = merged.get(key, 0) + value
 	return merged

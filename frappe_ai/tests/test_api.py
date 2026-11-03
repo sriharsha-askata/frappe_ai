@@ -809,7 +809,7 @@ class TestFrontendAPI(IntegrationTestCase):
 		self.assertEqual(result["session"], started["session"])
 		self.assertIn("token", result)
 		self.assertIn("stream_url", result)
-		approvals = json.loads(frappe.db.get_value("AI Run", started["run"], "approvals"))
+		approvals = frappe.parse_json(frappe.db.get_value("AI Run", started["run"], "approvals"))
 		self.assertEqual(approvals["call_1"]["tool"], "read")
 		self.assertTrue(approvals["call_1"]["args_hash"])
 

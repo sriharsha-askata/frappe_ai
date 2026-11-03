@@ -277,7 +277,7 @@ def _tool_row(row) -> dict[str, Any]:
 	return {
 		"name": row.tool_name,
 		"description": row.description or "",
-		"input_schema": json.loads(row.input_schema) if row.input_schema else {},
+		"input_schema": frappe.parse_json(row.input_schema) if row.input_schema else {},
 		"available": bool(row.available),
 		"last_discovered": row.last_discovered,
 	}

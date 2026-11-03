@@ -320,7 +320,7 @@ backing it up avoids downtime after a volume loss.
 
 ```python
 # Run from a Frappe console: bench --site <site> console
-from frappe_ai.knowledge.migration import rebuild_knowledge_index
+from frappe_ai.knowledge.reindex import rebuild_knowledge_index
 rebuild_knowledge_index()
 ```
 
@@ -594,7 +594,7 @@ If the Ollama model digest or embedding dimension changes between versions, run 
 explicit rebuild from a Frappe console **before** serving knowledge search traffic:
 
 ```python
-from frappe_ai.knowledge.migration import rebuild_knowledge_index
+from frappe_ai.knowledge.reindex import rebuild_knowledge_index
 rebuild_knowledge_index()
 ```
 

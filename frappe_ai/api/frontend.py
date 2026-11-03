@@ -29,6 +29,7 @@ from frappe_ai.api.frontend_view import (
 from frappe_ai.frappe_ai.doctype.ai_run.ai_run import assert_run_owner
 from frappe_ai.frappe_ai.doctype.ai_session.ai_session import assert_session_owner
 from frappe_ai.knowledge.extract import FILE_EXTENSIONS
+from frappe_ai.utils.like import contains
 
 
 def _tool_summaries(agent_doc) -> list[dict[str, Any]]:
@@ -238,8 +239,7 @@ def bootstrap() -> dict[str, Any]:
 def sessions(query: str | None = None, limit: int = 20) -> dict[str, Any]:
 	filters: dict[str, Any] = {"owner": frappe.session.user, "source": ["!=", "Trigger"]}
 	if isinstance(query, str) and query.strip():
-		escaped = query.strip().replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
-		filters["title"] = ["like", f"%{escaped}%"]
+		filters["title"] = ["like", contains(query.strip())]
 	rows = frappe.get_all(
 		"AI Session",
 		filters=filters,

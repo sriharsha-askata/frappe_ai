@@ -14,6 +14,7 @@ import frappe
 from frappe import _
 
 from frappe_ai.lib.tool import Tool, tool
+from frappe_ai.utils.like import contains
 from frappe_ai.utils.safe_exec import safe_exec
 
 MAX_READ_LIMIT = 200
@@ -48,7 +49,7 @@ def find_doctypes(search: str | None = None, module: str | None = None, limit: i
 	if module:
 		filters["module"] = module
 	if search:
-		filters["name"] = ["like", f"%{search}%"]
+		filters["name"] = ["like", contains(search)]
 	rows = frappe.get_all("DocType", filters=filters, fields=["name", "module"], order_by="name", limit=limit)
 	return [r for r in rows if frappe.has_permission(r["name"], "read")]
 

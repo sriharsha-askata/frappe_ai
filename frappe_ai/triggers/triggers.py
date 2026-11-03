@@ -87,21 +87,12 @@ def _claim_scheduled_window(trigger: str, last_fired_at: Any, now: Any) -> bool:
 
 	Only one scheduler may claim it. A failed job forfeits the window to avoid
 	duplicating a potentially mutating run (ADR 0007)."""
-	if last_fired_at is None:
-		condition, values = "`last_fired_at` is null", {"now": now, "trigger": trigger}
-	else:
-		condition, values = "`last_fired_at` = %(last_fired_at)s", {
-			"now": now,
-			"trigger": trigger,
-			"last_fired_at": last_fired_at,
-		}
-
-	frappe.db.sql(
-		f"update `tabAI Trigger` set `last_fired_at` = %(now)s where `name` = %(trigger)s and {condition}",
-		values,
-	)
+	table = frappe.qb.DocType("AI Trigger")
+	claim = frappe.qb.update(table).set(table.last_fired_at, now).where(table.name == trigger)
+	claim = claim.where(table.last_fired_at.isnull() if last_fired_at is None else table.last_fired_at == last_fired_at)
+	claim.run()
 	# `_cursor.rowcount` is how Frappe's own test harness counts affected rows
-	# (frappe/tests/classes/integration_test_case.py), per DB-API 2.0.
+	# (frappe/tests/classes/integration_test_case.py), per DB-API 2.0 on every driver.
 	return bool(cint(frappe.db._cursor.rowcount))
 
 

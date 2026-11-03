@@ -373,7 +373,7 @@ def _row_to_message(row) -> dict[str, Any]:
 		return {"role": "tool", "tool_call_id": row.tool_call_id, "content": row.content or ""}
 	message: dict[str, Any] = {"role": row.role, "content": row.content}
 	if row.tool_calls:
-		message["tool_calls"] = json.loads(row.tool_calls)
+		message["tool_calls"] = frappe.parse_json(row.tool_calls)
 	return message
 
 
