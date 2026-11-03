@@ -391,6 +391,12 @@ class TestPgVectorBackend(KeywordContract, unittest.TestCase):
 
 
 class TestHelpers(unittest.TestCase):
+	def test_postgres_array_literal_escapes_quotes_and_backslashes(self):
+		from frappe_ai.vector.pgvector_backend import _text_array
+
+		self.assertEqual(_text_array(["a", 'b"c', "d\\e", "it's"]), '{"a","b\\"c","d\\\\e","it\'s"}')
+		self.assertEqual(_text_array([]), "{}")
+
 	def test_rrf_fuse_rewards_agreement(self):
 		scores = rrf_fuse([["a", "b", "c"], ["c", "a"]])
 		self.assertEqual(sorted(scores, key=scores.get, reverse=True)[:2], ["a", "c"])

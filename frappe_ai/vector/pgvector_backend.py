@@ -69,6 +69,14 @@ def _vector_literal(vector: Sequence[float]) -> str:
 	return "[" + ",".join(repr(float(v)) for v in vector) + "]"
 
 
+def _text_array(values: Sequence[str]) -> str:
+	"""A Postgres array literal, sent as one string parameter and cast with `::text[]`.
+
+	Passing a Python list would depend on the driver wrapper: `frappe.db.sql` turns lists
+	into tuples, which Postgres reads as a row instead of an array."""
+	return "{" + ",".join('"' + str(v).replace("\\", "\\\\").replace('"', '\\"') + '"' for v in values) + "}"
+
+
 def _tsquery(text: str) -> str | None:
 	tokens = list(dict.fromkeys(t.lower() for t in _TOKEN.findall(text or "")))[:MAX_QUERY_TOKENS]
 	return " | ".join(tokens) if tokens else None
@@ -194,7 +202,7 @@ class PgVectorBackend(VectorBackend):
 			return
 		if ids is not None:
 			clauses.append('"id" = any(%s::text[])')
-			params.append([str(i) for i in ids])
+			params.append(_text_array(ids))
 		if not clauses:
 			raise ValueError("delete() requires at least one non-empty criterion")
 		self._sql.execute(f"delete from {_table(collection)} where {' and '.join(clauses)}", params)
@@ -332,5 +340,5 @@ class PgVectorBackend(VectorBackend):
 			if not values:
 				return None, None
 			clauses.append(f'"{key}" = any(%s::text[])')
-			params.append(values)
+			params.append(_text_array(values))
 		return clauses, params
