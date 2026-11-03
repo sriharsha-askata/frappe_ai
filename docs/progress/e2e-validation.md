@@ -64,9 +64,11 @@ native tools reach Assistant Core's registry, and the Error Log stays clean.
 
 ## Observations that are not caused by this branch
 
-* **Fresh install is blocked by the dependency pins:** `litellm>=1.83.0,<1.83.8` needs `openai>=2`, but the
-  app pins `openai>=1.0,<2`. The bench was built with a `litellm<1.83` override, and the app ran fine with
-  `agno 2.9.0` and `openai 1.109.1`. The pins need a decision from the maintainers.
+* **Fresh install was blocked by the dependency pins (since fixed):** `litellm>=1.83.0,<1.83.8` needs
+  `openai>=2`, but the app pins `openai>=1.0,<2`; and litellm 1.83.x also downgrades `click` and
+  `python-dotenv` below what Frappe v16 requires. The app only used litellm for provider-name checks and
+  model suggestions, so it was removed (ADR 0023). `pip check` is now clean and the suite and scenarios
+  pass without it (`agno 2.9.0`, `openai 1.109.1`).
 * **Attachment routing ignores the model's context window:** `persist_turn` calls
   `_attachment_inline_threshold()` without a snapshot, so the 128k default applies. A 113k-character file
   was inlined whole for a model configured with 8k tokens.

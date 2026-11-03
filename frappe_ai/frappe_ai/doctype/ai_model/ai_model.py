@@ -15,9 +15,11 @@ from frappe_ai.frappe_ai.doctype.ai_model.connection_test import (
 )
 from frappe_ai.lib.model import (
 	ModelConfigurationError,
-	is_known_provider,
+	get_provider_endpoint,
+	list_model_ids,
+	normalize_provider,
 	resolve_model_config,
-	to_litellm_provider,
+	resolve_provider_credentials,
 )
 
 # Bare model id — no `provider/` prefix. The provider slug is identity/endpoint
@@ -147,20 +149,36 @@ class AIModel(Document):
 		return run_capability_suite(model_config)
 
 
+PROVIDER_MODELS_CACHE_SECONDS = 300
+
+
 @frappe.whitelist()
 def get_provider_models(provider: str | None = None) -> list[str]:
-	"""Return LiteLLM model-id suggestions for a provider identity.
+	"""Chat model ids that the provider's own `/models` endpoint reports, for autocomplete.
 
-	Suggestions are UX-only; execution always uses the shared OpenAI-compatible
-	transport and accepts a manually entered model id as well.
-	"""
-	if not provider or not is_known_provider(provider):
+	Suggestions are UX-only; a manually typed model id is always accepted. Any failure (no key, no
+	endpoint, service down) returns an empty list so the form keeps working. Results are cached
+	briefly per provider."""
+	provider = normalize_provider(provider)
+	if not provider or not frappe.has_permission("AI Provider", "read", provider):
 		return []
 
-	import litellm
+	cache_key = f"frappe_ai:provider_models:{provider}"
+	cached = frappe.cache.get_value(cache_key)
+	if cached is not None:
+		return cached
 
-	return sorted(
-		model
-		for model in litellm.models_by_provider.get(to_litellm_provider(provider.strip().lower()), set())
-		if not any(marker in model.casefold() for marker in EMBEDDING_ID_MARKERS)
-	)
+	credentials = resolve_provider_credentials(provider)
+	base_url = get_provider_endpoint(provider, credentials.get("base_url"))
+	models: list[str] = []
+	if credentials and base_url:
+		try:
+			models = [
+				model
+				for model in list_model_ids({"api_key": credentials.get("api_key"), "base_url": base_url})
+				if not any(marker in model.casefold() for marker in EMBEDDING_ID_MARKERS)
+			]
+		except Exception:
+			models = []
+	frappe.cache.set_value(cache_key, models, expires_in_sec=PROVIDER_MODELS_CACHE_SECONDS)
+	return models

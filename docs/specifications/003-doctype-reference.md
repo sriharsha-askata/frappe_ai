@@ -45,10 +45,9 @@ None are submittable. Only `AI Settings` is single.
 Per-provider credential store. **Naming: `field:provider`**, lowercased in `autoname` so
 the docname matches the Agno provider slug (e.g. `openai`, `anthropic`, `ollama`).
 
-> Chat execution has no litellm dependency (Agno's native classes only) — see
-> [ADR 0009](../decisions/0009-no-litellm-agno-native-models.md). `provider` *validation*
-> and `AI Model` model-id suggestions use litellm as a UX-only helper — see
-> [ADR 0013](../decisions/0013-litellm-for-provider-ux-agno-still-executes.md).
+> The app has no `litellm` dependency ([ADR 0023](../decisions/0023-no-litellm.md)). `provider`
+> is validated for shape only, and `AI Model` model-id suggestions come from the provider's own
+> `/models` endpoint.
 
 | Field | Type | Attributes |
 |---|---|---|
@@ -58,10 +57,10 @@ the docname matches the Agno provider slug (e.g. `openai`, `anthropic`, `ollama`
 | `base_url` | Data | |
 | `extra_params` | JSON | |
 
-**Controller:** `autoname` lowercases; `validate` checks `provider` against
-`litellm.provider_list` (translated through `LITELLM_PROVIDER_ALIASES` for the six
-slugs where Agno and litellm disagree — see ADR 0013), validates `base_url` is http(s),
-rejects reserved keys in `extra_params`.
+**Controller:** `autoname` lowercases; `validate` checks `provider` is a well-formed slug
+(lowercase letters, digits, `.`, `_`, `-`; no list of "known" providers is kept), validates
+`base_url` is http(s), rejects reserved keys in `extra_params`. A provider without a built-in
+endpoint default needs a `base_url` before its models can run; the connection test reports it.
 **Permissions:** System Manager full CRUD.
 
 ---
@@ -71,10 +70,8 @@ rejects reserved keys in `extra_params`.
 A callable chat model. Embeddings are application-wide Ollama configuration; they are
 not represented by this DocType. **Naming: `field:title`**. `track_changes: 1`.
 
-> Chat execution has no litellm dependency (Agno's native classes only) — see
-> [ADR 0009](../decisions/0009-no-litellm-agno-native-models.md). `get_provider_models`
-> uses litellm as a UX-only helper — see
-> [ADR 0013](../decisions/0013-litellm-for-provider-ux-agno-still-executes.md).
+> `get_provider_models` asks the provider's `/models` endpoint (see
+> [ADR 0023](../decisions/0023-no-litellm.md)); the app has no `litellm` dependency.
 
 | Field | Type | Attributes |
 |---|---|---|
@@ -82,7 +79,7 @@ not represented by this DocType. **Naming: `field:title`**. `track_changes: 1`.
 | `enabled` | Check | default 1 |
 | `provider` | Link → `AI Provider` | not reqd |
 | `model_id` | Autocomplete | reqd — **bare** model id, e.g. `claude-sonnet-4-6` (no `provider/` prefix) |
-| `context_window` | Int | user-editable — **not** auto-detected (no Agno equivalent to `litellm.get_model_info`) |
+| `context_window` | Int | user-editable — **not** auto-detected |
 | `api_key` | **Password** | used only when `provider` is empty (ADR 0013) |
 | `base_url` | Data | used only when `provider` is empty (ADR 0013) |
 | `params` | JSON | |
@@ -102,7 +99,7 @@ call is currently a no-op because `frappe_ai.assistant` has not been implemented
 **Whitelisted:** `test_connection()` (requires `write`; runs a fresh Chat capability
 suite for the saved model and returns per-check statuses using the shared
 OpenAI-compatible transport), module-level
-`get_provider_models(provider)` (litellm model registry suggestions; the free-text
+`get_provider_models(provider)` (chat model ids the provider reports, cached for five minutes; the free-text
 model field remains valid). The capability suite is never called by runtime agent
 execution.
 

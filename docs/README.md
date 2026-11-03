@@ -73,12 +73,13 @@ and the [Assistant Core migration tracker](progress/ai-tool-retirement-via-assis
 | [0010](decisions/0010-service-bootstrap-via-env-vars.md) | ~~FastAPI service bootstraps via environment variables~~ — **Superseded by 0011** | Env-var secret required a manual export step `bench start` didn't automate; caused a real boot failure |
 | [0011](decisions/0011-service-secret-in-site-config.md) | Service secret lives in `site_config.json`, not a DB field + env var | `bench start` boots the service unattended; one source of truth instead of two kept in sync by hand |
 | [0012](decisions/0012-embeddings-direct-provider-sdk.md) | ~~Embeddings via direct provider SDK calls~~ — superseded by 0016 | Historical Phase 4 decision; current embeddings use fixed Ollama |
-| [0013](decisions/0013-litellm-for-provider-ux-agno-still-executes.md) | ~~litellm for provider/model UX only; Agno still executes chat~~ — **Superseded by 0014** | Historical provider/model UX decision; LiteLLM remains UX-only |
+| [0013](decisions/0013-litellm-for-provider-ux-agno-still-executes.md) | ~~litellm for provider/model UX only; Agno still executes chat~~ — **Superseded by 0023** | Historical provider/model UX decision; the dependency has been removed |
 | [0014](decisions/0014-openai-compatible-chat-transport.md) | One OpenAI-compatible transport for all chat execution | Removes provider SDK coupling while preserving Agno orchestration, tools, confirmations, structured output, and streaming |
 | [0015](decisions/0015-configuration-time-model-capability-tests.md) | Capability checks run explicitly at configuration time | Provides actionable coverage without runtime preflight calls or real business-tool execution |
 | [0016](decisions/0016-fixed-ollama-embeddings.md) | Fixed Ollama `nomic-embed-text` embeddings | Keeps one vector space while allowing environment-specific private endpoints |
 | [0021](decisions/0021-database-independence.md) | The app runs on MariaDB and Postgres | No vendor SQL in application code; one test guards it |
 | [0022](decisions/0022-pluggable-vector-store.md) | Pluggable vector store: pgvector, LanceDB, Chroma | One small interface; the backend is a setting, the database stays authoritative |
+| [0023](decisions/0023-no-litellm.md) | No `litellm`: provider names checked for shape, model suggestions from the provider's `/models` | Removes a dependency that conflicted with openai and Frappe v16's Click pin |
 | [0020](decisions/0020-retire-ai-tool-for-fac.md) | Retire `AI Tool` / `AI Agent Tool` / `AI Agent Tool Config` in favour of Assistant Core (FAC) tools | One tool path and one authorization path; deletion is gated by a per-site archive |
 
 ---

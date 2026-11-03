@@ -73,7 +73,7 @@ Where search vectors are stored is chosen in **AI Settings → Vector Backend** 
 | `chroma` | Experimental. Files under `sites/<site>/private/files/chroma/`, or a Chroma server given by the `frappe_ai_chroma_url` site-config key (for example `chroma.internal:8000`). It has no keyword ranking, so hybrid search falls back to vector search. |
 | other | A backend an installed app registers with the `frappe_ai_vector_backends` hook |
 
-After changing the backend, rebuild the index (see below). Install `chromadb` only if you use Chroma.
+After changing the backend, rebuild the index (see below). Install the Chroma client only if you use it: `pip install "frappe_ai[chroma]"` (or `bench pip install chromadb`). The vector contract tests need `frappe_ai[dev]` (the `psycopg` driver).
 
 ## Storage and backups
 

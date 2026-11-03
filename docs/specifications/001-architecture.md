@@ -352,11 +352,12 @@ service serving the fixed `nomic-embed-text` model; its endpoint is configured t
 `FRAPPE_AI_OLLAMA_BASE_URL` (see [setup](../setup.md)).
 Already present in this bench: `lancedb 0.36.0`, `openai 2.30.0`, `pydantic 2.11.7`.
 
-> `litellm` is a declared dependency for provider validation and model-id suggestions
-> only. Chat calls and embedding calls do not go through litellm: chat uses the shared
-> OpenAI-compatible transport, and embeddings use the fixed Ollama OpenAI-compatible
-> endpoint. See [ADR 0014](../decisions/0014-openai-compatible-chat-transport.md) and
-> [ADR 0016](../decisions/0016-fixed-ollama-embeddings.md).
+> The app does not depend on `litellm`. Chat uses the shared OpenAI-compatible transport,
+> embeddings use the fixed Ollama OpenAI-compatible endpoint, provider names are checked for
+> shape only, and model suggestions come from the provider's own `/models` endpoint. See
+> [ADR 0014](../decisions/0014-openai-compatible-chat-transport.md),
+> [ADR 0016](../decisions/0016-fixed-ollama-embeddings.md) and
+> [ADR 0023](../decisions/0023-no-litellm.md).
 
 ---
 

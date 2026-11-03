@@ -9,6 +9,7 @@ provider or load its SDK."""
 from __future__ import annotations
 
 import json
+import re
 from dataclasses import dataclass, field
 from typing import Any
 
@@ -43,18 +44,12 @@ PROVIDER_ENDPOINT_DEFAULTS: dict[str, str] = {
 	"cerebras": "https://api.cerebras.ai/v1",
 	"deepinfra": "https://api.deepinfra.com/v1/openai",
 	"ollama": "http://localhost:11434/v1",
+	"anthropic": "https://api.anthropic.com/v1/",
 }
 
-# LiteLLM uses a few different identity spellings. This translation is kept at
-# the UX boundary only, for provider validation and model suggestions.
-LITELLM_PROVIDER_ALIASES: dict[str, str] = {
-	"google": "gemini",
-	"together": "together_ai",
-	"fireworks": "fireworks_ai",
-	"nvidia": "nvidia_nim",
-	"aws": "bedrock",
-	"meta": "meta_llama",
-}
+# A provider identity is a short lowercase slug: letters, digits, ".", "_" or "-".
+PROVIDER_SLUG = re.compile(r"^[a-z0-9][a-z0-9_.-]*$")
+MODEL_LIST_TIMEOUT_SECONDS = 8
 
 
 class ModelConfigurationError(ValueError):
@@ -115,12 +110,6 @@ def normalize_transport_model_id(provider: str | None, model_id: str) -> str:
 	return model_id
 
 
-def to_litellm_provider(provider: str) -> str:
-	"""Translate an app provider identity to LiteLLM's UX spelling."""
-	provider = normalize_provider(provider) or ""
-	return LITELLM_PROVIDER_ALIASES.get(provider, provider)
-
-
 def get_provider_endpoint(provider: str | None, explicit_base_url: str | None = None) -> str | None:
 	"""Resolve an explicit endpoint first, then the provider's standard default."""
 	if explicit_base_url:
@@ -128,21 +117,21 @@ def get_provider_endpoint(provider: str | None, explicit_base_url: str | None = 
 	return PROVIDER_ENDPOINT_DEFAULTS.get(normalize_provider(provider) or "")
 
 
-def is_known_provider(provider: str | None) -> bool:
-	"""Whether LiteLLM recognizes the provider identity for UX purposes.
+def is_valid_provider_slug(provider: str | None) -> bool:
+	"""Whether `provider` is a well-formed identity (not whether the service exists).
 
-	This is intentionally not an execution registry. Any recognized provider can
-	use the shared transport, with a custom endpoint where no default is known.
-	"""
-	provider = normalize_provider(provider)
-	if not provider:
-		return False
-	try:
-		import litellm
+	Any OpenAI-compatible service can be used by giving the provider a base URL, so the app keeps
+	no list of "known" providers; a wrong endpoint or key shows up in the connection test."""
+	return bool(PROVIDER_SLUG.fullmatch(normalize_provider(provider) or ""))
 
-		return to_litellm_provider(provider) in {item.value for item in litellm.provider_list}
-	except ImportError:
-		return provider in PROVIDER_ENDPOINT_DEFAULTS
+
+def list_model_ids(model_config: dict[str, Any], *, timeout: float = MODEL_LIST_TIMEOUT_SECONDS) -> list[str]:
+	"""Model ids reported by an OpenAI-compatible `GET /models`, sorted and de-duplicated.
+
+	Used for autocomplete only. Raises whatever the SDK raises when the service is unreachable or
+	rejects the key; callers decide how to degrade."""
+	client = create_openai_compatible_client(model_config, timeout=timeout, max_retries=0)
+	return sorted({model.id for model in client.models.list() if getattr(model, "id", None)})
 
 
 def _parse_object(value: Any, field_name: str) -> dict[str, Any]:

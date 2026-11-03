@@ -199,33 +199,32 @@ class TestAIModelDefault(IntegrationTestCase):
 
 
 class TestGetProviderModels(IntegrationTestCase):
-	def test_known_agno_provider_returns_suggestions(self):
+	def tearDown(self):
+		frappe.cache.delete_value("frappe_ai:provider_models:openai")
+		frappe.db.rollback()
+
+	def test_configured_provider_returns_suggestions(self):
+		from unittest.mock import patch
+
 		from frappe_ai.frappe_ai.doctype.ai_model.ai_model import get_provider_models
 
-		models = get_provider_models("openai")
-		self.assertIsInstance(models, list)
-		self.assertTrue(models)
-		self.assertEqual(models, sorted(models))
+		if not frappe.db.exists("AI Provider", "openai"):
+			frappe.get_doc({"doctype": "AI Provider", "provider": "openai", "api_key": "k", "enabled": 1}).insert()
+		frappe.cache.delete_value("frappe_ai:provider_models:openai")
+		with patch("frappe_ai.frappe_ai.doctype.ai_model.ai_model.list_model_ids", return_value=["gpt-b", "gpt-a"]):
+			models = get_provider_models("openai")
+		self.assertEqual(models, ["gpt-b", "gpt-a"])
 
-	def test_provider_agno_cannot_run_returns_empty(self):
+	def test_provider_without_a_record_returns_empty(self):
 		from frappe_ai.frappe_ai.doctype.ai_model.ai_model import get_provider_models
 
-		# litellm knows many providers frappe_ai/Agno has no model class for.
-		self.assertEqual(get_provider_models("not-a-known-agno-provider"), [])
+		self.assertEqual(get_provider_models("not-a-configured-provider"), [])
 
 	def test_empty_provider_returns_empty(self):
 		from frappe_ai.frappe_ai.doctype.ai_model.ai_model import get_provider_models
 
 		self.assertEqual(get_provider_models(None), [])
 		self.assertEqual(get_provider_models(""), [])
-
-	def test_aliased_provider_slug_returns_suggestions(self):
-			# "fireworks" is the app's stored spelling; litellm's
-		# models_by_provider keys on "fireworks_ai" instead (LITELLM_PROVIDER_ALIASES).
-		from frappe_ai.frappe_ai.doctype.ai_model.ai_model import get_provider_models
-
-		models = get_provider_models("fireworks")
-		self.assertTrue(models)
 
 
 class TestContextWindow(IntegrationTestCase):

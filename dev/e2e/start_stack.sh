@@ -7,6 +7,8 @@ launch() { # name, log, command
   setsid nohup su frappe -c "source /var/tmp/e2e/env.sh; export FRAPPE_AI_OLLAMA_BASE_URL=$OLL; $3" > "$2" 2>&1 < /dev/null &
   echo $! > pids/$1
 }
+setsid nohup python3 /home/user/frappe_ai/dev/e2e/stubs/openai_stub.py --port 11434 --log /var/tmp/e2e/stub.jsonl > stub.log 2>&1 &
+echo $! > pids/stub
 B="cd /var/tmp/e2e/work/frappe-bench"
 launch web web.log "$B && exec bench serve --port 8000"
 launch worker worker.log "$B && exec bench worker --queue short,default,long"

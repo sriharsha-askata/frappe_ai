@@ -237,7 +237,7 @@ Add this inside the existing `bench use $SITE_NAME; cd apps/...` block:
 ```bash
 cd ../frappe_ai;
 git pull;
-bench pip install agno openai fastapi uvicorn httpx lancedb python-docx pdfplumber rapidocr onnxruntime openpyxl beautifulsoup4 lxml chardet croniter mcp litellm RestrictedPython;
+bench pip install agno openai fastapi uvicorn httpx lancedb python-docx pdfplumber rapidocr onnxruntime openpyxl beautifulsoup4 lxml chardet croniter mcp RestrictedPython;
 ```
 
 > **Note:** In a properly built Docker image (`$DEPLOYMENT_NAME:$CI_COMMIT_SHA`)

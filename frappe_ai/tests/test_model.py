@@ -1,43 +1,83 @@
 # Copyright (c) 2026, Frappe Technologies and contributors
 # License: MIT. See LICENSE
 
+from unittest.mock import patch
+
 import frappe
 from frappe.tests import IntegrationTestCase
 
+from frappe_ai.frappe_ai.doctype.ai_model.ai_model import get_provider_models
 from frappe_ai.lib.model import (
-	LITELLM_PROVIDER_ALIASES,
 	PROVIDER_ENDPOINT_DEFAULTS,
 	create_openai_compatible_model,
 	get_provider_endpoint,
-	is_known_provider,
+	is_valid_provider_slug,
+	list_model_ids,
 	normalize_provider_error,
 	resolve_provider_credentials,
-	to_litellm_provider,
 )
 
 
-class TestIsKnownProvider(IntegrationTestCase):
-	def test_known_providers_accepted(self):
-		for slug in ("openai", "anthropic", "ollama", "openrouter"):
+class TestProviderSlug(IntegrationTestCase):
+	def test_well_formed_slugs_are_accepted(self):
+		for slug in ("openai", "anthropic", "ollama", "openrouter", "my-gateway", "azure.eu_1", " OpenAI "):
 			with self.subTest(slug=slug):
-				self.assertTrue(is_known_provider(slug))
+				self.assertTrue(is_valid_provider_slug(slug))
 
-	def test_unknown_provider_rejected(self):
-		self.assertFalse(is_known_provider("not-a-real-provider"))
+	def test_malformed_slugs_are_rejected(self):
+		for slug in ("", None, "has space", "-leading", "semi;colon", "slash/slug", "a" * 0):
+			with self.subTest(slug=slug):
+				self.assertFalse(is_valid_provider_slug(slug))
+
+	def test_provider_doctype_rejects_a_malformed_slug(self):
+		with self.assertRaisesRegex(frappe.ValidationError, "Invalid provider"):
+			frappe.get_doc({"doctype": "AI Provider", "provider": "bad slug!", "enabled": 1}).insert()
+
+	def test_provider_without_a_known_endpoint_is_still_accepted(self):
+		doc = frappe.get_doc({"doctype": "AI Provider", "provider": "my-gateway", "base_url": "http://gw.local/v1", "enabled": 1}).insert()
+		self.assertEqual(doc.provider, "my-gateway")
+
+	def test_anthropic_has_an_endpoint_default(self):
+		self.assertEqual(get_provider_endpoint("anthropic"), "https://api.anthropic.com/v1/")
 
 
-class TestToLitellmProvider(IntegrationTestCase):
-	def test_unaliased_slug_returned_unchanged(self):
-		self.assertEqual(to_litellm_provider("openai"), "openai")
+class TestListModelIds(IntegrationTestCase):
+	def test_ids_are_sorted_and_unique(self):
+		models = [type("M", (), {"id": i})() for i in ("gpt-b", "gpt-a", "gpt-b")]
+		client = type("C", (), {"models": type("Ms", (), {"list": staticmethod(lambda: models)})()})()
+		with patch("frappe_ai.lib.model.create_openai_compatible_client", return_value=client) as make:
+			self.assertEqual(list_model_ids({"api_key": "k", "base_url": "http://x/v1"}), ["gpt-a", "gpt-b"])
+		self.assertEqual(make.call_args.kwargs["max_retries"], 0)
 
-	def test_aliased_slugs_translated(self):
-		import litellm
 
-		known = {p.value for p in litellm.provider_list}
-		for agno_slug, litellm_slug in LITELLM_PROVIDER_ALIASES.items():
-			with self.subTest(slug=agno_slug):
-				self.assertEqual(to_litellm_provider(agno_slug), litellm_slug)
-				self.assertIn(litellm_slug, known)
+class TestGetProviderModels(IntegrationTestCase):
+	def setUp(self):
+		frappe.cache.delete_value("frappe_ai:provider_models:suggest-gw")
+		frappe.get_doc({"doctype": "AI Provider", "provider": "suggest-gw", "base_url": "http://gw.local/v1", "api_key": "k", "enabled": 1}).insert()
+
+	def tearDown(self):
+		frappe.cache.delete_value("frappe_ai:provider_models:suggest-gw")
+		frappe.db.rollback()
+
+	def test_suggestions_come_from_the_provider_and_skip_embedding_models(self):
+		ids = ["chat-large", "text-embedding-3-small", "chat-small", "nomic-embed-text"]
+		with patch("frappe_ai.frappe_ai.doctype.ai_model.ai_model.list_model_ids", return_value=ids) as fetch:
+			self.assertEqual(get_provider_models("suggest-gw"), ["chat-large", "chat-small"])
+		self.assertEqual(fetch.call_args.args[0]["base_url"], "http://gw.local/v1")
+
+	def test_results_are_cached(self):
+		with patch("frappe_ai.frappe_ai.doctype.ai_model.ai_model.list_model_ids", return_value=["a"]) as fetch:
+			get_provider_models("suggest-gw")
+			get_provider_models("suggest-gw")
+		self.assertEqual(fetch.call_count, 1)
+
+	def test_an_unreachable_provider_gives_no_suggestions(self):
+		with patch("frappe_ai.frappe_ai.doctype.ai_model.ai_model.list_model_ids", side_effect=ConnectionError("down")):
+			self.assertEqual(get_provider_models("suggest-gw"), [])
+
+	def test_unknown_or_blank_provider_gives_no_suggestions(self):
+		self.assertEqual(get_provider_models(None), [])
+		self.assertEqual(get_provider_models("does-not-exist"), [])
 
 
 class TestOpenAICompatibleTransport(IntegrationTestCase):
@@ -110,9 +150,6 @@ class TestResolveProviderCredentials(IntegrationTestCase):
 		# A distinct slug from the others in this file — "groq"/"mistral"/"cohere" are
 		# real-world slugs someone may have already configured with real credentials
 		# (e.g. for live-testing) outside this test's rollback-scoped transaction.
-		# Not "fireworks" — that is the app's stored slug spelling;
-		# litellm's provider_list (which AIProvider._validate_provider_known now
-		# validates against, ADR 0013) calls the same provider "fireworks_ai".
 		frappe.get_doc(
 			{
 				"doctype": "AI Provider",

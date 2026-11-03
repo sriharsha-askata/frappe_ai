@@ -39,17 +39,14 @@ class TestAIProviderValidation(IntegrationTestCase):
 		doc = frappe.get_doc(_provider(provider="OpenRouter")).insert()
 		self.assertEqual(doc.provider, "openrouter")
 
-	def test_unknown_provider_rejected(self):
-		doc = frappe.get_doc(_provider(provider="not-a-real-provider"))
-		with self.assertRaisesRegex(frappe.ValidationError, "Unknown provider"):
+	def test_malformed_provider_name_rejected(self):
+		doc = frappe.get_doc(_provider(provider="not a provider!"))
+		with self.assertRaisesRegex(frappe.ValidationError, "Invalid provider"):
 			doc.insert()
 
-	def test_aliased_provider_slug_accepted(self):
-		# "fireworks" is the app's stored spelling for a provider
-		# litellm calls "fireworks_ai" — _validate_provider_known must translate via
-		# LITELLM_PROVIDER_ALIASES before checking litellm.provider_list, so the
-		# stored value stays "fireworks" (what the shared transport metadata uses).
-		doc = frappe.get_doc(_provider(provider="fireworks")).insert()
+	def test_any_well_formed_provider_name_is_accepted(self):
+		# No list of "known" providers is kept: any OpenAI-compatible service works with a base URL.
+		doc = frappe.get_doc(_provider(provider="fireworks", base_url="https://api.fireworks.ai/inference/v1")).insert()
 		self.assertEqual(doc.provider, "fireworks")
 
 	def test_invalid_base_url_rejected(self):

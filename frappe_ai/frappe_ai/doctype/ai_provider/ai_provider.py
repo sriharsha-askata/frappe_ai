@@ -7,7 +7,7 @@ import frappe
 from frappe import _
 from frappe.model.document import Document
 
-from frappe_ai.lib.model import is_known_provider
+from frappe_ai.lib.model import is_valid_provider_slug
 
 # Keys the shared transport derives itself or that have dedicated fields — not
 # allowed in extra_params.
@@ -40,7 +40,7 @@ class AIProvider(Document):
 
 	def validate(self):
 		self._normalize()
-		self._validate_provider_known()
+		self._validate_provider_name()
 		self._validate_base_url()
 		self._validate_extra_params()
 
@@ -51,11 +51,11 @@ class AIProvider(Document):
 		if isinstance(self.api_key, str):
 			self.api_key = self.api_key.strip()
 
-	def _validate_provider_known(self):
-		if not is_known_provider(self.provider):
+	def _validate_provider_name(self):
+		if not is_valid_provider_slug(self.provider):
 			frappe.throw(
 				_(
-					"Unknown provider {0}. It must be a supported provider identity (e.g. openai, anthropic, openrouter, gemini)."
+					"Invalid provider {0}. Use a short lowercase identifier such as openai, anthropic, ollama or my-gateway."
 				).format(frappe.bold(self.provider)),
 				title=_("Invalid Provider"),
 			)

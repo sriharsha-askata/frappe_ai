@@ -20,7 +20,7 @@ Paths in the scripts assume the layout used when the harness was built (`/var/tm
 ## Requirements learned while building it
 * Frappe v16 (needs Python 3.14 and Node 24); the app's tests use `frappe.tests.IntegrationTestCase`, which v15 does not have.
 * Install Assistant Core first (`buildswithpaul/Frappe_Assistant_Core`, tag v3.3.0 was used), then this app.
-* `pip install` of this app fails as pinned (`litellm>=1.83` needs `openai>=2`, the app pins `openai<2`); the bench was built with `--override litellm<1.83`.
+* The app no longer depends on `litellm` (ADR 0023); the earlier `litellm`/`openai` conflict that blocked `pip install` is gone, and `pip check` is clean. The Chroma client and the `psycopg` test driver are the optional extras `chroma` and `dev`.
 * Postgres sites need `CREATE EXTENSION vector;` run by a privileged role.
 * Run the scenario runner as root (it calls `r.sh`, which switches to the bench user); give the bench user a readable copy of the CA bundle if you use a proxy.
 

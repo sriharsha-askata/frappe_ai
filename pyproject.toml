@@ -9,9 +9,6 @@ readme = "README.md"
 dynamic = ["version"]
 dependencies = [
     # "frappe~=15.0.0" # Installed and managed by bench.
-    # Provider-name validation and model-id suggestions only — chat execution
-    # uses the shared OpenAI-compatible transport below.
-    "litellm>=1.83.0,<1.83.8",
     "agno>=2.8,<3",
     # Explicit transport dependency. Agno's OpenAI-compatible model delegates
     # chat completions, streaming, tools, and structured output to this SDK.
@@ -41,6 +38,13 @@ dependencies = [
     "croniter>=2,<7",
     "mcp>=1,<2",
 ]
+
+[project.optional-dependencies]
+# Alternative vector backend (AI Settings -> Vector Backend = chroma). pgvector needs only the
+# `vector` extension on the Postgres server (the driver is Frappe's); LanceDB is a core dependency.
+chroma = ["chromadb>=1,<2"]
+# For the vector backend contract tests (`frappe_ai/tests/test_vector_contract.py`) against pgvector.
+dev = ["psycopg[binary]>=3.1,<4"]
 
 [build-system]
 requires = ["flit_core >=3.4,<4"]

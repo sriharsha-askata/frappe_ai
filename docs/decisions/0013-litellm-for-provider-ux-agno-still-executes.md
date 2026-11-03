@@ -1,6 +1,6 @@
 # ADR 0013 — litellm reintroduced for provider/model UX; Agno still executes every call
 
-**Status:** Accepted
+**Status:** Superseded by [0023](0023-no-litellm.md)
 **Date:** 2026-08-08
 **Deciders:** Sri Harsha Dabbiru
 **Amends:** [ADR 0009](0009-no-litellm-agno-native-models.md) (does not reverse it — see
