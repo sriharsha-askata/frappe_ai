@@ -1,7 +1,6 @@
 # Copyright (c) 2026, Frappe Technologies and contributors
 # License: MIT. See LICENSE
 
-import json
 import re
 from urllib.parse import urlparse
 
@@ -9,16 +8,16 @@ import frappe
 from frappe import _
 from frappe.model.document import Document
 
+from frappe_ai.frappe_ai.doctype.ai_model.connection_test import (
+	CHAT_CHECKS,
+	blocked_suite,
+	run_capability_suite,
+)
 from frappe_ai.lib.model import (
 	ModelConfigurationError,
 	is_known_provider,
 	resolve_model_config,
 	to_litellm_provider,
-)
-from frappe_ai.frappe_ai.doctype.ai_model.connection_test import (
-	CHAT_CHECKS,
-	blocked_suite,
-	run_capability_suite,
 )
 
 # Bare model id — no `provider/` prefix. The provider slug is identity/endpoint
@@ -118,7 +117,7 @@ class AIModel(Document):
 		if not self.params:
 			return
 		try:
-			parsed = json.loads(self.params)
+			parsed = frappe.parse_json(self.params)
 		except (TypeError, ValueError):
 			frappe.throw(_("Params must be valid JSON."), title=_("Invalid Params"))
 		if not isinstance(parsed, dict):

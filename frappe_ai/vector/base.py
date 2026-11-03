@@ -83,9 +83,6 @@ class VectorBackend(ABC):
 	name: str = ""
 	#: True when `search(text=...)` ranks by keywords (BM25 or similar).
 	supports_keyword_search: bool = True
-	#: True when creating or dropping a collection takes part in the caller's database
-	#: transaction, so the caller should commit right after it.
-	transactional_ddl: bool = False
 
 	@abstractmethod
 	def ensure_collection(

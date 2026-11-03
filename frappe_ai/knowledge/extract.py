@@ -443,10 +443,8 @@ def _clean_pdf_text(text: str) -> str:
 def _parse_filters(raw) -> dict:
 	if not raw:
 		return {}
-	import json
-
 	try:
-		parsed = json.loads(raw)
+		parsed = frappe.parse_json(raw)
 	except (TypeError, ValueError):
 		frappe.throw(_("Filters must be valid JSON."), title=_("Invalid Filters"))
 	if not isinstance(parsed, dict):

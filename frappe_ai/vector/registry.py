@@ -30,17 +30,16 @@ _cache: dict[tuple[Any, ...], VectorBackend] = {}
 
 
 class FrappeSqlRunner:
-	"""`SqlRunner` over `frappe.db`: DDL goes through `sql_ddl` (which commits first)."""
+	"""`SqlRunner` over `frappe.db`.
 
-	_DDL = ("create", "drop", "alter")
+	Every statement, DDL included, runs inside the current transaction (`frappe.db.sql`, not
+	`sql_ddl`, which commits first). Postgres DDL is transactional, so a new index table is
+	created or rolled back together with the chunk rows that go with it."""
 
 	def execute(self, sql, params=()):
 		import frappe
 
-		if sql.lstrip().lower().startswith(self._DDL):
-			frappe.db.sql_ddl(sql)
-		else:
-			frappe.db.sql(sql, tuple(params) or None)
+		frappe.db.sql(sql, tuple(params) or None)
 
 	def fetchall(self, sql, params=()):
 		import frappe

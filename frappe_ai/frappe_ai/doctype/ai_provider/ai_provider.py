@@ -1,7 +1,6 @@
 # Copyright (c) 2026, Frappe Technologies and contributors
 # License: MIT. See LICENSE
 
-import json
 from urllib.parse import urlparse
 
 import frappe
@@ -72,7 +71,7 @@ class AIProvider(Document):
 		if not self.extra_params:
 			return
 		try:
-			parsed = json.loads(self.extra_params)
+			parsed = frappe.parse_json(self.extra_params)
 		except (TypeError, ValueError):
 			frappe.throw(_("Extra Params must be valid JSON."), title=_("Invalid Params"))
 		if not isinstance(parsed, dict):

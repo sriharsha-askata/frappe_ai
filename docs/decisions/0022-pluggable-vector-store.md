@@ -47,8 +47,8 @@ one transaction and one backup; other deployments may prefer an external service
 **Positive:** swapping backends is a setting plus a rebuild; backends are tested by one
 shared contract suite; the Frappe-free core is testable without a site.
 **Negative:** every adapter is code to maintain; scores differ between backends, so retrieval
-quality should be re-checked after a switch; pgvector DDL runs inside the Frappe transaction
-and is committed straight after it is created.
+quality should be re-checked after a switch; pgvector tables are created and dropped
+inside the Frappe transaction (Postgres DDL is transactional), so they commit or roll back with the chunk rows.
 
 ## Alternatives considered
 

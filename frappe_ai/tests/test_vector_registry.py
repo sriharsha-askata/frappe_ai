@@ -79,7 +79,7 @@ class TestVectorRegistry(IntegrationTestCase):
 
 		_set_backend("dummy")
 		hooks = {"dummy": ["frappe_ai.tests.test_vector_registry.make_dummy"]}
-		with patch("frappe.get_hooks", return_value=hooks):
+		with patch.object(registry, "_hook_factories", return_value={"dummy": hooks["dummy"][0]}):
 			self.assertIn("dummy", registry.available_backends())
 			self.assertEqual(registry.configured_name(), "dummy")
 			with patch("frappe.get_attr", return_value=Dummy):

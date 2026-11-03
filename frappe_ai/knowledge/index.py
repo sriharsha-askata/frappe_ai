@@ -70,18 +70,14 @@ class _Index:
 		"""Create the index for this vector width, or validate the existing one."""
 		if not isinstance(dimension, int) or isinstance(dimension, bool) or dimension < 1:
 			raise ValueError(f"Invalid embedding dimension: {dimension!r}")
-		backend = self.backend()
-		existed = backend.info(self.collection) is not None
 		with _translate_errors():
-			backend.ensure_collection(
+			self.backend().ensure_collection(
 				self.collection,
 				dimension=dimension,
 				identity=embedding_identity(dimension),
 				filterable=self.filterable,
 				recreate_on_mismatch=self.recreate_on_mismatch,
 			)
-		if backend.transactional_ddl and not existed:
-			frappe.db.commit()  # make the new table visible to other connections
 
 	def exists(self) -> bool:
 		return self.backend().info(self.collection) is not None
@@ -100,11 +96,7 @@ class _Index:
 		return info.count if info else 0
 
 	def drop(self) -> None:
-		backend = self.backend()
-		existed = backend.info(self.collection) is not None
-		backend.drop(self.collection)
-		if backend.transactional_ddl and existed:
-			frappe.db.commit()
+		self.backend().drop(self.collection)
 
 	def _upsert(self, items: Sequence[Item]) -> None:
 		if items:

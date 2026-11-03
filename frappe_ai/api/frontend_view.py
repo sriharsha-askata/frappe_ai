@@ -5,15 +5,16 @@
 
 from __future__ import annotations
 
-import json
 from typing import Any
+
+import frappe
 
 
 def _parse_json(value: str | None, fallback: Any) -> Any:
 	if not value:
 		return fallback
 	try:
-		return json.loads(value)
+		return frappe.parse_json(value)
 	except Exception:
 		return fallback
 

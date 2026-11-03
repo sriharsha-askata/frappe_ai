@@ -26,7 +26,7 @@ from __future__ import annotations
 
 import json
 import re
-from collections.abc import Mapping, Sequence
+from collections.abc import Sequence
 from typing import Any, Protocol
 
 from frappe_ai.vector.base import (
@@ -85,7 +85,6 @@ def _tsquery(text: str) -> str | None:
 class PgVectorBackend(VectorBackend):
 	name = "pgvector"
 	supports_keyword_search = True
-	transactional_ddl = True
 
 	def __init__(self, sql: SqlRunner):
 		self._sql = sql

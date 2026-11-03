@@ -157,13 +157,13 @@ def _rebuild_single(doc, settings) -> None:
 	purge_source(doc.name)
 
 	rows = []
-	for index, (piece, vector) in enumerate(zip(pieces, vectors, strict=True)):
+	for position, (piece, vector) in enumerate(zip(pieces, vectors, strict=True)):
 		chunk_doc = frappe.get_doc(
 			{
 				"doctype": CHUNK_DOCTYPE,
 				"knowledge_base": doc.knowledge_base,
 				"source": doc.name,
-				"chunk_index": index,
+				"chunk_index": position,
 				"content": piece,
 			}
 		).insert(ignore_permissions=True)
@@ -266,7 +266,7 @@ def _embed_and_insert(doc, settings, to_embed, stale) -> None:
 	rows = []
 	cursor = 0
 	for reference_name, content_hash, pieces in to_embed:
-		for index, piece in enumerate(pieces):
+		for position, piece in enumerate(pieces):
 			vector = vectors[cursor]
 			cursor += 1
 			chunk_doc = frappe.get_doc(
@@ -274,7 +274,7 @@ def _embed_and_insert(doc, settings, to_embed, stale) -> None:
 					"doctype": CHUNK_DOCTYPE,
 					"knowledge_base": doc.knowledge_base,
 					"source": doc.name,
-					"chunk_index": index,
+					"chunk_index": position,
 					"content": piece,
 					"content_hash": content_hash,
 					"reference_doctype": doc.reference_doctype,
