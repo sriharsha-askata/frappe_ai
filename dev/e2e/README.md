@@ -6,9 +6,10 @@ Postgres**, with a stub standing in for the LLM and the embedding model. See
 
 | File | Purpose |
 |---|---|
-| `stubs/openai_stub.py` | OpenAI-compatible server: deterministic embeddings and a scripted chat model (`[[search: ...]]`, `[[tool: name {json}]]`, `[[fail]]`) |
+| `stubs/openai_stub.py` | OpenAI-compatible server: deterministic embeddings and a scripted chat model (`[[search: ...]]`, `[[tool: name {json}]]`, `[[fail]]`) and a transcriber for `/audio/transcriptions` |
 | `run_in_site.py` | Run `module.function` inside a bench site as Administrator (what a background job would do) |
 | `e2e_checks.py` | The site-side functions: seeding, inspection, and the install/registry/pgvector checks |
+| `audio.py` | Builds small WAV files that carry their own transcript for the stub (`SPOKEN:` marker) |
 | `run_scenarios.py` | The HTTP scenarios: real API calls, real SSE stream, state read back from the site |
 | `services.sh`, `start_stack.sh` | Start MariaDB/Redis/Postgres, then web, worker and one FastAPI service per site |
 | `b.sh`, `r.sh`, `scn.sh` | Small wrappers: run `bench`, run a site function, run the scenarios |
