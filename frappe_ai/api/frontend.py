@@ -28,7 +28,7 @@ from frappe_ai.api.frontend_view import (
 )
 from frappe_ai.frappe_ai.doctype.ai_run.ai_run import assert_run_owner
 from frappe_ai.frappe_ai.doctype.ai_session.ai_session import assert_session_owner
-from frappe_ai.knowledge.extract import FILE_EXTENSIONS
+from frappe_ai.knowledge.extract import supported_extensions
 from frappe_ai.utils.like import contains
 
 
@@ -219,7 +219,7 @@ def _bootstrap_payload(*, current_session: dict[str, Any] | None = None) -> dict
 			"feedback": [],
 		},
 		"composer": {
-			"supported_file_types": sorted(FILE_EXTENSIONS),
+			"supported_file_types": sorted(supported_extensions()),
 		},
 		"capabilities": {
 			"standalone_page": True,

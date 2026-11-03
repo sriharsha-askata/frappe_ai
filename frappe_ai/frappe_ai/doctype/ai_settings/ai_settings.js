@@ -2,6 +2,8 @@
 // License: MIT. See LICENSE
 
 frappe.ui.form.on("AI Settings", {
-	// refresh(frm) {
-	// },
+	setup(frm) {
+		// Only enabled models can transcribe audio.
+		frm.set_query("transcription_model", () => ({ filters: { enabled: 1 } }));
+	},
 });

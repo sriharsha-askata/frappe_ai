@@ -14,6 +14,7 @@ from frappe_ai.lib.model import (
 	is_valid_provider_slug,
 	list_model_ids,
 	normalize_provider_error,
+	redact_secrets,
 	resolve_provider_credentials,
 )
 
@@ -34,7 +35,14 @@ class TestProviderSlug(IntegrationTestCase):
 			frappe.get_doc({"doctype": "AI Provider", "provider": "bad slug!", "enabled": 1}).insert()
 
 	def test_provider_without_a_known_endpoint_is_still_accepted(self):
-		doc = frappe.get_doc({"doctype": "AI Provider", "provider": "my-gateway", "base_url": "http://gw.local/v1", "enabled": 1}).insert()
+		doc = frappe.get_doc(
+			{
+				"doctype": "AI Provider",
+				"provider": "my-gateway",
+				"base_url": "http://gw.local/v1",
+				"enabled": 1,
+			}
+		).insert()
 		self.assertEqual(doc.provider, "my-gateway")
 
 	def test_anthropic_has_an_endpoint_default(self):
@@ -53,7 +61,15 @@ class TestListModelIds(IntegrationTestCase):
 class TestGetProviderModels(IntegrationTestCase):
 	def setUp(self):
 		frappe.cache.delete_value("frappe_ai:provider_models:suggest-gw")
-		frappe.get_doc({"doctype": "AI Provider", "provider": "suggest-gw", "base_url": "http://gw.local/v1", "api_key": "k", "enabled": 1}).insert()
+		frappe.get_doc(
+			{
+				"doctype": "AI Provider",
+				"provider": "suggest-gw",
+				"base_url": "http://gw.local/v1",
+				"api_key": "k",
+				"enabled": 1,
+			}
+		).insert()
 
 	def tearDown(self):
 		frappe.cache.delete_value("frappe_ai:provider_models:suggest-gw")
@@ -66,13 +82,18 @@ class TestGetProviderModels(IntegrationTestCase):
 		self.assertEqual(fetch.call_args.args[0]["base_url"], "http://gw.local/v1")
 
 	def test_results_are_cached(self):
-		with patch("frappe_ai.frappe_ai.doctype.ai_model.ai_model.list_model_ids", return_value=["a"]) as fetch:
+		with patch(
+			"frappe_ai.frappe_ai.doctype.ai_model.ai_model.list_model_ids", return_value=["a"]
+		) as fetch:
 			get_provider_models("suggest-gw")
 			get_provider_models("suggest-gw")
 		self.assertEqual(fetch.call_count, 1)
 
 	def test_an_unreachable_provider_gives_no_suggestions(self):
-		with patch("frappe_ai.frappe_ai.doctype.ai_model.ai_model.list_model_ids", side_effect=ConnectionError("down")):
+		with patch(
+			"frappe_ai.frappe_ai.doctype.ai_model.ai_model.list_model_ids",
+			side_effect=ConnectionError("down"),
+		):
 			self.assertEqual(get_provider_models("suggest-gw"), [])
 
 	def test_unknown_or_blank_provider_gives_no_suggestions(self):
@@ -163,7 +184,24 @@ class TestResolveProviderCredentials(IntegrationTestCase):
 
 	def test_provider_endpoint_default_is_used(self):
 		self.assertEqual(get_provider_endpoint("google"), PROVIDER_ENDPOINT_DEFAULTS["google"])
-		self.assertEqual(get_provider_endpoint("google", "https://proxy.example/v1"), "https://proxy.example/v1")
+		self.assertEqual(
+			get_provider_endpoint("google", "https://proxy.example/v1"), "https://proxy.example/v1"
+		)
+
+
+class TestRedactSecrets(IntegrationTestCase):
+	def test_api_keys_and_bearer_tokens_are_masked(self):
+		text = "bad key sk-proj-abc123XYZ789 and Bearer abcdefgh12345678 rejected"
+		self.assertEqual(redact_secrets(text), "bad key [redacted] and [redacted] rejected")
+
+	def test_ordinary_text_is_unchanged(self):
+		self.assertEqual(redact_secrets("model not ready, try again"), "model not ready, try again")
+
+	def test_an_unclassified_provider_error_does_not_expose_a_key(self):
+		result = normalize_provider_error(
+			RuntimeError("weird failure for sk-live-0123456789abc"), provider="x"
+		)
+		self.assertNotIn("sk-live-0123456789abc", result.message)
 
 
 class TestNormalizedProviderError(IntegrationTestCase):

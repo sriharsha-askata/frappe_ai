@@ -16,6 +16,10 @@ It replaces the two external services the app calls so that tests are determinis
   ``[[fail]]``                 answer with HTTP 500 (provider error)
   anything else                plain text answer
 
+* ``POST /v1/audio/transcriptions`` - a "transcriber" for audio built by the tests. The audio bytes carry
+  their own transcript after the marker ``SPOKEN:`` (ended by a NUL byte), so the stub needs no speech model;
+  sentences become verbose_json segments five seconds apart. Audio containing ``FAIL`` gets an HTTP 500.
+
   After a tool result the model answers with ``TOOL RESULT: <first 300 chars>``. Streaming
   (server-sent events) and non-streaming requests are both supported.
 
@@ -27,6 +31,8 @@ from __future__ import annotations
 
 import argparse
 import hashlib
+from email.parser import BytesParser
+from email.policy import default as email_policy
 import json
 import math
 import re
@@ -36,6 +42,8 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
 DIMENSION = 768
 _WORD = re.compile(r"\w+", re.UNICODE)
+_SPOKEN = re.compile(rb"SPOKEN:(.*?)\x00", re.S)
+SEGMENT_SECONDS = 5.0
 _DIRECTIVE = re.compile(r"\[\[(search|tool|fail)(?::\s*|\s+)?(.*?)\]\]", re.S)
 
 LOG_PATH: str | None = None
@@ -75,6 +83,40 @@ def decide(messages: list[dict]) -> dict:
 		return {"tool": "search_knowledge", "arguments": {"query": rest}}
 	name, _, raw = rest.partition(" ")
 	return {"tool": name, "arguments": json.loads(raw) if raw.strip() else {}}
+
+
+def transcribe(audio: bytes) -> dict:
+	"""A verbose_json transcription of `audio`, taken from the text embedded in its bytes."""
+	match = _SPOKEN.search(audio)
+	spoken = match.group(1).decode("utf-8", "replace") if match else f"stub transcript of {len(audio)} bytes"
+	sentences = [part.strip() for part in re.split(r"(?<=[.!?])\s+", spoken) if part.strip()]
+	segments = [
+		{"id": i, "start": i * SEGMENT_SECONDS, "end": (i + 1) * SEGMENT_SECONDS, "text": " " + sentence}
+		for i, sentence in enumerate(sentences)
+	]
+	return {
+		"task": "transcribe",
+		"language": "english",
+		"duration": len(sentences) * SEGMENT_SECONDS,
+		"text": spoken,
+		"segments": segments,
+	}
+
+
+def parse_multipart(content_type: str, raw: bytes) -> dict:
+	"""Form fields and uploaded files of a multipart body: `{name: str | (filename, bytes)}`."""
+	message = BytesParser(policy=email_policy).parsebytes(
+		b"Content-Type: " + content_type.encode() + b"\r\n\r\n" + raw
+	)
+	parts = {}
+	for part in message.iter_parts():
+		name, filename, payload = (
+			part.get_param("name", header="content-disposition"),
+			part.get_filename(),
+			part.get_payload(decode=True),
+		)
+		parts[name] = (filename, payload) if filename else payload.decode()
+	return parts
 
 
 def _chunk(model: str, delta: dict, finish=None, usage=None) -> dict:
@@ -117,17 +159,39 @@ class Handler(BaseHTTPRequestHandler):
 
 	def do_POST(self):
 		length = int(self.headers.get("Content-Length") or 0)
-		body = json.loads(self.rfile.read(length) or b"{}")
-		with LOG_LOCK:
-			REQUESTS.append({"path": self.path, "body": body})
-			if LOG_PATH:
-				with open(LOG_PATH, "a", encoding="utf-8") as handle:
-					handle.write(json.dumps({"path": self.path, "body": body}) + "\n")
+		raw = self.rfile.read(length)
+		content_type = self.headers.get("Content-Type", "")
+		if content_type.startswith("multipart/form-data"):
+			return self._transcription(content_type, raw)
+		body = json.loads(raw or b"{}")
+		self._record({"path": self.path, "body": body})
 		if self.path.endswith("/embeddings"):
 			return self._embeddings(body)
 		if self.path.endswith("/chat/completions"):
 			return self._chat(body)
 		self._send_json(404, {"error": {"message": "not found"}})
+
+	def _record(self, entry: dict) -> None:
+		with LOG_LOCK:
+			REQUESTS.append(entry)
+			if LOG_PATH:
+				with open(LOG_PATH, "a", encoding="utf-8") as handle:
+					handle.write(json.dumps(entry) + "\n")
+
+	def _transcription(self, content_type: str, raw: bytes) -> None:
+		fields = parse_multipart(content_type, raw)
+		filename, audio = fields.get("file", ("", b""))
+		self._record(
+			{
+				"path": self.path,
+				"body": {"model": fields.get("model"), "filename": filename, "bytes": len(audio)},
+			}
+		)
+		if b"FAIL" in audio:
+			return self._send_json(
+				500, {"error": {"message": "stub transcription failure", "type": "server_error"}}
+			)
+		self._send_json(200, transcribe(audio))
 
 	def _embeddings(self, body: dict) -> None:
 		inputs = body.get("input", [])

@@ -16,9 +16,22 @@ from io import BytesIO
 import frappe
 from frappe import _
 
+from frappe_ai.knowledge.transcribe import (
+	AUDIO_EXTENSIONS,
+	check_audio_size,
+	transcribe,
+	transcribe_file,
+	transcription_model,
+)
+
 TEXT_EXTENSIONS = {"txt", "text", "md", "markdown", "csv", "tsv", "log", "rst", "json", "yaml", "yml"}
 IMAGE_EXTENSIONS = {"png", "jpg", "jpeg", "webp", "bmp", "tiff", "tif", "gif"}
 FILE_EXTENSIONS = {"pdf", "xlsx", "docx", "html", "htm"} | TEXT_EXTENSIONS | IMAGE_EXTENSIONS
+
+
+def supported_extensions() -> set[str]:
+	"""File types users may attach: the fixed set, plus audio once a transcription model is configured."""
+	return FILE_EXTENSIONS | AUDIO_EXTENSIONS if transcription_model() else set(FILE_EXTENSIONS)
 
 OCR_DPI = 200
 DOCLING_MIN_MARKDOWN_CHARS = 50
@@ -63,6 +76,8 @@ def _extract_file_source(source) -> list[ExtractedDoc]:
 def extract_file(file_doc) -> str:
 	"""Extract plain text from a File doc by extension. Usable by any caller that holds a File doc."""
 	extension = os.path.splitext(file_doc.file_name or file_doc.file_url or "")[1].lower().lstrip(".")
+	if extension in AUDIO_EXTENSIONS:
+		check_audio_size(file_doc.file_size or 0)  # before the file is downloaded or read
 	if _is_remote_dfp_file(file_doc):
 		if hasattr(file_doc, "is_downloadable") and not file_doc.is_downloadable():
 			raise frappe.PageDoesNotExistError()
@@ -80,6 +95,8 @@ def _is_remote_dfp_file(file_doc) -> bool:
 
 
 def _extract_path(path: str, extension: str) -> str:
+	if extension in AUDIO_EXTENSIONS:
+		return transcribe_file(path, extension)
 	if extension == "pdf":
 		docling_text = _extract_pdf_docling_path(path)
 		if docling_text is not None:
@@ -152,6 +169,8 @@ def _extract_doctype_source(source) -> list[ExtractedDoc]:
 
 
 def _extract_by_extension(content, extension: str) -> str:
+	if extension in AUDIO_EXTENSIONS:
+		return transcribe(f"audio.{extension}", _as_bytes(content))
 	if extension == "pdf":
 		return _extract_pdf(_as_bytes(content))
 	if extension == "xlsx":

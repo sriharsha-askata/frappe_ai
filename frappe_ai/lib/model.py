@@ -50,6 +50,10 @@ PROVIDER_ENDPOINT_DEFAULTS: dict[str, str] = {
 # A provider identity is a short lowercase slug: letters, digits, ".", "_" or "-".
 PROVIDER_SLUG = re.compile(r"^[a-z0-9][a-z0-9_.-]*$")
 MODEL_LIST_TIMEOUT_SECONDS = 8
+# API keys and bearer tokens that providers sometimes echo back inside error messages.
+_SECRET_PATTERN = re.compile(
+	r"\b(?:sk|pk|rk|gsk|xai)-[A-Za-z0-9_\-]{6,}|\bBearer\s+[A-Za-z0-9._\-]{8,}", re.IGNORECASE
+)
 
 
 class ModelConfigurationError(ValueError):
@@ -264,11 +268,11 @@ def create_openai_compatible_model(
 def create_openai_compatible_client(
 	model_config: dict[str, Any], *, timeout: float | None = None, max_retries: int | None = None
 ):
-	"""Create the OpenAI SDK client used by compatibility embeddings endpoints."""
+	"""Create the OpenAI SDK client used for embeddings and transcription on compatible endpoints."""
 	try:
 		from openai import OpenAI
 	except (ImportError, ModuleNotFoundError) as exc:
-		raise ModelConfigurationError("The OpenAI Python SDK is required for embeddings.") from exc
+		raise ModelConfigurationError("The OpenAI Python SDK is required.") from exc
 
 	kwargs: dict[str, Any] = {
 		"api_key": model_config.get("api_key"),
@@ -282,6 +286,11 @@ def create_openai_compatible_client(
 		return OpenAI(**kwargs)
 	except (TypeError, ValueError) as exc:
 		raise ModelConfigurationError(f"Invalid model parameters: {exc}") from exc
+
+
+def redact_secrets(text: str) -> str:
+	"""Mask API keys and bearer tokens so an error message can be shown to users and logged."""
+	return _SECRET_PATTERN.sub("[redacted]", text)
 
 
 def normalize_provider_error(
@@ -304,10 +313,14 @@ def normalize_provider_error(
 		code = "authentication"
 		retryable = False
 		message = f"Authentication failed for provider '{provider or 'OpenAI-compatible'}'."
-	elif status_code == 404 or any(token in lower for token in ("model not found", "does not exist", "unknown model")):
+	elif status_code == 404 or any(
+		token in lower for token in ("model not found", "does not exist", "unknown model")
+	):
 		code = "invalid_model"
 		retryable = False
-		message = f"Model '{model_id or 'unknown'}' was not found by provider '{provider or 'OpenAI-compatible'}'."
+		message = (
+			f"Model '{model_id or 'unknown'}' was not found by provider '{provider or 'OpenAI-compatible'}'."
+		)
 	elif status_code == 429 or "rate limit" in lower or "too many requests" in lower:
 		code = "rate_limit"
 		retryable = True
@@ -327,7 +340,7 @@ def normalize_provider_error(
 	else:
 		code = "provider_error"
 		retryable = False
-		message = raw_message or "The provider returned an unknown error."
+		message = redact_secrets(raw_message) or "The provider returned an unknown error."
 
 	return NormalizedProviderError(
 		code,
@@ -440,6 +453,8 @@ def single_tool_result_char_budget(model_name: str | None) -> int:
 	space accommodates the prompt, other results, and reply."""
 	context_window = (model_name and frappe.db.get_value("AI Model", model_name, "context_window")) or 0
 	budget_tokens = (
-		int(context_window * SINGLE_RESULT_CONTEXT_FRACTION) if context_window else DEFAULT_SINGLE_CALL_BUDGET_TOKENS
+		int(context_window * SINGLE_RESULT_CONTEXT_FRACTION)
+		if context_window
+		else DEFAULT_SINGLE_CALL_BUDGET_TOKENS
 	)
 	return budget_tokens * CHARS_PER_TOKEN

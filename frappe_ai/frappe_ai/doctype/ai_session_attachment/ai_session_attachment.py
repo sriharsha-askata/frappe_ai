@@ -4,8 +4,8 @@
 """`AI Session Attachment` stores files attached to a conversation.
 
 Extraction now goes through `frappe_ai.knowledge.extract.extract_file`
-(`FILE_EXTENSIONS`) — PDF, DOCX, XLSX, HTML, OCR, and plain text, same set `AI
-Knowledge Source`'s File sources use. Retrieval mode (chunk + embed oversized files
+(`FILE_EXTENSIONS`) — PDF, DOCX, XLSX, HTML, OCR, plain text and, when a
+transcription model is configured, audio: the same set `AI Knowledge Source` File sources use. Retrieval mode (chunk + embed oversized files
 into the attachment search index) is wired in `AISession.persist_turn`/
 `_index_retrieval_attachments`/`build_prompt_messages`.
 """
@@ -20,6 +20,7 @@ from frappe import _
 from frappe.model.document import Document
 
 from frappe_ai.knowledge.extract import FILE_EXTENSIONS, extract_file
+from frappe_ai.knowledge.transcribe import is_audio_extension, require_transcription_model
 
 CACHE_PREFIX = "chat_attachment"
 CACHE_TTL = 3600
@@ -54,8 +55,10 @@ def extract_attachment(file: str) -> dict[str, Any]:
 	if not frappe.has_permission("File", "read", doc=file_doc):
 		frappe.throw(_("Not permitted to use this file."), frappe.PermissionError)
 
-	extension = os.path.splitext(file_doc.file_name or "")[1].lower().lstrip(".")
-	if extension not in FILE_EXTENSIONS:
+	extension = _extension(file_doc.file_name)
+	if is_audio_extension(extension):
+		require_transcription_model()
+	elif extension not in FILE_EXTENSIONS:
 		frappe.throw(
 			_("Unsupported file type: .{0}").format(extension or "?"),
 			title=_("Unsupported File"),
@@ -71,6 +74,10 @@ def extract_attachment(file: str) -> dict[str, Any]:
 		"file_size": file_doc.file_size,
 		"extracted_text": text,
 	}
+
+
+def _extension(file_name: str | None) -> str:
+	return os.path.splitext(file_name or "")[1].lower().lstrip(".")
 
 
 def _cache_key(file: str) -> str:
@@ -92,4 +99,10 @@ def staged_attachment(file: str) -> dict[str, Any] | None:
 def resolve_attachment(file: str) -> dict[str, Any]:
 	"""Materialize an attachment at send time. Prefers the upload-time staged extraction;
 	on a cache miss it re-extracts, which also re-checks the caller's read permission."""
-	return staged_attachment(file) or extract_attachment(file)
+	staged = staged_attachment(file)
+	if staged:
+		return staged
+	if is_audio_extension(_extension(frappe.db.get_value("File", file, "file_name"))):
+		# Transcribing again would repeat the cost and delay without the user knowing.
+		frappe.throw(_("This audio upload has expired. Attach the file again."), title=_("Attach Again"))
+	return extract_attachment(file)

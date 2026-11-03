@@ -12,6 +12,11 @@
   "chunk_size",
   "column_break_chunking",
   "chunk_overlap",
+  "section_break_audio",
+  "transcription_model",
+  "column_break_audio",
+  "max_audio_mb",
+  "transcription_timeout",
   "section_break_service",
   "column_break_service",
   "request_timeout",
@@ -70,6 +75,36 @@
    "fieldtype": "Int",
    "label": "Chunk Overlap",
    "non_negative": 1
+  },
+  {
+   "fieldname": "section_break_audio",
+   "fieldtype": "Section Break",
+   "label": "Audio"
+  },
+  {
+   "description": "Model that turns audio files into text. It must be served by an OpenAI-compatible /audio/transcriptions endpoint (for example OpenAI, Groq or a local faster-whisper server). Audio is sent to that provider. Leave empty to keep audio uploads switched off.",
+   "fieldname": "transcription_model",
+   "fieldtype": "Link",
+   "label": "Transcription Model",
+   "options": "AI Model"
+  },
+  {
+   "fieldname": "column_break_audio",
+   "fieldtype": "Column Break"
+  },
+  {
+   "default": "25",
+   "description": "Largest audio file accepted, in megabytes. Keep it at or below your provider's limit (OpenAI: 25).",
+   "fieldname": "max_audio_mb",
+   "fieldtype": "Int",
+   "label": "Max Audio Size (MB)"
+  },
+  {
+   "default": "110",
+   "description": "Seconds to wait for a transcription. Keep it below your web server's request timeout (120 by default).",
+   "fieldname": "transcription_timeout",
+   "fieldtype": "Int",
+   "label": "Transcription Timeout (seconds)"
   },
   {
    "fieldname": "section_break_service",

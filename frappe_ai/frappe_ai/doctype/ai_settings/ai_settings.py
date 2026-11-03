@@ -19,16 +19,20 @@ class AISettings(Document):
 		chunk_overlap: DF.Int
 		chunk_size: DF.Int
 		embedding_dimension: DF.Int
+		max_audio_mb: DF.Int
 		request_timeout: DF.Int
 		search_type: DF.Literal["Hybrid", "Vector"]
 		service_status: DF.Data | None
 		stream_timeout: DF.Int
+		transcription_model: DF.Link | None
+		transcription_timeout: DF.Int
 		vector_backend: DF.Data | None
 	# end: auto-generated types
 
 	def validate(self):
 		self._validate_chunking()
 		self._validate_vector_backend()
+		self._validate_audio()
 
 	def _validate_vector_backend(self):
 		"""Accept Auto or a backend that is built in or registered by an installed app."""
@@ -53,3 +57,15 @@ class AISettings(Document):
 			frappe.throw(_("Chunk Size must be at least 1."), title=_("Invalid Chunking"))
 		if cint(self.chunk_overlap) >= cint(self.chunk_size):
 			frappe.throw(_("Chunk Overlap must be smaller than Chunk Size."), title=_("Invalid Chunking"))
+
+	def _validate_audio(self):
+		"""The transcription model must be usable, and the limits must not be negative (0 means default)."""
+		if cint(self.max_audio_mb) < 0:
+			frappe.throw(_("Max Audio Size cannot be negative."), title=_("Invalid Audio Settings"))
+		if cint(self.transcription_timeout) < 0:
+			frappe.throw(_("Transcription Timeout cannot be negative."), title=_("Invalid Audio Settings"))
+		if self.transcription_model and not frappe.db.get_value("AI Model", self.transcription_model, "enabled"):
+			frappe.throw(
+				_("Transcription Model {0} is disabled.").format(self.transcription_model),
+				title=_("Invalid Audio Settings"),
+			)
